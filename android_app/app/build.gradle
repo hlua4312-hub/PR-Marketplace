@@ -78,6 +78,7 @@ tasks.register('syncWebAssets', Copy) {
         include 'sw.js'
         include 'pr_app_icon.jpg'
         include 'js/**'
+        include 'icons/**'
     }
     into assetsWww
 }

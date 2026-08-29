@@ -125,6 +125,15 @@ The `android_app/` folder is an Android Studio project that loads the same web a
 npm run android:debug     # or open android_app/ in Android Studio
 ```
 
+The APK lands in `APK_Outputs/PR_Marketplace.apk`. Copy it to your phone and install.
+
+> **Editing the web files does not change an APK that is already installed.** The assets are compiled into the package, so after any change you have to rebuild and reinstall — otherwise the phone keeps running the build it was given. If a change still does not appear after reinstalling, uninstall first: an update keeps the WebView's storage, including the old service worker cache.
+
+> **`local.properties`** holds the path to your Android SDK and is gitignored, so it will not exist on a fresh clone. Opening `android_app/` in Android Studio once writes it for you. Writing it by hand works too, but note it is a Java `.properties` file — either double every backslash or just use forward slashes:
+> ```
+> sdk.dir=C:/Users/YOU/AppData/Local/Android/Sdk
+> ```
+
 The Gradle build copies the web app into `app/src/main/assets/www` automatically before compiling, so the APK can never ship stale HTML.
 
 ### Signing a release build
