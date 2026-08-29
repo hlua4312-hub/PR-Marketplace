@@ -428,7 +428,10 @@ input, textarea, select {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  min-height: 300px;
+  /* Deliberately no min-height. A floor here stretches the row, and a
+     stretched card squashes its photo and leaves a gap above the price.
+     Cards in a row still match each other, which is what you actually want. */
+  align-content: start;
 }
 
 @media (min-width: 640px) {
@@ -473,8 +476,8 @@ input, textarea, select {
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  background-color: var(--bg-main);
+  object-fit: cover;
+  background-color: var(--img-ghost);
   transition: transform 0.3s ease;
 }
 
