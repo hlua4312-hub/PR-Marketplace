@@ -143,7 +143,20 @@ function wireTabs() {
 
   document.getElementById('linkSwitchToLogin')?.addEventListener('click', e => { e.preventDefault(); showTab('login'); });
   document.getElementById('linkSwitchToRegister')?.addEventListener('click', e => { e.preventDefault(); showTab('signin'); });
-  document.getElementById('linkForgotPassword')?.addEventListener('click', e => { e.preventDefault(); showTab('reset'); });
+  // Two ways in, one handler: the label-row link and the plainer button
+  // under the sign-in call to action.
+  ['linkForgotPassword', 'linkForgotPasswordAlt'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', e => {
+      e.preventDefault();
+      const typed = document.getElementById('loginEmail')?.value.trim();
+      const resetField = document.getElementById('resetEmail');
+      // Carry across whatever they already typed rather than asking twice.
+      if (typed && typed.includes('@') && resetField && !resetField.value) {
+        resetField.value = typed;
+      }
+      showTab('reset');
+    });
+  });
   document.getElementById('linkBackToLogin')?.addEventListener('click', e => { e.preventDefault(); showTab('login'); });
 
   document.getElementById('linkConfirmedGoToLogin')?.addEventListener('click', e => {

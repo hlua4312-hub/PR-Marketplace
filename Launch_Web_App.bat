@@ -10,20 +10,24 @@ echo   workers and PWA install need a real http:// origin.
 echo =========================================================
 echo.
 
+where node >nul 2>nul
+if %ERRORLEVEL%==0 (
+    start "" http://localhost:8080
+    node scripts\dev-server.mjs
+    goto :eof
+)
+
 where python >nul 2>nul
 if %ERRORLEVEL%==0 (
+    echo [!] Node.js not found. Falling back to Python.
+    echo     Note: Python's server does not disable caching, so after
+    echo     editing a file you may need Ctrl+F5 to see the change.
+    echo.
     start "" http://localhost:8080
     python -m http.server 8080
     goto :eof
 )
 
-where node >nul 2>nul
-if %ERRORLEVEL%==0 (
-    start "" http://localhost:8080
-    npx --yes serve . -l 8080
-    goto :eof
-)
-
-echo [!] Neither Python nor Node.js was found on this machine.
+echo [!] Neither Node.js nor Python was found on this machine.
 echo     Install either one, then run this file again.
 pause

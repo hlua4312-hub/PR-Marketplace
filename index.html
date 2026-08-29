@@ -127,23 +127,28 @@
         </div>
 
         <div class="auth-form-group">
-          <label for="loginPassword">Password <span class="required">*</span></label>
+          <!-- Recovery sits on the password label row, where people look for it. -->
+          <div class="auth-label-row">
+            <label for="loginPassword">Password <span class="required">*</span></label>
+            <button type="button" class="auth-inline-link" id="linkForgotPassword">Forgot password?</button>
+          </div>
           <div class="password-input-wrap">
             <input type="password" id="loginPassword" placeholder="Enter your password" required>
             <button type="button" class="btn-toggle-pwd" data-target="loginPassword">👁️</button>
           </div>
         </div>
 
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:2px; flex-wrap:wrap;">
-          <label style="font-size:0.8rem; color:var(--text-body); display:flex; align-items:center; gap:6px; cursor:pointer;">
-            <input type="checkbox" id="chkRememberMe" checked style="accent-color:var(--primary); width:16px; height:16px;">
-            <span>Remember my email on this device</span>
-          </label>
-          <a href="#" id="linkForgotPassword" style="font-size:0.8rem; font-weight:600;">Forgot password?</a>
-        </div>
+        <label class="auth-remember-row">
+          <input type="checkbox" id="chkRememberMe" checked>
+          <span>Remember my email on this device</span>
+        </label>
 
         <button type="submit" class="btn btn-primary auth-submit-btn" id="btnSubmitLogIn">
           <span>Log In to Account</span>
+        </button>
+
+        <button type="button" class="auth-secondary-action" id="linkForgotPasswordAlt">
+          Can't log in? Recover your account
         </button>
 
         <p class="auth-footer-hint">

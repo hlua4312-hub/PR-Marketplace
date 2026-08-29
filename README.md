@@ -103,11 +103,15 @@ npm start
 
 Then open <http://localhost:8080>. Double-clicking `Launch_Web_App.bat` does the same thing on Windows.
 
+`npm start` runs `scripts/dev-server.mjs`, a dependency-free static server that sends `Cache-Control: no-store`. That matters more than it sounds: `python -m http.server` sends no cache header at all, so browsers cache heuristically and keep rendering an old stylesheet after you have edited it — the change is on disk, served correctly, and never reaches the screen.
+
 If you don't have Node.js:
 
 ```bash
-python -m http.server 8080
+npm run start:python
 ```
+
+That works, but after editing a file you may need Ctrl+F5 to see the change.
 
 > Opening `index.html` straight off disk will not work properly. Service workers and PWA install require a real `http://` origin, and the browser refuses both over `file://`.
 

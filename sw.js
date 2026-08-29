@@ -6,7 +6,7 @@
  * anything going to Supabase always goes to the network.
  */
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL_CACHE = `pr-shell-${VERSION}`;
 const IMAGE_CACHE = `pr-images-${VERSION}`;
 const MAX_CACHED_IMAGES = 60;
@@ -82,14 +82,43 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // The HTML document itself is fetched with the HTTP cache bypassed. Without
+  // that, a plain static server sends no Cache-Control, the browser applies
+  // heuristic caching, and an edited page keeps rendering the old markup - the
+  // change is on disk and served correctly, but never reaches the screen.
+  if (request.mode === 'navigate') {
+    event.respondWith(freshDocument(request));
+    return;
+  }
+
   // App shell and everything else: try the network, fall back to the cache.
   event.respondWith(networkFirst(request));
 });
 
+async function freshDocument(request) {
+  const cache = await caches.open(SHELL_CACHE);
+  try {
+    const response = await fetch(request, { cache: 'reload' });
+    if (response && response.status === 200) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (err) {
+    return (await cache.match(request)) ||
+           (await cache.match('./index.html')) ||
+           Response.error();
+  }
+}
+
 async function networkFirst(request) {
   const cache = await caches.open(SHELL_CACHE);
   try {
-    const response = await fetch(request);
+    // 'no-cache' revalidates with the server rather than trusting the browser's
+    // heuristic cache. A static file server that sends no Cache-Control leaves
+    // the browser guessing, and it guesses that an edited stylesheet is still
+    // fresh - so a change reaches the disk and the server but never the screen.
+    // This costs a conditional request and usually gets a cheap 304 back.
+    const response = await fetch(request, { cache: 'no-cache' });
     if (response && response.status === 200 && response.type === 'basic') {
       cache.put(request, response.clone());
     }

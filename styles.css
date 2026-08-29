@@ -4248,6 +4248,77 @@ input[type="range"] {
 .theme-switch.on { background-color: var(--primary); }
 .theme-switch.on::after { transform: translateX(17px); }
 
+/* ---------------------------------------------- auth: recovery affordance -- */
+
+.auth-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+/* A button, not an anchor: it runs script rather than going anywhere, and a
+   real <button> gets keyboard and screen-reader behaviour for free. */
+.auth-inline-link {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+  cursor: pointer;
+}
+.auth-inline-link:hover { text-decoration: underline; }
+
+.auth-remember-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 4px;
+  font-size: 0.8rem;
+  color: var(--text-body);
+  cursor: pointer;
+}
+.auth-remember-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* Second, plainer route to recovery for anyone who did not spot the first. */
+.auth-secondary-action {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.auth-secondary-action:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Catch-all: any link in the auth card follows the app, never the UA default.
+   This is what the old Forgot password anchor fell through. */
+.auth-card a {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+.auth-card a:hover { text-decoration: underline; }
+
 /* ==========================================================================
    DARK THEME - opt in only
    Deliberately NOT wired to prefers-color-scheme. Shoppers expect a white
