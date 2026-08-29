@@ -1812,29 +1812,6 @@ mark.search-highlight {
   z-index: 15;
 }
 
-.btn-preview-zoom {
-  background-color: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(4px);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: all 0.15s ease;
-}
-
-.btn-preview-zoom:hover {
-  background-color: var(--primary);
-  transform: scale(1.1);
-}
-
 .btn-crop-overlay {
   background-color: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(4px);

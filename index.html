@@ -367,14 +367,8 @@
       </div>
 
       <!-- Empty State -->
-      <div class="empty-state hidden" id="emptyState">
-        <div class="empty-icon">🔍</div>
-        <h3>No items found</h3>
-        <p>Try adjusting your search keywords or clear category filters.</p>
-        <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:10px;">
-          <button class="btn btn-secondary" id="emptyResetBtn">Show All Items</button>
-        </div>
-      </div>
+      <!-- Contents are rendered by feed.js, which tailors the message to the tab -->
+      <div class="empty-state hidden" id="emptyState"></div>
 
     </main>
 
@@ -484,8 +478,6 @@
                 <div class="image-preview-container hidden" id="imagePreviewContainer">
                   <img id="imagePreview" src="" alt="Item Preview">
                   <div class="preview-overlay-actions">
-                    <button type="button" class="btn-preview-zoom" id="btnPreviewZoomOut" title="Zoom Out (−)">−</button>
-                    <button type="button" class="btn-preview-zoom" id="btnPreviewZoomIn" title="Zoom In (+)">+</button>
                     <button type="button" class="btn-crop-overlay" id="cropImageBtn" title="Crop & Adjust Photo">
                       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
                       <span>Crop Photo</span>
@@ -640,8 +632,6 @@
                 <div class="image-preview-container hidden" id="sellerQrPreviewContainer">
                   <img id="sellerQrPreview" src="" alt="Payment QR Preview">
                   <div class="preview-overlay-actions">
-                    <button type="button" class="btn-preview-zoom" id="btnQrPreviewZoomOut" title="Zoom Out (−)">−</button>
-                    <button type="button" class="btn-preview-zoom" id="btnQrPreviewZoomIn" title="Zoom In (+)">+</button>
                     <button type="button" class="btn-crop-overlay" id="cropSellerQrBtn" title="Crop & Adjust QR Code">
                       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
                       <span>Crop QR</span>
