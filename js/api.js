@@ -46,9 +46,16 @@ class MarketplaceAPI {
     ];
     try {
       dead.forEach(key => localStorage.removeItem(key));
-      Object.keys(localStorage)
-        .filter(k => k.startsWith('pr_private_chat_'))
-        .forEach(k => localStorage.removeItem(k));
+
+      // The old private-chat keys were per-recipient, so they have to be
+      // found by prefix. Walk the store with the indexed Storage API rather
+      // than Object.keys, which is not how Storage is specified to enumerate.
+      const stale = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('pr_private_chat_')) stale.push(key);
+      }
+      stale.forEach(key => localStorage.removeItem(key));
     } catch (e) {
       /* private browsing - nothing to clean */
     }

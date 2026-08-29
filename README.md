@@ -1,113 +1,170 @@
-# 🛒 PR Marketplace - Local P2P Community Marketplace
+# PR Marketplace
 
-PR Marketplace is a lightweight, mobile-first peer-to-peer (P2P) platform designed to simplify local community trading (such as campus students, residential block members, and local neighborhoods).
+A mobile-first peer-to-peer marketplace for local community trading — textbooks, furniture, bikes, whatever your block or campus has going spare. Buyers and sellers deal with each other directly; the app takes no cut and handles no money.
 
----
-
-## 🌟 Key Features
-
-1. **11 Full Product Categories (with Photos & Sample Data)**:
-   - 📚 `Books & Study Materials`
-   - 👕 `Fashion & Clothing`
-   - 🛋️ `Furniture` (with high-quality furniture images)
-   - ⚽ `Sports & Fitness`
-   - 💄 `Beauty & Personal Care`
-   - 🚲 `Vehicles & Accessories`
-   - 🎮 `Toys & Games`
-   - 🐾 `Pets & Pet Supplies`
-   - 🏡 `Real Estate`
-   - 🎸 `Musical Instruments`
-   - 📦 `Other`
-
-2. **Auto-Scrolling Discount & Offers Carousel**:
-   - Auto-rotating promotional carousel (3.5s interval with pause on hover/touch).
-   - Instant 1-tap category filtering for active campus deals.
-
-3. **Real-Time Instant Search**:
-   - Instant live search query matching title, description, or campus location.
-   - Gold highlighting search badge (`<mark class="search-highlight">`) in item titles.
-
-4. **Restricted "Mark as Sold" & 5-Hour Auto-Purge**:
-   - Only the **Seller who posted the item** OR **Website Developers (via Developer Admin Mode)** can mark an item as SOLD.
-   - Sold items display a `🔴 SOLD OUT` badge, strikethrough price, and auto-deletion countdown badge (`⏳ Auto-deletes in 5h`).
-   - Automatically purged from database storage after 5 hours.
-
-5. **Seller Payment QR Code Upload (UPI / GPay / PhonePe / Paytm / Venmo)**:
-   - Sellers can upload their Payment QR Code image when creating a listing.
-   - Displayed in item detail modal as a dedicated **"⚡ Direct Seller Payment QR Code"** section for instant scan & pay during local meetups.
-
-6. **Direct P2P Buyer Contact & Support**:
-   - Deep-linked WhatsApp chat button (`wa.me`), Instagram handle link, direct Phone call button.
-   - My Account tab featuring Contact Us via WhatsApp, Instagram, Email support, About details, User Guide, Developer Admin Mode toggle, and 1-Click Database Reset button.
+Runs as an installable web app (PWA) and as an Android app that wraps the same code in a WebView.
 
 ---
 
-## ⚡ Supabase Cloud Database Integration Setup
+## What it does
 
-PR Marketplace comes pre-configured with full **Supabase PostgreSQL Cloud Database** support!
+**Browse and find**
+- 11 categories, instant search across title, description and location
+- Filter by condition and maximum price, sort by newest, oldest or price
+- Filter by area in Aizawl, or use GPS to snap to the nearest one
+- Save listings to a device-local favourites list
+- Pages load 24 at a time rather than everything at once
 
-### Step 1: Create Database Tables in Supabase
-1. Log into your [Supabase Dashboard](https://app.supabase.com) and select/create a project.
-2. Go to the **SQL Editor** tab.
-3. Open [`supabase_schema.sql`](supabase_schema.sql) in this directory, copy its entire contents, paste it into the Supabase SQL Editor, and click **RUN**.
-   - This creates the `users`, `items`, and `messages` tables, enables Row Level Security (RLS), and seeds initial items for all 11 categories!
+**Sell**
+- Post with a photo, price, condition, location and description
+- Optional WhatsApp number and Instagram handle for buyers who prefer those
+- Optional payment QR code (UPI / GPay / PhonePe / Paytm) shown on the listing
+- Crop and rotate photos before they upload
+- Edit or delete anything you posted, from the listing or from **Account → My Listings**
+- Mark an item sold; it comes off the marketplace 5 hours later, or put it back on sale
 
-### Step 2: Connect App to Supabase
-1. In your Supabase Project Dashboard, navigate to **Project Settings > API**.
-2. Copy your **Project URL** and **`anon` public key**.
-3. Open PR Marketplace in your browser, tap the **Account** tab, and enter your credentials into the **Supabase Cloud Database Settings** card, then click **Connect Supabase Cloud DB**.
-4. That's it! All new items posted on the website will now automatically store and sync directly in your Supabase PostgreSQL database!
+**Talk**
+- A private thread per listing between the buyer and the seller
+- A community room everyone can read and post in
+- One-to-one private chats, opened by tapping someone's avatar in the room
+- All of it live over Supabase Realtime — messages arrive without reopening anything
+- A Messages tab collecting every conversation you're part of
 
----
-
-## 📱 Android Mobile App (Android Studio Ready)
-
-The `android_app/` folder is a complete, native Android Studio project configured for **PR Marketplace**.
-
-### 🛠️ Quick 1-Click Launchers
-- **`Open_In_Android_Studio.bat`**: Double-click to instantly open the project in Android Studio.
-- **`Build_Android_APK.bat`**: Double-click to build a fresh `PR_Marketplace.apk` using Gradle.
-- **`Sync_Web_To_Android.bat`**: Double-click to sync any web edits (`index.html`, `styles.css`, `js/`) directly into the Android assets.
-
----
-
-### 📲 How to Open and Run in Android Studio
-
-1. Open **Android Studio**.
-2. Click **File > Open...** (or click `Open` on the Welcome Screen).
-3. Navigate to:
-   ```
-   C:\Users\Asus\Desktop\PR Marketplace\PR_Marketplace_App\android_app
-   ```
-   and click **OK**.
-4. Android Studio will automatically sync Gradle and index the project files.
-5. To test:
-   - **On Physical Phone**: Connect your Android phone via USB, enable **USB Debugging** in Developer Options, and click the green **Run (▶)** button in Android Studio.
-   - **On Virtual Device (Emulator)**: Open the **Device Manager** in Android Studio, create/start an emulator (e.g. Pixel 8 / Android 14), and click **Run (▶)**.
+**Stay safe**
+- Report a listing; the seller is never told who reported it
+- Confirmation before anything destructive
+- Contact details only shown to signed-in users
 
 ---
 
-### 📦 Direct APK Installation (Ready to install on Phone)
+## Setup
 
-The ready-to-install debug APK is located at:
-- `PR_Marketplace.apk` (in this root directory)
-- `APK_Outputs\PR_Marketplace.apk`
+You need a [Supabase](https://supabase.com) project (the free tier is fine) and either Python or Node.js to serve the files.
 
-**To Install on your Phone**:
-1. Copy `PR_Marketplace.apk` to your phone via USB cable, WhatsApp, Google Drive, or email.
-2. Tap the `.apk` file on your phone and choose **Install** (allow *Install unknown apps* if prompted).
-3. Open **PR Marketplace** and enjoy the full native mobile experience!
+### 1. Create the database
 
----
+Open your Supabase project → **SQL Editor** → paste the whole of [`supabase_schema.sql`](supabase_schema.sql) → **Run**.
 
-## 🚀 How to Run in Web Browser
+It is safe to run more than once. It creates the tables, the row-level security policies, the image storage bucket and the Realtime publication.
 
-Simply double-click `Launch_Web_App.bat` or run:
+> **Upgrading from an earlier version?** The script renames your old `users`, `items` and `messages` tables to `*_legacy` and revokes API access to them rather than deleting anything. Your rows are still there if you need them. Drop `users_legacy` sooner rather than later — it is the table that held plaintext passwords.
+
+### 2. Point the app at your project
+
+Either edit `DEFAULT_URL` and `DEFAULT_ANON_KEY` in [`js/config.js`](js/config.js), or leave them and set your project from inside the app under **Account → Database Connection**.
+
+Both values come from your Supabase dashboard under **Project Settings → API**. The anon key is designed to be public — it ships in every browser that loads the app. What protects your data is the row-level security policies, not the key.
+
+### 3. Configure email
+
+Under **Authentication → Providers → Email**, decide whether new accounts must confirm their address. Leaving confirmation on is the safer default; the app shows a "check your inbox" screen and waits.
+
+For password reset links to come back to the right place, add your app's URL under **Authentication → URL Configuration → Redirect URLs**.
+
+### 4. Run it
 
 ```bash
-# Using npx serve
-npx serve .
+npm start
 ```
 
-Open `http://localhost:3000` or `http://127.0.0.1:5500` in your web browser.
+Then open <http://localhost:8080>. Double-clicking `Launch_Web_App.bat` does the same thing on Windows.
 
+If you don't have Node.js:
+
+```bash
+python -m http.server 8080
+```
+
+> Opening `index.html` straight off disk will not work properly. Service workers and PWA install require a real `http://` origin, and the browser refuses both over `file://`.
+
+---
+
+## Android
+
+The `android_app/` folder is an Android Studio project that loads the same web app from local assets over `https://appassets.androidplatform.net`, so service workers and modern web APIs behave as they do in a browser.
+
+```bash
+npm run android:debug     # or open android_app/ in Android Studio
+```
+
+The Gradle build copies the web app into `app/src/main/assets/www` automatically before compiling, so the APK can never ship stale HTML.
+
+### Signing a release build
+
+```bash
+keytool -genkey -v -keystore pr-marketplace-release.jks \
+        -keyalg RSA -keysize 2048 -validity 10000 -alias pr-marketplace
+```
+
+Copy `android_app/keystore.properties.example` to `android_app/keystore.properties`, fill in your values, then:
+
+```bash
+npm run android:release
+```
+
+Both `keystore.properties` and `*.jks` are gitignored. Without them the release build still compiles — it just comes out unsigned.
+
+---
+
+## Tests
+
+```bash
+npm test
+```
+
+56 tests over the parts that hold real logic: escaping and search highlighting, the price-ceiling rules, the offline cache, storage migration, and ownership checks. They run on Node's built-in test runner, so there is nothing to install.
+
+CI runs the same tests and an Android debug build on every push — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+---
+
+## How it fits together
+
+```
+index.html ──┬── js/config.js          backend URL and key, with a device override
+             ├── js/supabase-client.js everything that talks to Supabase
+             ├── js/api.js             the surface the UI calls; favourites and offline cache
+             └── js/app.js  (module)   bootstrap, navigation, back button, GPS, zoom
+                     │
+                     ├── ui.js         escaping, toasts, modals, image preparation
+                     ├── store.js      filters and view state
+                     ├── feed.js       cards, search, filters, carousel, pagination
+                     ├── detail.js     one listing: contact, chat, owner actions, report
+                     ├── sell.js       post and edit, photo upload
+                     ├── cropper.js    crop and rotate
+                     ├── messaging.js  community room, private chats, inbox
+                     ├── auth.js       register, log in, password reset
+                     └── account.js    profile, My Listings, settings, install
+```
+
+More detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and the data model in [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md).
+
+---
+
+## Security model
+
+Worth stating plainly, because an earlier version of this project got it wrong.
+
+- **Passwords never reach this code.** Supabase Auth handles registration and sign-in; it stores a bcrypt hash. The app never sees, compares or stores a password, and nothing password-shaped is ever written to the device.
+- **Permission is decided by the database, not the browser.** Every rule — who can edit a listing, who can read a conversation, who can delete — is a row-level security policy checked against `auth.uid()`. The UI hides buttons you shouldn't press, but hiding them is a convenience; the policy is what actually stops you.
+- **The anon key is public on purpose.** It identifies the project, not the user. Security comes from the policies.
+- **Uploads are scoped.** Storage policy only lets you write into a folder named after your own user id.
+- **Reports are write-only.** You can file one; you cannot read anyone else's.
+
+Sold listings are deleted by `purge_expired_sold_items()`, a `SECURITY DEFINER` function, 5 hours after being marked sold. The app calls it on startup. To run it on a schedule instead, enable `pg_cron` and uncomment the `cron.schedule` line at the end of the schema.
+
+---
+
+## Known limits
+
+- **Payments are out of scope.** The app displays a seller's QR code and nothing more — no gateway, no escrow, no record of whether anyone paid. Meeting and paying is arranged between the two people directly.
+- **Reports have no admin screen yet.** They land in the `reports` table; someone has to look at it in the Supabase dashboard.
+- **Community chat is unmoderated.** Anyone signed in can post to the room.
+- **Phone numbers are not verified.** Only email is, via the confirmation link.
+- **Areas are Aizawl-specific**, hardcoded in `js/app.js`.
+
+---
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).

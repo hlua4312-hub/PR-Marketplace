@@ -4109,7 +4109,14 @@ input[type="range"] {
 
 /* ---------------------------------------------------------- misc leftovers -- */
 
-.chip-icon { font-size: 0.95rem; line-height: 1; }
+.chip-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+  width: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .step-text { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
 

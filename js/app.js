@@ -107,9 +107,33 @@ async function start() {
 
   if (user) {
     await enterApp();
+    applyLaunchIntent();
   } else {
     showAuth();
   }
+}
+
+/**
+ * The manifest advertises "Post an item" and "Saved items" shortcuts. Honour
+ * them once the feed is up, then clear the query so a refresh does not repeat
+ * the action.
+ */
+function applyLaunchIntent() {
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get('action');
+  const tab = params.get('tab');
+
+  if (action === 'sell') {
+    openSellModal();
+  } else if (tab === 'favorites') {
+    setTab('favorites');
+    syncNavButtons('favorites');
+    loadFeed();
+  } else {
+    return;
+  }
+
+  history.replaceState(null, '', window.location.pathname);
 }
 
 function hideSplash(splash) {

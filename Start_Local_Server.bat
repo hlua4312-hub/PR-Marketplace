@@ -1,9 +1,9 @@
 @echo off
-title PR Marketplace - Local Web Server (PWA / Live Testing)
+title PR Marketplace - Local Server
 cd /d "%~dp0"
 echo =========================================================
-echo   Starting Local HTTP Web Server for PR Marketplace...
-echo   Open: http://localhost:8080 in your browser
+echo   PR Marketplace on http://localhost:8080
+echo   Press Ctrl+C to stop.
 echo =========================================================
 python -m http.server 8080
 pause

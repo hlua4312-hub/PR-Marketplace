@@ -169,10 +169,27 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Lets the page ask the app to step aside. A web page cannot close a
+        // window it did not open, so the Exit button used to blank the document
+        // and pretend the app had quit.
+        webView.addJavascriptInterface(new AndroidBridge(), "AndroidBridge");
+
         requestLocationPermissionIfNecessary();
 
         // Load local Android assets via HTTPS origin for Service Worker and modern Web API support
         webView.loadUrl("https://appassets.androidplatform.net/assets/www/index.html");
+    }
+
+    /**
+     * The only surface exposed to JavaScript. It carries no user data and takes
+     * no arguments, so a compromised page gains nothing beyond what the user
+     * could do with the home button.
+     */
+    private class AndroidBridge {
+        @android.webkit.JavascriptInterface
+        public void moveToBackground() {
+            runOnUiThread(() -> moveTaskToBack(true));
+        }
     }
 
     private void requestLocationPermissionIfNecessary() {

@@ -2,6 +2,16 @@ plugins {
     id 'com.android.application'
 }
 
+// Release signing is read from android_app/keystore.properties, which is
+// gitignored. Without that file the release build simply stays unsigned
+// rather than failing, so a fresh clone still builds a debug APK.
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+def hasReleaseKeystore = keystorePropertiesFile.exists()
+if (hasReleaseKeystore) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace 'com.prmarketplace.app'
     compileSdk 34
@@ -10,14 +20,34 @@ android {
         applicationId 'com.prmarketplace.app'
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        // Keep these in step with the version shown in the app's About panel.
+        versionCode 3
+        versionName '3.0.0'
+    }
+
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            release {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseKeystore) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
         }
     }
 
@@ -25,6 +55,35 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+/**
+ * Copy the web app into the Android assets before every build.
+ *
+ * The two copies used to be kept in step by running Sync_Web_To_Android.bat
+ * from memory, which meant an APK could quietly ship stale HTML. Wiring the
+ * copy into the build removes that failure mode.
+ */
+def webRoot = rootProject.file('..')
+def assetsWww = file('src/main/assets/www')
+
+tasks.register('syncWebAssets', Copy) {
+    description = 'Copies the web app into src/main/assets/www'
+    group = 'build'
+
+    from(webRoot) {
+        include 'index.html'
+        include 'styles.css'
+        include 'manifest.json'
+        include 'sw.js'
+        include 'pr_app_icon.jpg'
+        include 'js/**'
+    }
+    into assetsWww
+}
+
+tasks.named('preBuild') {
+    dependsOn 'syncWebAssets'
 }
 
 dependencies {
