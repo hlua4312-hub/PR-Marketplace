@@ -182,6 +182,8 @@ export function describeError(err) {
     EMAIL_NOT_CONFIRMED: 'Confirm your email first — open the link we sent you, then log in.',
     EMAIL_RATE_LIMITED: 'Too many emails for now. Supabase limits these on the free plan — wait an hour, or switch off email confirmation in your project settings.',
     ALREADY_CONFIRMED: 'That email is already confirmed. Just log in.',
+    OTP_INCOMPLETE: 'Enter all six digits.',
+    OTP_REJECTED: 'That code was not accepted — it may be wrong, already used, or over an hour old. Ask for a new one.',
     NOT_SIGNED_IN: 'Log in to do that.',
     NOT_YOUR_LISTING: 'Only the seller who posted this listing can change it.',
     ALREADY_REPORTED: 'You have already reported this listing. Thanks — we only need it once.',

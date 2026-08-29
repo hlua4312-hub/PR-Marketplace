@@ -178,12 +178,56 @@ class SupabaseMarketplaceClient {
     return true;
   }
 
-  /** Send a password-reset email. Always resolves, so we never reveal whether an address is registered. */
+  /**
+   * Start account recovery.
+   *
+   * This one call produces both routes: Supabase mints a recovery token and
+   * puts whatever the email template asks for into the message - a link, a
+   * 6-digit code, or both. The app accepts either.
+   *
+   * Always resolves, so the form cannot be used to discover which addresses
+   * are registered.
+   */
   async requestPasswordReset(email) {
     const db = this._require();
     const redirectTo = window.location.origin + window.location.pathname;
     await db.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
     return true;
+  }
+
+  /**
+   * Check a recovery code and, if it is right, sign the user in so they can
+   * set a new password.
+   *
+   * The code is verified by Supabase, against a token it generated and hashed
+   * server-side. The browser only relays what the user typed - it cannot see
+   * the expected value or decide the answer.
+   */
+  async verifyRecoveryOtp(email, token) {
+    const db = this._require();
+    const code = String(token || '').replace(/\D/g, '');
+
+    if (code.length < 6) throw new Error('OTP_INCOMPLETE');
+
+    const { data, error } = await db.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: code,
+      type: 'recovery'
+    });
+
+    if (error) {
+      const msg = (error.message || '').toLowerCase();
+      if (error.status === 429) throw new Error('EMAIL_RATE_LIMITED');
+      // Supabase answers a wrong code and a stale one with the same string,
+      // "Token has expired or is invalid", so do not claim to know which.
+      if (msg.includes('expired') || msg.includes('invalid') || msg.includes('not found')) {
+        throw new Error('OTP_REJECTED');
+      }
+      throw error;
+    }
+
+    if (!data.session) throw new Error('OTP_INVALID');
+    return this._toProfile(data.user);
   }
 
   async updatePassword(newPassword) {

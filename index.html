@@ -158,7 +158,7 @@
       <!-- FORM 3: REQUEST A PASSWORD RESET EMAIL -->
       <form id="authResetForm" class="auth-form hidden">
         <p class="section-subtitle" style="margin-bottom:14px;">
-          Enter the email you registered with and we'll send you a link to choose a new password.
+          Enter the email you registered with and we'll send you a 6-digit code to get back in.
         </p>
 
         <div class="auth-form-group">
@@ -167,13 +167,56 @@
         </div>
 
         <button type="submit" class="btn btn-primary auth-submit-btn" id="btnSubmitReset">
-          <span>Send Reset Link</span>
+          <span>Send Reset Code</span>
         </button>
 
         <p class="auth-footer-hint">
           Remembered it? <a href="#" id="linkBackToLogin">Back to Log In</a>
         </p>
       </form>
+    </div>
+  </div>
+
+  <!-- 2a. RECOVERY CODE
+       A real one-time code: Supabase generates it, emails it, and verifies it
+       server-side. The browser only relays what the user types. -->
+  <div id="recoveryOtpOverlay" class="auth-overlay hidden">
+    <div class="auth-card" style="text-align:center;">
+      <button type="button" class="auth-dismiss-btn" id="btnDismissRecovery" aria-label="Cancel recovery">&times;</button>
+
+      <div class="auth-brand-header">
+        <img src="pr_app_icon.jpg" alt="PR Logo" class="auth-brand-logo">
+        <h2>Enter Your Recovery Code</h2>
+        <p style="font-size:0.82rem; color:var(--text-muted);">We emailed a 6-digit code. It expires in an hour.</p>
+      </div>
+
+      <div style="background:var(--bg-surface); border-radius:12px; padding:12px 14px; margin-bottom:6px; border:1px solid var(--border);">
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:2px;">Sent to</div>
+        <div style="font-weight:700; color:var(--text-main); font-size:0.9rem; word-break:break-all;" id="recoveryEmailLabel">your@email.com</div>
+      </div>
+
+      <form id="recoveryOtpForm">
+        <div class="otp-inputs-wrap">
+          <input type="text" maxlength="1" class="otp-digit-input" id="otpBox1" inputmode="numeric" autocomplete="one-time-code" aria-label="Digit 1">
+          <input type="text" maxlength="1" class="otp-digit-input" id="otpBox2" inputmode="numeric" aria-label="Digit 2">
+          <input type="text" maxlength="1" class="otp-digit-input" id="otpBox3" inputmode="numeric" aria-label="Digit 3">
+          <input type="text" maxlength="1" class="otp-digit-input" id="otpBox4" inputmode="numeric" aria-label="Digit 4">
+          <input type="text" maxlength="1" class="otp-digit-input" id="otpBox5" inputmode="numeric" aria-label="Digit 5">
+          <input type="text" maxlength="1" class="otp-digit-input" id="otpBox6" inputmode="numeric" aria-label="Digit 6">
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-submit-btn" id="btnVerifyRecovery">
+          <span>Verify Code</span>
+        </button>
+      </form>
+
+      <p class="auth-footer-hint" style="margin-top:16px;">
+        Didn't get it? <a href="#" id="linkResendRecovery">Send another</a><span id="recoveryCountdown" style="color:var(--text-light);"></span>
+      </p>
+
+      <p class="auth-footer-hint" style="font-size:0.76rem; color:var(--text-light);">
+        The same email also has a link. Opening that works just as well.
+      </p>
     </div>
   </div>
 

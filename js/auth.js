@@ -315,6 +315,10 @@ function renderSavedIdentifiers() {
 
 /* ========================================================== password reset === */
 
+/** The address recovery is running for. Kept in memory, never persisted. */
+let recoveryEmail = null;
+let recoveryCooldown = null;
+
 function wireReset() {
   els.resetForm?.addEventListener('submit', async event => {
     event.preventDefault();
@@ -326,15 +330,202 @@ function wireReset() {
 
     try {
       await window.api.requestPasswordReset(email);
-      // Deliberately the same message whether or not the address is registered.
-      showToast('If that email is registered, a reset link is on its way.', 4500);
-      showTab('login');
+      recoveryEmail = email;
+      showRecoveryOtp(email);
+      // Deliberately worded the same whether or not the address is registered,
+      // so the form cannot be used to find out who has an account.
+      showToast('If that email is registered, a code is on its way.', 4500);
     } catch (err) {
       showToast(describeError(err));
     } finally {
-      setBusy(btn, false, 'Send Reset Link');
+      setBusy(btn, false, 'Send Reset Code');
     }
   });
+
+  wireRecoveryOtp();
+}
+
+/* ========================================================= recovery code === */
+
+function showRecoveryOtp(email) {
+  const label = document.getElementById('recoveryEmailLabel');
+  if (label) label.textContent = email;
+
+  els.overlay?.classList.add('hidden');
+  document.getElementById('recoveryOtpOverlay')?.classList.remove('hidden');
+
+  clearOtpBoxes();
+  startRecoveryCooldown();
+  if (!isCoarsePointer()) setTimeout(() => otpBox(1)?.focus(), 80);
+}
+
+function hideRecoveryOtp() {
+  document.getElementById('recoveryOtpOverlay')?.classList.add('hidden');
+  if (recoveryCooldown) {
+    clearInterval(recoveryCooldown);
+    recoveryCooldown = null;
+  }
+}
+
+function otpBox(n) {
+  return document.getElementById(`otpBox${n}`);
+}
+
+function clearOtpBoxes() {
+  for (let i = 1; i <= 6; i++) {
+    const box = otpBox(i);
+    if (box) box.value = '';
+  }
+}
+
+function readOtp() {
+  let code = '';
+  for (let i = 1; i <= 6; i++) code += (otpBox(i)?.value || '').trim();
+  return code;
+}
+
+function fillOtp(code) {
+  const digits = String(code).replace(/\D/g, '').slice(0, 6).split('');
+  for (let i = 1; i <= 6; i++) {
+    const box = otpBox(i);
+    if (box) box.value = digits[i - 1] || '';
+  }
+  return digits.length === 6;
+}
+
+function wireRecoveryOtp() {
+  for (let i = 1; i <= 6; i++) {
+    const box = otpBox(i);
+    if (!box) continue;
+
+    box.addEventListener('input', event => {
+      // Typing over a filled box, or pasting into one, should still advance.
+      const digits = event.target.value.replace(/\D/g, '');
+      event.target.value = digits.slice(-1);
+      if (digits && i < 6) otpBox(i + 1)?.focus();
+      if (readOtp().length === 6) submitRecoveryOtp();
+    });
+
+    box.addEventListener('keydown', event => {
+      if (event.key === 'Backspace' && !event.target.value && i > 1) {
+        otpBox(i - 1)?.focus();
+      }
+      if (event.key === 'ArrowLeft' && i > 1) otpBox(i - 1)?.focus();
+      if (event.key === 'ArrowRight' && i < 6) otpBox(i + 1)?.focus();
+    });
+
+    box.addEventListener('paste', event => {
+      event.preventDefault();
+      const pasted = (event.clipboardData || window.clipboardData).getData('text');
+      if (fillOtp(pasted)) submitRecoveryOtp();
+    });
+  }
+
+  document.getElementById('recoveryOtpForm')?.addEventListener('submit', event => {
+    event.preventDefault();
+    submitRecoveryOtp();
+  });
+
+  document.getElementById('btnDismissRecovery')?.addEventListener('click', () => {
+    hideRecoveryOtp();
+    recoveryEmail = null;
+    els.overlay?.classList.remove('hidden');
+    showTab('login');
+  });
+
+  document.getElementById('linkResendRecovery')?.addEventListener('click', async event => {
+    event.preventDefault();
+    if (!recoveryEmail || event.currentTarget.dataset.cooling === '1') return;
+
+    try {
+      await window.api.requestPasswordReset(recoveryEmail);
+      clearOtpBoxes();
+      otpBox(1)?.focus();
+      startRecoveryCooldown();
+      showToast('New code sent. The previous one no longer works.', 4000);
+    } catch (err) {
+      showToast(describeError(err), 6000);
+    }
+  });
+}
+
+let verifyingOtp = false;
+
+async function submitRecoveryOtp() {
+  if (verifyingOtp) return;
+
+  const code = readOtp();
+  if (code.length < 6) {
+    showToast(describeError(new Error('OTP_INCOMPLETE')));
+    return;
+  }
+  if (!recoveryEmail) {
+    showToast('Start again from Forgot password.');
+    return;
+  }
+
+  verifyingOtp = true;
+  const btn = document.getElementById('btnVerifyRecovery');
+  setBusy(btn, true, 'Checking…');
+
+  try {
+    await window.api.verifyRecoveryOtp(recoveryEmail, code);
+    // The code is spent and the user now holds a session, so they can set a
+    // new password. That is the same screen the emailed link lands on.
+    hideRecoveryOtp();
+    showNewPasswordScreen();
+    showToast('Code accepted. Choose a new password.');
+  } catch (err) {
+    clearOtpBoxes();
+    otpBox(1)?.focus();
+    showToast(describeError(err), 5000);
+  } finally {
+    verifyingOtp = false;
+    setBusy(btn, false, 'Verify Code');
+  }
+}
+
+/** 45 seconds before another code can be requested, so the hourly cap lasts. */
+function startRecoveryCooldown() {
+  const link = document.getElementById('linkResendRecovery');
+  const label = document.getElementById('recoveryCountdown');
+  if (!link) return;
+
+  let left = 45;
+  link.dataset.cooling = '1';
+  link.style.opacity = '0.5';
+  link.style.pointerEvents = 'none';
+
+  const tick = () => {
+    if (label) label.textContent = left > 0 ? ` (${left}s)` : '';
+    if (left <= 0) {
+      clearInterval(recoveryCooldown);
+      recoveryCooldown = null;
+      delete link.dataset.cooling;
+      link.style.opacity = '1';
+      link.style.pointerEvents = 'auto';
+      return;
+    }
+    left -= 1;
+  };
+
+  if (recoveryCooldown) clearInterval(recoveryCooldown);
+  tick();
+  recoveryCooldown = setInterval(tick, 1000);
+}
+
+function isCoarsePointer() {
+  return window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+}
+
+export function isRecoveryOtpOpen() {
+  const el = document.getElementById('recoveryOtpOverlay');
+  return Boolean(el) && !el.classList.contains('hidden');
+}
+
+export function closeRecoveryOtp() {
+  hideRecoveryOtp();
+  recoveryEmail = null;
 }
 
 function wireNewPassword() {

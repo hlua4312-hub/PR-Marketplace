@@ -84,6 +84,17 @@ Under **Authentication → Providers → Email**, decide whether new accounts mu
 
 For password reset links to come back to the right place, add your app's URL under **Authentication → URL Configuration → Redirect URLs**.
 
+**To recover an account with a 6-digit code** rather than a link, edit the **Reset Password** template under Authentication → Emails and include `{{ .Token }}`:
+
+```
+Your PR Marketplace recovery code is {{ .Token }}
+It expires in one hour.
+
+Or open this link instead: {{ .ConfirmationURL }}
+```
+
+The app accepts either route — typing the code and clicking the link both land on the same "choose a new password" screen. The code is verified by Supabase with `verifyOtp`, server-side; the browser only relays what was typed.
+
 ### 4. Run it
 
 ```bash

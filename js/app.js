@@ -18,7 +18,8 @@ import {
 } from './messaging.js';
 import {
   initAuth, showAuth, hideAuth, isAuthOpen, showApp,
-  showNewPasswordScreen, clearAuthForms
+  showNewPasswordScreen, clearAuthForms,
+  isRecoveryOtpOpen, closeRecoveryOtp
 } from './auth.js';
 import { initAccount, openAccount, closeAccount, isAccountOpen } from './account.js';
 import { cancelCropper } from './cropper.js';
@@ -248,6 +249,7 @@ function wireBottomNav() {
  */
 function wireBackButton() {
   window.handleAndroidBackButton = function handleBack() {
+    if (isRecoveryOtpOpen()) { closeRecoveryOtp(); showAuth({ tab: 'login' }); return true; }
     if (isAuthOpen() && window.api.getCurrentUser()) { hideAuth(); return true; }
     if (isAuthOpen()) { hideAuth(); loadFeed(); return true; }
     if (cancelCropper()) return true;

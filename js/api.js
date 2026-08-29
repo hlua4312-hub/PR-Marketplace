@@ -164,6 +164,12 @@ class MarketplaceAPI {
     return window.supabaseAPI.resendConfirmation(email);
   }
 
+  async verifyRecoveryOtp(email, token) {
+    const user = await window.supabaseAPI.verifyRecoveryOtp(email, token);
+    this._cacheProfile(user);
+    return user;
+  }
+
   updatePassword(newPassword) {
     return window.supabaseAPI.updatePassword(newPassword);
   }
