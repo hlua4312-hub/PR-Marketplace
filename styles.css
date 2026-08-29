@@ -64,12 +64,25 @@ section.hidden {
   opacity: 0 !important;
 }
 
-/* Base Theme Tokens */
+/* Tokens the components above reference but the original palette never named.
+   Everything colour-related resolves through these so the dark theme at the
+   bottom of this file only has to redefine values, never rules. */
 :root {
-  --bg-main: #ffffff;
-  --bg-card: #ffffff;
-  --bg-surface: #f8fafc;
   --bg-canvas: #f8fafc;
+  --bg-elevated: #ffffff;
+  --text-body: #334155;
+  --border-strong: #cbd5e1;
+
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-soft: #fef2f2;
+  --success: #059669;
+  --success-soft: #ecfdf5;
+  --warning: #b45309;
+
+  --overlay: rgba(15, 23, 42, 0.45);
+  --skeleton: linear-gradient(90deg, #eef1f6 25%, #e2e8f0 37%, #eef1f6 63%);
+  --img-ghost: #eef1f6;
 }
 
 /* Reset & Base Styles */
@@ -93,8 +106,22 @@ html, body {
   overflow-x: hidden;
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
+  /* Chrome on controls only. Blocking selection everywhere stopped people
+     copying a seller's phone number or an address out of a description. */
   -webkit-user-select: none;
   user-select: none;
+}
+
+button, .nav-item, .cat-chip, .preset-chip, .chip-hint {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+p, h1, h2, h3, h4, span, li, td, input, textarea,
+.detail-desc, .card-title, .seller-info, .chat-msg-body,
+.all-chat-msg-text, .my-listing-meta, .notif-preview {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 input, textarea, select {
@@ -435,7 +462,7 @@ input, textarea, select {
   position: relative;
   width: 100%;
   padding-top: 75%; /* 4:3 Aspect ratio */
-  background-color: #f8fafc;
+  background-color: var(--bg-main);
   overflow: hidden;
 }
 
@@ -447,7 +474,7 @@ input, textarea, select {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background-color: #f8fafc;
+  background-color: var(--bg-main);
   transition: transform 0.3s ease;
 }
 
@@ -851,7 +878,7 @@ mark.search-highlight {
   max-height: 92vh !important;
   max-height: 92dvh !important;
   border-radius: 24px 24px 0 0 !important;
-  background-color: #FFFFFF !important;
+  background-color: var(--bg-card) !important;
   position: relative !important;
   overflow: hidden !important;
   display: flex !important;
@@ -1358,9 +1385,9 @@ mark.search-highlight {
 }
 
 .toast {
-  background-color: #FFFFFF;
-  color: #0F172A;
-  border: 1px solid #E2E8F0;
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border);
   padding: 12px 20px;
   border-radius: 14px;
   font-size: 0.88rem;
@@ -1680,7 +1707,7 @@ mark.search-highlight {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f8fafc;
+  background-color: var(--bg-main);
 }
 
 .image-preview-container img,
@@ -1690,7 +1717,7 @@ mark.search-highlight {
   height: auto;
   object-fit: contain;
   border-radius: var(--radius-sm);
-  background-color: #f8fafc;
+  background-color: var(--bg-main);
   transition: transform 0.2s ease-out;
   transform-origin: center center;
 }
@@ -1699,7 +1726,7 @@ mark.search-highlight {
 .detail-image-box {
   width: 100%;
   max-height: 320px;
-  background-color: #f8fafc;
+  background-color: var(--bg-main);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2370,7 +2397,7 @@ mark.search-highlight {
   min-height: 100vh;
   min-height: 100dvh;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  background: #FFFFFF;
+  background: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2409,13 +2436,13 @@ mark.search-highlight {
   font-family: 'Outfit', sans-serif;
   font-size: 2.2rem;
   font-weight: 800;
-  color: #0F172A;
+  color: var(--text-main);
   letter-spacing: 1px;
 }
 
 .splash-subtitle {
   font-size: 0.85rem;
-  color: #64748B;
+  color: var(--text-muted);
   margin-top: 4px;
   margin-bottom: 24px;
 }
@@ -2452,7 +2479,7 @@ mark.search-highlight {
   height: 100dvh;
   min-height: 100vh;
   min-height: 100dvh;
-  background-color: #FFFFFF;
+  background-color: var(--bg-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2467,12 +2494,12 @@ mark.search-highlight {
 .auth-card {
   width: 100%;
   max-width: 420px;
-  background-color: #FFFFFF;
+  background-color: var(--bg-card);
   border-radius: 20px;
   padding: 28px 24px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-  border: 1px solid #E2E8F0;
-  color: #0F172A;
+  border: 1px solid var(--border);
+  color: var(--text-main);
 }
 
 .auth-brand-header {
@@ -2492,20 +2519,20 @@ mark.search-highlight {
   font-family: 'Outfit', sans-serif;
   font-size: 1.6rem;
   font-weight: 800;
-  color: #0F172A;
+  color: var(--text-main);
   margin: 0;
 }
 
 .auth-brand-header p {
   font-size: 0.82rem;
-  color: #64748B;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
 /* Auth Tabs */
 .auth-tabs {
   display: flex;
-  background-color: #F1F5F9;
+  background-color: var(--bg-surface);
   border-radius: 12px;
   padding: 4px;
   margin-bottom: 20px;
@@ -2518,15 +2545,15 @@ mark.search-highlight {
   background: transparent;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #64748B;
+  color: var(--text-muted);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .auth-tab-btn.active {
-  background-color: #FFFFFF;
-  color: #4F46E5;
+  background-color: var(--bg-card);
+  color: var(--primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -2546,16 +2573,16 @@ mark.search-highlight {
 .auth-form-group label {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #334155;
+  color: var(--text-body);
 }
 
 .auth-form-group input {
   width: 100%;
   padding: 11px 14px;
   border-radius: 10px;
-  border: 1.5px solid #CBD5E1;
-  background-color: #F8FAFC;
-  color: #0F172A;
+  border: 1.5px solid var(--border-strong);
+  background-color: var(--bg-main);
+  color: var(--text-main);
   font-size: 0.88rem;
   outline: none;
   transition: border-color 0.2s ease;
@@ -2563,7 +2590,7 @@ mark.search-highlight {
 
 .auth-form-group input:focus {
   border-color: #4F46E5;
-  background-color: #FFFFFF;
+  background-color: var(--bg-card);
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
 }
 
@@ -2584,7 +2611,7 @@ mark.search-highlight {
   border: none;
   font-size: 1rem;
   cursor: pointer;
-  color: #64748B;
+  color: var(--text-muted);
 }
 
 .auth-submit-btn {
@@ -2608,12 +2635,12 @@ mark.search-highlight {
 .auth-footer-hint {
   text-align: center;
   font-size: 0.8rem;
-  color: #64748B;
+  color: var(--text-muted);
   margin-top: 10px;
 }
 
 .auth-footer-hint a {
-  color: #4F46E5;
+  color: var(--primary);
   font-weight: 700;
   text-decoration: none;
 }
@@ -2635,9 +2662,9 @@ mark.search-highlight {
   width: 54px;
   height: 60px;
   border-radius: 14px;
-  border: 2px solid #CBD5E1;
-  background-color: #F8FAFC;
-  color: #0F172A;
+  border: 2px solid var(--border-strong);
+  background-color: var(--bg-main);
+  color: var(--text-main);
   font-family: 'Outfit', sans-serif;
   font-size: 1.8rem;
   font-weight: 800;
@@ -2648,7 +2675,7 @@ mark.search-highlight {
 
 .otp-digit-input:focus {
   border-color: #4F46E5;
-  background-color: #FFFFFF;
+  background-color: var(--bg-card);
   box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
   transform: translateY(-2px);
 }
@@ -2677,8 +2704,8 @@ mark.search-highlight {
 
 /* SAVED ACCOUNTS MULTI-DEVICE REMEMBER ME PICKER */
 .saved-accounts-box {
-  background-color: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 12px;
   margin-bottom: 14px;
@@ -2694,8 +2721,8 @@ mark.search-highlight {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #FFFFFF;
-  border: 1px solid #CBD5E1;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 8px 10px;
   cursor: pointer;
@@ -2716,18 +2743,18 @@ mark.search-highlight {
 .saved-account-email {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #0F172A;
+  color: var(--text-main);
 }
 
 .saved-account-name {
   font-size: 0.72rem;
-  color: #64748B;
+  color: var(--text-muted);
 }
 
 .btn-remove-saved-account {
   background: transparent;
   border: none;
-  color: #94A3B8;
+  color: var(--text-light);
   font-size: 0.9rem;
   cursor: pointer;
   padding: 4px;
@@ -2914,7 +2941,7 @@ mark.search-highlight {
 .private-chat-card {
   display: flex !important;
   flex-direction: column !important;
-  background-color: #FFFFFF !important;
+  background-color: var(--bg-card) !important;
   height: 100% !important;
   max-height: 100% !important;
   width: 100% !important;
@@ -2986,7 +3013,7 @@ mark.search-highlight {
 }
 
 .all-chat-msg-box {
-  background-color: #FFFFFF;
+  background-color: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 10px 14px;
@@ -2996,7 +3023,7 @@ mark.search-highlight {
 }
 
 .all-chat-msg-row.mine .all-chat-msg-box {
-  background-color: #EEF2FF;
+  background-color: var(--primary-light);
   border-color: rgba(79, 70, 229, 0.25);
 }
 
@@ -3015,7 +3042,7 @@ mark.search-highlight {
 }
 
 .all-chat-msg-row.mine .all-chat-sender-name {
-  color: #4338CA;
+  color: var(--primary-hover);
 }
 
 .all-chat-time {
@@ -3061,7 +3088,7 @@ mark.search-highlight {
 }
 
 .btn-back-chat:hover {
-  background-color: #F1F5F9 !important;
+  background-color: var(--bg-surface) !important;
   border-radius: 50%;
 }
 
@@ -3071,7 +3098,7 @@ mark.search-highlight {
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  background-color: #FFFFFF;
+  background-color: var(--bg-card);
   border-top: 1px solid var(--border);
 }
 
@@ -3080,7 +3107,7 @@ mark.search-highlight {
   padding: 11px 16px;
   border-radius: var(--radius-full);
   border: 1.5px solid var(--border);
-  background-color: #F8FAFC;
+  background-color: var(--bg-main);
   color: var(--text-main);
   font-family: inherit;
   font-size: 0.86rem;
@@ -3090,7 +3117,7 @@ mark.search-highlight {
 
 .all-chat-input-form input:focus {
   border-color: var(--primary);
-  background-color: #FFFFFF;
+  background-color: var(--bg-card);
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
 }
 
@@ -3160,3 +3187,1046 @@ mark.search-highlight {
 }
 
 
+
+/* ==========================================================================
+   ADDITIONS — components introduced in the v3 rebuild
+   ========================================================================== */
+
+/* ------------------------------------------------------ generic controls -- */
+
+.btn-danger {
+  background-color: var(--danger);
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+}
+.btn-danger:hover { background-color: var(--danger-hover); }
+
+.filter-select,
+select.filter-select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* A visible focus ring everywhere, for keyboard users. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* -------------------------------------------------------- offline banner -- */
+
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background-color: var(--danger-soft);
+  border: 1px solid var(--border);
+  color: var(--warning);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.offline-banner svg { flex-shrink: 0; }
+
+/* ------------------------------------------------------ offers carousel --- */
+
+.offers-carousel { margin: 0 0 16px; }
+
+.offers-track {
+  position: relative;
+  height: 96px;
+}
+
+.offer-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  padding: 14px 18px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(120deg, var(--primary), var(--secondary));
+  color: #ffffff;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+}
+
+.offer-slide.active {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.offer-label { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
+.offer-blurb { font-size: 0.8rem; opacity: 0.9; }
+.offer-cta {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+
+.offers-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.offer-dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background-color: var(--border-strong);
+  cursor: pointer;
+  transition: width var(--transition-fast), background-color var(--transition-fast);
+}
+.offer-dot.active {
+  width: 18px;
+  background-color: var(--primary);
+}
+
+/* ---------------------------------------------------------- feed extras -- */
+
+.owner-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 18px 0 6px;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+/* ------------------------------------------------------- listing detail -- */
+
+.detail-loading,
+.chat-loading,
+.chat-empty {
+  padding: 26px 18px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.detail-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.detail-expand-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.detail-posted {
+  margin-top: 4px;
+  font-size: 0.76rem;
+  color: var(--text-light);
+}
+
+.detail-meta {
+  margin-top: 8px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.fav-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.fav-toggle-btn.is-fav {
+  background-color: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.seller-phone {
+  margin-top: 2px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.owner-panel { margin-top: 14px; }
+
+.owner-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.owner-hint {
+  margin-top: 10px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.btn-edit-listing {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  border: 1px solid var(--border-strong);
+}
+
+.btn-delete-listing {
+  background-color: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.btn-whatsapp { background-color: var(--whatsapp); color: #ffffff; }
+.btn-whatsapp:hover { background-color: var(--whatsapp-hover); }
+
+.btn-instagram { background: var(--instagram-grad); color: #ffffff; }
+
+.btn-report {
+  background-color: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+.btn-report:hover { color: var(--danger); border-color: var(--danger); }
+
+/* ----------------------------------------------------------- chat bubbles -- */
+
+.chat-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 82%;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 14px 14px 14px 4px;
+  background-color: var(--bg-surface);
+}
+
+.chat-msg.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+  margin-left: auto;
+  border-radius: 14px 14px 4px 14px;
+  background-color: var(--primary);
+  color: #ffffff;
+}
+
+.chat-msg-sender {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+.chat-msg.mine .chat-msg-sender { color: rgba(255, 255, 255, 0.85); }
+
+.chat-msg-body {
+  font-size: 0.86rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.chat-msg-time {
+  font-size: 0.64rem;
+  color: var(--text-light);
+}
+.chat-msg.mine .chat-msg-time { color: rgba(255, 255, 255, 0.75); }
+
+.all-chat-msg-text {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.all-chat-avatar[role="button"] { cursor: pointer; }
+
+/* ------------------------------------------------------------------ inbox -- */
+
+.notif-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+  padding: 13px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+.notif-row:hover { border-color: var(--border-strong); }
+.notif-row.unread { background-color: var(--primary-light); border-color: var(--primary); }
+
+.notif-avatar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.notif-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notif-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.notif-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-time { flex-shrink: 0; font-size: 0.7rem; color: var(--text-light); }
+
+.notif-preview {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notif-kind {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-light);
+}
+
+.notif-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+}
+
+.notif-empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.notif-empty-icon { color: var(--text-light); margin-bottom: 10px; }
+.notif-empty-state h3 { font-size: 1rem; color: var(--text-main); margin-bottom: 6px; }
+.notif-empty-state p { font-size: 0.85rem; line-height: 1.55; }
+
+/* ------------------------------------------------------------ my listings -- */
+
+.my-listings-list { display: flex; flex-direction: column; gap: 8px; }
+
+.my-listing-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+}
+.my-listing-row.is-sold { opacity: 0.62; }
+
+.my-listing-thumb {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background-color: var(--img-ghost);
+}
+
+.my-listing-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.my-listing-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-listing-meta { font-size: 0.74rem; color: var(--text-muted); }
+
+.my-listing-flag {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background-color: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.64rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.my-listing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-end;
+  max-width: 132px;
+}
+
+.listing-action {
+  padding: 5px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-surface);
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.listing-action:hover { border-color: var(--primary); color: var(--primary); }
+.listing-action.danger { color: var(--danger); border-color: var(--border); }
+.listing-action.danger:hover { border-color: var(--danger); background-color: var(--danger-soft); }
+
+.my-listings-empty { padding: 18px 4px; text-align: center; }
+.my-listings-empty p { font-size: 0.86rem; color: var(--text-muted); margin-bottom: 12px; }
+
+/* -------------------------------------------------------- database status -- */
+
+.db-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+.db-status-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background-color: var(--text-light);
+}
+.db-status-dot.ok { background-color: var(--success); }
+.db-status-dot.down { background-color: var(--danger); }
+
+.account-section-body code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background-color: var(--bg-surface);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.85em;
+}
+
+/* ---------------------------------------------------------- confirm dialog -- */
+
+.confirm-card { max-width: 380px; }
+
+.confirm-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.confirm-message {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+/* ------------------------------------------------------ saved identifiers -- */
+
+.saved-account-chip {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background-color: var(--bg-card);
+}
+
+.saved-chip-fill,
+.saved-chip-remove {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--text-body);
+}
+
+.saved-chip-fill {
+  padding: 6px 6px 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.saved-chip-remove {
+  padding: 6px 10px 6px 4px;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-light);
+}
+.saved-chip-remove:hover { color: var(--danger); }
+
+/* -------------------------------------------------------------------- guide -- */
+
+.guide-list {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.guide-list li { font-size: 0.87rem; line-height: 1.55; color: var(--text-body); }
+.guide-list strong { color: var(--text-main); }
+
+.guide-note {
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------- body lock -- */
+
+body.modal-open { overflow: hidden; }
+
+/* ==========================================================================
+   MISSING COMPONENT STYLES
+   These class names were in the markup from the start but never had a rule,
+   so the filter panel, detail header, empty state and loading skeleton all
+   rendered as unstyled text. Found while verifying the rebuild.
+   ========================================================================== */
+
+/* ------------------------------------------------------- loading skeleton -- */
+
+.skeleton-card {
+  height: 232px;
+  border-radius: var(--radius-md);
+  background: var(--skeleton);
+  background-size: 400% 100%;
+  animation: skeleton-sweep 1.3s ease-in-out infinite;
+}
+
+@keyframes skeleton-sweep {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* ------------------------------------------------------------ empty state -- */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  color: var(--text-light);
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.empty-state h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.06rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.empty-state p {
+  max-width: 34ch;
+  font-size: 0.87rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------ active filters bar -- */
+
+.active-filters-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+}
+
+.filter-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-light);
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.check-chip {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.reset-filters-btn {
+  padding: 5px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.73rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.reset-filters-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+/* ------------------------------------------------------------ filter panel -- */
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.filter-group:last-of-type { border-bottom: none; margin-bottom: 12px; }
+
+.filter-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.filter-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.range-value {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.checkbox-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-card);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.checkbox-chip:hover { border-color: var(--border-strong); }
+
+.checkbox-chip input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.checkbox-chip:has(input:checked) {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.modal-actions-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.modal-actions-row .btn { flex: 1; justify-content: center; }
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+.form-actions .btn { flex: 1; justify-content: center; }
+
+/* ---------------------------------------------------------- detail header -- */
+
+.detail-header {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.tag-category { background-color: var(--primary-light); color: var(--primary); }
+.tag-condition { background-color: var(--bg-surface); color: var(--text-body); }
+.tag-sold { background-color: var(--danger-soft); color: var(--danger); }
+
+.detail-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.28;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.detail-price {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.line-through { text-decoration: line-through; opacity: 0.65; }
+
+.detail-desc {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text-body);
+}
+.detail-desc strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-light);
+}
+
+/* ---------------------------------------------------------- sold listings -- */
+
+.is-sold-card .card-image { filter: grayscale(0.75); opacity: 0.75; }
+
+.btn-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.sold-notice-box {
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  background-color: var(--danger-soft);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.sold-disabled-notice {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  text-align: center;
+}
+.sold-disabled-notice p { font-size: 0.84rem; color: var(--text-muted); }
+
+.seller-ownership-banner {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background-color: var(--primary-light);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------- misc leftovers -- */
+
+.chip-icon { font-size: 0.95rem; line-height: 1; }
+
+.step-text { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
+
+.logout-section { padding-top: 4px; }
+
+.whatsapp-box { background-color: rgba(37, 211, 102, 0.14); }
+.instagram-box { background-color: rgba(225, 48, 108, 0.14); }
+
+.qr-upload-box { min-height: 150px; }
+
+.price-presets,
+.location-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.contact-actions-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ==========================================================================
+   DARK THEME
+   Only token values are redefined here. Every rule above reads through the
+   tokens, so no component needs a second copy.
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --primary-rgb: 129, 140, 248;
+    --primary-hover: #a5b4fc;
+    --primary-light: #1e2140;
+    --primary-dark: #c7d2fe;
+    --secondary: #22d3ee;
+
+    --bg-main: #0f1518;
+    --bg-card: #182025;
+    --bg-surface: #1f292f;
+    --bg-canvas: #0f1518;
+    --bg-elevated: #202b31;
+
+    --text-main: #e8eef1;
+    --text-body: #c3cdd3;
+    --text-muted: #94a4ad;
+    --text-light: #6f8089;
+
+    --border: #2a373e;
+    --border-strong: #3b4b53;
+    --border-focus: #818cf8;
+
+    --danger: #f0806f;
+    --danger-hover: #f4998a;
+    --danger-soft: #2c1c1a;
+    --success: #4ec9a4;
+    --success-soft: #142a24;
+    --warning: #dda45c;
+
+    --overlay: rgba(0, 0, 0, 0.62);
+    --skeleton: linear-gradient(90deg, #1f292f 25%, #2a373e 37%, #1f292f 63%);
+    --img-ghost: #1f292f;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55);
+    --shadow-float: 0 10px 30px rgba(0, 0, 0, 0.55);
+  }
+
+  /* Surfaces the original stylesheet painted white directly. */
+  :root:not([data-theme="light"]) .splash-screen,
+  :root:not([data-theme="light"]) .auth-overlay,
+  :root:not([data-theme="light"]) .auth-card,
+  :root:not([data-theme="light"]) .modal-card,
+  :root:not([data-theme="light"]) .modal-header-nav {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main);
+  }
+
+  :root:not([data-theme="light"]) .all-chat-body,
+  :root:not([data-theme="light"]) .account-body,
+  :root:not([data-theme="light"]) .main-content,
+  :root:not([data-theme="light"]) .app-header,
+  :root:not([data-theme="light"]) .bottom-nav {
+    background-color: var(--bg-main) !important;
+    color: var(--text-main);
+  }
+
+  :root:not([data-theme="light"]) #imageZoomModal {
+    background: rgba(10, 15, 18, 0.97) !important;
+  }
+
+  /* Listing photos come straight from phone cameras; take the glare off
+     pure-white product shots so they do not blow out a dark screen. */
+  :root:not([data-theme="light"]) .card-image,
+  :root:not([data-theme="light"]) .detail-image-box img {
+    filter: brightness(0.94);
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .offer-slide { transition: none !important; }
+  .splash-loader-progress { animation: none !important; }
+}

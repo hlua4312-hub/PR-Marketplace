@@ -17,6 +17,75 @@ create extension if not exists "pgcrypto";   -- gen_random_uuid()
 
 
 -- --------------------------------------------------------------------------
+-- 0b. MIGRATION OFF THE OLD SCHEMA
+--
+-- The first version of this project stored users in a public.users table with
+-- a plaintext password column that any holder of the anon key could read, and
+-- gave items a TEXT id with a TEXT user_id. None of that can be carried into
+-- the new model: identity now lives in auth.users, and a listing's owner has
+-- to be a real uuid from there.
+--
+-- So rather than delete anything, this renames the old tables out of the way
+-- and revokes access to them. Your rows are still there under *_legacy if you
+-- need them for your report; nothing can read them over the API any more.
+--
+-- Once you are happy, remove the backups with:
+--     drop table if exists public.users_legacy, public.items_legacy,
+--                          public.messages_legacy;
+-- Dropping users_legacy is worth doing sooner rather than later - it is the
+-- table holding the plaintext passwords.
+-- --------------------------------------------------------------------------
+do $$
+declare
+    legacy_users_exists boolean;
+    legacy_items_is_text boolean;
+begin
+    select exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'users' and column_name = 'password_hash'
+    ) into legacy_users_exists;
+
+    select exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'items'
+          and column_name = 'id' and data_type = 'text'
+    ) into legacy_items_is_text;
+
+    if legacy_users_exists then
+        execute 'drop policy if exists "Allow public read access to users" on public.users';
+        execute 'drop policy if exists "Allow public insert access to users" on public.users';
+        execute 'alter table public.users rename to users_legacy';
+        execute 'revoke all on public.users_legacy from anon, authenticated';
+        execute 'alter table public.users_legacy enable row level security';
+        raise notice 'Renamed public.users to public.users_legacy and revoked API access.';
+    end if;
+
+    if legacy_items_is_text then
+        execute 'drop policy if exists "Allow public read access to items" on public.items';
+        execute 'drop policy if exists "Allow validated insert on items" on public.items';
+        execute 'drop policy if exists "Allow update only to mark items as sold" on public.items';
+        execute 'alter table public.items rename to items_legacy';
+        execute 'revoke all on public.items_legacy from anon, authenticated';
+        execute 'alter table public.items_legacy enable row level security';
+        raise notice 'Renamed public.items to public.items_legacy.';
+    end if;
+
+    if exists (
+        select 1 from information_schema.columns
+        where table_schema = 'public' and table_name = 'messages' and column_name = 'sender_role'
+    ) then
+        execute 'drop policy if exists "Allow public read access to messages" on public.messages';
+        execute 'drop policy if exists "Allow public insert access to messages" on public.messages';
+        execute 'alter table public.messages rename to messages_legacy';
+        execute 'revoke all on public.messages_legacy from anon, authenticated';
+        execute 'alter table public.messages_legacy enable row level security';
+        raise notice 'Renamed public.messages to public.messages_legacy.';
+    end if;
+end
+$$;
+
+
+-- --------------------------------------------------------------------------
 -- 1. PROFILES
 --    One row per registered user. Passwords are NOT here - Supabase Auth
 --    owns auth.users and stores a bcrypt hash we never see or handle.
