@@ -21,16 +21,16 @@
   --instagram-grad: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
   --phone: #3b82f6;
 
-  /* Neutral Spectrum */
-  --bg-main: #f8fafc;
+  /* Neutral Spectrum - white platform background */
+  --bg-main: #ffffff;
   --bg-card: #ffffff;
-  --bg-surface: #f1f5f9;
-  
+  --bg-surface: #f4f5f7;
+
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-light: #94a3b8;
 
-  --border: #e2e8f0;
+  --border: #e4e7ec;
   --border-focus: #818cf8;
 
   /* Radius & Shadows */
@@ -68,7 +68,7 @@ section.hidden {
    Everything colour-related resolves through these so the dark theme at the
    bottom of this file only has to redefine values, never rules. */
 :root {
-  --bg-canvas: #f8fafc;
+  --bg-canvas: #ffffff;
   --bg-elevated: #ffffff;
   --text-body: #334155;
   --border-strong: #cbd5e1;
@@ -81,8 +81,8 @@ section.hidden {
   --warning: #b45309;
 
   --overlay: rgba(15, 23, 42, 0.45);
-  --skeleton: linear-gradient(90deg, #eef1f6 25%, #e2e8f0 37%, #eef1f6 63%);
-  --img-ghost: #eef1f6;
+  --skeleton: linear-gradient(90deg, #f1f3f6 25%, #e4e7ec 37%, #f1f3f6 63%);
+  --img-ghost: #f1f3f6;
 }
 
 /* Reset & Base Styles */
@@ -1281,13 +1281,27 @@ mark.search-highlight {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 12px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   text-decoration: none;
   color: var(--text-main);
+  /* Some of these rows are <a> and some are <button>. A button defaults to
+     centred text, which made the two kinds sit differently in the same list. */
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
   transition: var(--transition-fast);
+}
+
+.account-channel-btn .channel-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .account-channel-btn:hover {
@@ -4120,13 +4134,132 @@ input[type="range"] {
 }
 
 /* ==========================================================================
-   DARK THEME
-   Only token values are redefined here. Every rule above reads through the
+   GUEST BROWSING & THEME SWITCH
+   ========================================================================== */
+
+/* The sign-in card is now a prompt over the marketplace rather than a gate,
+   so it needs a way out and a line saying what triggered it. */
+
+.auth-overlay {
+  background-color: var(--overlay);
+  backdrop-filter: blur(3px);
+}
+
+.auth-card { position: relative; }
+
+.auth-dismiss-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.auth-dismiss-btn:hover { color: var(--text-main); border-color: var(--border-strong); }
+
+.auth-reason {
+  margin-bottom: 16px;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  background-color: var(--primary-light);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  font-size: 0.83rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* Guest state in the Account panel */
+
+.guest-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+}
+.guest-actions p {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.account-profile-card.is-guest .profile-avatar {
+  background: var(--bg-surface);
+  color: var(--text-light);
+  border: 1px dashed var(--border-strong);
+}
+
+/* Prompt shown on a listing when a guest reaches the contact section */
+
+.guest-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  text-align: center;
+}
+.guest-prompt p {
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* Dark-mode switch in Account */
+
+.theme-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 23px;
+  border-radius: var(--radius-full);
+  background-color: var(--border-strong);
+  transition: background-color var(--transition-fast);
+}
+.theme-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: var(--radius-full);
+  background-color: #ffffff;
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--transition-fast);
+}
+.theme-switch.on { background-color: var(--primary); }
+.theme-switch.on::after { transform: translateX(17px); }
+
+/* ==========================================================================
+   DARK THEME - opt in only
+   Deliberately NOT wired to prefers-color-scheme. Shoppers expect a white
+   storefront regardless of what their phone theme is set to, so dark applies
+   only when someone turns it on in Account, which stamps data-theme="dark"
+   on the root element.
+
+   Only token values are redefined here; every rule above reads through the
    tokens, so no component needs a second copy.
    ========================================================================== */
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+:root[data-theme="dark"] {
     --primary-rgb: 129, 140, 248;
     --primary-hover: #a5b4fc;
     --primary-light: #1e2140;
@@ -4167,35 +4300,34 @@ input[type="range"] {
   }
 
   /* Surfaces the original stylesheet painted white directly. */
-  :root:not([data-theme="light"]) .splash-screen,
-  :root:not([data-theme="light"]) .auth-overlay,
-  :root:not([data-theme="light"]) .auth-card,
-  :root:not([data-theme="light"]) .modal-card,
-  :root:not([data-theme="light"]) .modal-header-nav {
+  :root[data-theme="dark"] .splash-screen,
+  :root[data-theme="dark"] .auth-overlay,
+  :root[data-theme="dark"] .auth-card,
+  :root[data-theme="dark"] .modal-card,
+  :root[data-theme="dark"] .modal-header-nav {
     background-color: var(--bg-card) !important;
     color: var(--text-main);
   }
 
-  :root:not([data-theme="light"]) .all-chat-body,
-  :root:not([data-theme="light"]) .account-body,
-  :root:not([data-theme="light"]) .main-content,
-  :root:not([data-theme="light"]) .app-header,
-  :root:not([data-theme="light"]) .bottom-nav {
+  :root[data-theme="dark"] .all-chat-body,
+  :root[data-theme="dark"] .account-body,
+  :root[data-theme="dark"] .main-content,
+  :root[data-theme="dark"] .app-header,
+  :root[data-theme="dark"] .bottom-nav {
     background-color: var(--bg-main) !important;
     color: var(--text-main);
   }
 
-  :root:not([data-theme="light"]) #imageZoomModal {
+  :root[data-theme="dark"] #imageZoomModal {
     background: rgba(10, 15, 18, 0.97) !important;
   }
 
   /* Listing photos come straight from phone cameras; take the glare off
      pure-white product shots so they do not blow out a dark screen. */
-  :root:not([data-theme="light"]) .card-image,
-  :root:not([data-theme="light"]) .detail-image-box img {
+  :root[data-theme="dark"] .card-image,
+  :root[data-theme="dark"] .detail-image-box img {
     filter: brightness(0.94);
   }
-}
 
 /* ==========================================================================
    REDUCED MOTION

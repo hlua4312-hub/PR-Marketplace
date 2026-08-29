@@ -82,8 +82,10 @@ export function isSellOpen() {
 /* ================================================================= open === */
 
 export function openSellModal() {
+  // Listing needs an identity: the row records who the seller is, and the
+  // insert policy checks it. Browsing does not.
   if (!window.api.getCurrentUser()) {
-    showToast('Log in to post a listing.');
+    hooks.requireLogin?.('Log in to post a listing. It takes a minute and your listing stays yours.');
     return;
   }
   resetForm();

@@ -8,7 +8,10 @@ Runs as an installable web app (PWA) and as an Android app that wraps the same c
 
 ## What it does
 
-**Browse and find**
+**Browse and find** — no account needed
+- Anyone can open the app and browse the whole marketplace. An account is only
+  asked for at the point it starts to matter: posting, messaging, or seeing a
+  seller's contact details.
 - 11 categories, instant search across title, description and location
 - Filter by condition and maximum price, sort by newest, oldest or price
 - Filter by area in Aizawl, or use GPS to snap to the nearest one
@@ -34,6 +37,11 @@ Runs as an installable web app (PWA) and as an Android app that wraps the same c
 - Report a listing; the seller is never told who reported it
 - Confirmation before anything destructive
 - Contact details only shown to signed-in users
+
+**Look right**
+- White storefront by default, the way most shopping apps present themselves
+- Dark mode is opt-in under Account → App &amp; Security, not tied to the phone's
+  system theme, and it is applied before first paint so there is no white flash
 
 ---
 
@@ -162,6 +170,11 @@ Sold listings are deleted by `purge_expired_sold_items()`, a `SECURITY DEFINER` 
 - **Community chat is unmoderated.** Anyone signed in can post to the room.
 - **Phone numbers are not verified.** Only email is, via the confirmation link.
 - **Areas are Aizawl-specific**, hardcoded in `js/app.js`.
+- **Guests can see everything that is listed.** Browsing is deliberately open,
+  so treat any column on `items` as public. Contact details are hidden in the
+  UI for guests, but that is a product decision, not a security boundary — the
+  row itself is readable. Do not add a genuinely private field to `items`
+  without changing the select policy first.
 
 ---
 

@@ -36,6 +36,7 @@ export function initAccount(injected) {
   wireInstall();
   wireSecurity();
   wireListings();
+  wireTheme();
 }
 
 export function isAccountOpen() {
@@ -49,7 +50,8 @@ export async function openAccount() {
   renderConnectionStatus();
   openModal(els.modal);
   document.getElementById('btnAccount')?.classList.add('active');
-  await renderMyListings();
+
+  if (window.api.getCurrentUser()) await renderMyListings();
 }
 
 export function closeAccount() {
@@ -59,7 +61,23 @@ export function closeAccount() {
 
 function renderProfile() {
   const user = window.api.getCurrentUser();
-  if (!user) return;
+  const guest = !user;
+
+  document.getElementById('accountProfileCard')?.classList.toggle('is-guest', guest);
+  document.getElementById('guestActions')?.classList.toggle('hidden', !guest);
+  document.getElementById('profileBadges')?.classList.toggle('hidden', guest);
+
+  // Controls that need an identity are hidden rather than shown broken.
+  ['btnLogoutUser', 'btnChangePassword', 'listingsSection'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('hidden', guest);
+  });
+
+  if (guest) {
+    if (els.avatar) els.avatar.textContent = '?';
+    if (els.name) els.name.textContent = 'Browsing as a guest';
+    if (els.email) els.email.textContent = 'Log in to sell, message and save across devices';
+    return;
+  }
 
   if (els.avatar) els.avatar.textContent = initials(user.fullName, 'P');
   if (els.name) els.name.textContent = user.fullName || 'PR Marketplace member';
@@ -285,6 +303,62 @@ function wireInstall() {
   });
 }
 
+/* ================================================================= theme === */
+
+const THEME_KEY = 'pr_theme';
+
+function currentTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+  } catch (e) {
+    return 'light';
+  }
+}
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'dark') {
+    root.setAttribute('data-theme', 'dark');
+  } else {
+    root.removeAttribute('data-theme');
+  }
+
+  document.getElementById('themeColorMeta')
+    ?.setAttribute('content', theme === 'dark' ? '#0f1518' : '#ffffff');
+
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch (e) {
+    /* private browsing - the choice just will not stick */
+  }
+
+  renderThemeControl(theme);
+}
+
+function renderThemeControl(theme) {
+  const isDark = theme === 'dark';
+  const hint = document.getElementById('themeHintText');
+  const toggle = document.getElementById('themeSwitch');
+
+  if (hint) {
+    hint.textContent = isDark
+      ? 'On — easier on the eyes at night'
+      : 'Off — the marketplace shows on white';
+  }
+  if (toggle) {
+    toggle.classList.toggle('on', isDark);
+    toggle.setAttribute('aria-checked', String(isDark));
+  }
+}
+
+function wireTheme() {
+  renderThemeControl(currentTheme());
+
+  document.getElementById('btnToggleTheme')?.addEventListener('click', () => {
+    applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+  });
+}
+
 /* ============================================================== security === */
 
 function wireSecurity() {
@@ -339,6 +413,11 @@ function wireSections() {
 
 function wireOpenClose() {
   document.getElementById('closeAccountModalBtn')?.addEventListener('click', closeAccount);
+
+  document.getElementById('btnGuestLogin')?.addEventListener('click', () => {
+    closeAccount();
+    hooks.requireLogin?.('Log in to sell, message sellers and keep your saved items.');
+  });
 
   document.getElementById('btnLogoutUser')?.addEventListener('click', async () => {
     const ok = await confirmAction({

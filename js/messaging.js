@@ -86,7 +86,7 @@ function wireCommunity() {
 export async function openCommunityChat() {
   const user = window.api.getCurrentUser();
   if (!user) {
-    showToast('Log in to join the community chat.');
+    hooks.requireLogin?.('Log in to join the community chat.');
     return;
   }
 
@@ -184,7 +184,7 @@ function wirePrivate() {
 export async function openPrivateChat(peer, { fromCommunity = false } = {}) {
   const user = window.api.getCurrentUser();
   if (!user) {
-    showToast('Log in to send a private message.');
+    hooks.requireLogin?.('Log in to send a private message.');
     return;
   }
   if (peer.id === user.id) {
@@ -306,7 +306,7 @@ function wireInbox() {
 export async function openInbox() {
   const user = window.api.getCurrentUser();
   if (!user) {
-    showToast('Log in to see your messages.');
+    hooks.requireLogin?.('Log in to see your messages.');
     return;
   }
 

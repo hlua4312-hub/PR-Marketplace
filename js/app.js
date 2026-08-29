@@ -16,7 +16,10 @@ import {
   closePrivateChat, isPrivateOpen, closeInbox, isInboxOpen,
   watchForNewMessages, stopWatching, refreshInbox
 } from './messaging.js';
-import { initAuth, showAuth, showApp, showNewPasswordScreen, clearAuthForms } from './auth.js';
+import {
+  initAuth, showAuth, hideAuth, isAuthOpen, showApp,
+  showNewPasswordScreen, clearAuthForms
+} from './auth.js';
 import { initAccount, openAccount, closeAccount, isAccountOpen } from './account.js';
 import { cancelCropper } from './cropper.js';
 
@@ -29,10 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initDetail({
     onEdit: openEditModal,
     onFeedChanged: () => loadFeed(),
-    openZoom: openZoomViewer
+    openZoom: openZoomViewer,
+    requireLogin
   });
 
   initSell({
+    requireLogin,
     onSaved: async () => {
       // Show the seller their new listing at the top of an unfiltered feed.
       resetFilters();
@@ -49,18 +54,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  initMessaging({ onOpenItem: openItemDetail });
+  initMessaging({ onOpenItem: openItemDetail, requireLogin });
 
   initAuth({
-    onSignedIn: onSignedIn,
-    onSignedOut: onSignedOut
+    onSignedIn,
+    onSignedOut,
+    onDismissed: () => loadFeed()
   });
 
   initAccount({
     onEdit: openEditModal,
     onOpenItem: openItemDetail,
     onFeedChanged: () => loadFeed(),
-    onSignedOut: onSignedOut
+    onSignedOut,
+    requireLogin
   });
 
   wireBottomNav();
@@ -77,8 +84,10 @@ async function start() {
   const splash = document.getElementById('splashScreen');
 
   if (!window.api.isReady()) {
+    // Show the shell rather than a sign-in wall: the thing that fixes this
+    // lives in Account, and the user has to be able to reach it.
     hideSplash(splash);
-    showAuth();
+    showApp();
     showToast('No database connection. Open Account → Database Connection to set one.', 6000);
     return;
   }
@@ -105,11 +114,14 @@ async function start() {
     return;
   }
 
-  if (user) {
-    await enterApp();
-    applyLaunchIntent();
-  } else {
-    showAuth();
+  // Browsing does not need an account. The marketplace opens for everyone and
+  // asks for a sign-in only when someone tries to post, message or contact -
+  // which is what the row-level security policies already allow for.
+  await enterApp();
+  applyLaunchIntent();
+
+  if (!user) {
+    setTimeout(() => showToast('Browsing as a guest. Log in from Account to sell or message.', 4500), 900);
   }
 }
 
@@ -165,7 +177,7 @@ async function enterApp() {
   window.api.purgeExpiredSoldItems().catch(() => {});
 }
 
-function onSignedOut({ silent = false } = {}) {
+async function onSignedOut({ silent = false } = {}) {
   stopWatching();
   closeAccount();
   closeDetail();
@@ -173,8 +185,25 @@ function onSignedOut({ silent = false } = {}) {
   closeInbox();
   clearAuthForms();
   resetFilters();
-  showAuth();
-  if (!silent) showToast('Logged out.');
+  syncFilterControls();
+
+  // Logging out drops you back to browsing as a guest rather than to a wall,
+  // so the marketplace stays visible.
+  setTab('explore');
+  syncNavButtons('explore');
+  updateFavoriteBadge();
+  await loadFeed();
+
+  if (!silent) showToast('Logged out. You can still browse.');
+}
+
+/**
+ * Ask for a sign-in because the user tried to do something that needs one.
+ * Everything that requires an identity funnels through here, so the reason
+ * shown is always the actual reason.
+ */
+function requireLogin(reason) {
+  showAuth({ reason, dismissible: true });
 }
 
 /* ============================================================ navigation === */
@@ -219,6 +248,8 @@ function wireBottomNav() {
  */
 function wireBackButton() {
   window.handleAndroidBackButton = function handleBack() {
+    if (isAuthOpen() && window.api.getCurrentUser()) { hideAuth(); return true; }
+    if (isAuthOpen()) { hideAuth(); loadFeed(); return true; }
     if (cancelCropper()) return true;
     if (isZoomOpen()) { closeZoomViewer(); return true; }
     if (isPrivateOpen()) { closePrivateChat({ back: true }); return true; }

@@ -152,7 +152,7 @@ function detailMarkup(item) {
         <div class="seller-avatar">${escapeHtml(initials(item.sellerName, 'S'))}</div>
         <div class="seller-info">
           <h4>${escapeHtml(item.sellerName)}</h4>
-          ${phone ? `<div class="seller-phone">${escapeHtml(phone)}</div>` : ''}
+          ${phone && user ? `<div class="seller-phone">${escapeHtml(phone)}</div>` : ''}
         </div>
       </div>
 
@@ -202,9 +202,13 @@ function buyerPanel(item, { user, isSold, phone, whatsapp, instagram, waMessage 
   }
 
   if (!user) {
+    // Guests can browse the whole marketplace; contact details are the point
+    // at which an identity starts to matter, for the seller's sake as much
+    // as anything.
     return `
-      <div class="sold-disabled-notice">
-        <p>Log in to message this seller or see their contact details.</p>
+      <div class="guest-prompt">
+        <p>Log in to message ${escapeHtml(item.sellerName)} or see their contact details.</p>
+        <button type="button" class="btn btn-primary" data-action="login">Log in or register</button>
       </div>`;
   }
 
@@ -362,6 +366,11 @@ async function onContentClick(event) {
     return;
   }
 
+  if (action === 'login') {
+    hooks.requireLogin?.(`Log in to contact ${currentItem.sellerName} about “${currentItem.title}”.`);
+    return;
+  }
+
   if (action === 'edit') {
     const item = currentItem;
     close();
@@ -398,6 +407,10 @@ async function onContentClick(event) {
   }
 
   if (action === 'report') {
+    if (!window.api.getCurrentUser()) {
+      hooks.requireLogin?.('Log in to report a listing. Reports are anonymous to the seller.');
+      return;
+    }
     openReportModal(currentItem);
   }
 }

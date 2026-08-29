@@ -31,9 +31,14 @@ export function initAuth(injected) {
     savedBox: document.getElementById('savedAccountsContainer'),
     savedChips: document.getElementById('savedAccountsChips'),
 
+    reasonBox: document.getElementById('authReason'),
+    dismissBtn: document.getElementById('btnDismissAuth'),
+    browseLink: document.getElementById('linkKeepBrowsing'),
+
     confirmAddress: document.getElementById('confirmEmailAddress')
   };
 
+  wireDismiss();
   wireTabs();
   wirePasswordToggles();
   wireRegister();
@@ -44,12 +49,43 @@ export function initAuth(injected) {
 
 /* ============================================================= visibility === */
 
-export function showAuth() {
+/**
+ * Show the sign-in screen over the marketplace.
+ *
+ * Browsing does not require an account, so this is a prompt rather than a
+ * gate: it appears when someone tries to do something that needs an identity,
+ * explains why, and can be dismissed back to browsing.
+ *
+ * @param {string}  [reason]      one line explaining what prompted it
+ * @param {boolean} [dismissible] false only on a genuine hard stop
+ */
+export function showAuth({ reason = '', dismissible = true, tab = 'login' } = {}) {
   els.overlay?.classList.remove('hidden');
   els.confirmOverlay?.classList.add('hidden');
   els.newPasswordOverlay?.classList.add('hidden');
-  els.viewport?.classList.add('hidden');
-  renderSavedIdentifiers();
+
+  // The marketplace stays mounted underneath, so dismissing returns the
+  // browser to exactly the listing they were looking at.
+  els.viewport?.classList.remove('hidden');
+
+  if (els.reasonBox) {
+    els.reasonBox.textContent = reason;
+    els.reasonBox.classList.toggle('hidden', !reason);
+  }
+  els.dismissBtn?.classList.toggle('hidden', !dismissible);
+  els.browseLink?.classList.toggle('hidden', !dismissible);
+
+  showTab(tab);
+}
+
+export function hideAuth() {
+  els.overlay?.classList.add('hidden');
+  els.confirmOverlay?.classList.add('hidden');
+  els.newPasswordOverlay?.classList.add('hidden');
+}
+
+export function isAuthOpen() {
+  return Boolean(els.overlay) && !els.overlay.classList.contains('hidden');
 }
 
 export function showApp() {
@@ -82,6 +118,23 @@ function showTab(which) {
   els.tabLogIn?.classList.toggle('active', which !== 'signin');
 
   if (which === 'login') renderSavedIdentifiers();
+}
+
+function wireDismiss() {
+  const dismiss = event => {
+    event?.preventDefault();
+    hideAuth();
+    hooks.onDismissed?.();
+  };
+
+  els.dismissBtn?.addEventListener('click', dismiss);
+  els.browseLink?.addEventListener('click', dismiss);
+
+  els.overlay?.addEventListener('click', event => {
+    if (event.target === els.overlay && !els.dismissBtn?.classList.contains('hidden')) {
+      dismiss(event);
+    }
+  });
 }
 
 function wireTabs() {

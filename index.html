@@ -23,8 +23,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PR">
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#101615" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" id="themeColorMeta">
 
   <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,6 +32,16 @@
 
   <link rel="stylesheet" href="styles.css">
 </head>
+<script>
+    // Runs before the body renders: a saved dark preference must be on the
+    // root element before first paint, or the page flashes white.
+    try {
+      if (localStorage.getItem('pr_theme') === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.getElementById('themeColorMeta')?.setAttribute('content', '#0f1518');
+      }
+    } catch (e) { /* private browsing */ }
+  </script>
 <body>
 
   <!-- 1. 2-SECOND STARTUP LOADING SPLASH SCREEN -->
@@ -49,11 +58,16 @@
   <!-- 2. CLEAN WHITE BACKGROUND AUTHENTICATION OVERLAY (SIGN-IN & LOG-IN) -->
   <div id="authOverlay" class="auth-overlay hidden">
     <div class="auth-card">
+      <button type="button" class="auth-dismiss-btn" id="btnDismissAuth" aria-label="Close and keep browsing">&times;</button>
+
       <div class="auth-brand-header">
         <img src="pr_app_icon.jpg" alt="PR Logo" class="auth-brand-logo">
         <h2>Welcome to PR Marketplace</h2>
-        <p>Personal Authentication System</p>
+        <p>Buy and sell with people nearby</p>
       </div>
+
+      <!-- Filled in when something specific prompted the sign-in -->
+      <p class="auth-reason hidden" id="authReason"></p>
 
       <!-- AUTH TAB TOGGLES -->
       <div class="auth-tabs">
@@ -134,6 +148,10 @@
 
         <p class="auth-footer-hint">
           Don't have an account yet? <a href="#" id="linkSwitchToRegister">Sign In (Register) first</a>
+        </p>
+
+        <p class="auth-footer-hint">
+          <a href="#" id="linkKeepBrowsing">Keep browsing without an account</a>
         </p>
       </form>
 
@@ -730,16 +748,22 @@
       <div class="account-body">
         
         <!-- Profile Card Header -->
-        <div class="account-profile-card">
+        <div class="account-profile-card" id="accountProfileCard">
           <div class="profile-avatar" id="accountUserAvatar">PR</div>
           <div class="profile-info">
             <h3 id="accountUserName">Local Community Member</h3>
             <span class="profile-email" id="accountUserEmail">user@gmail.com</span>
-            <div class="profile-badges">
-              <span class="badge-status">🟢 Verified Seller</span>
-              <span class="badge-campus">📍 Main Campus & City</span>
+            <div class="profile-badges" id="profileBadges">
+              <span class="badge-status">Verified email</span>
+              <span class="badge-campus">Aizawl &amp; nearby</span>
             </div>
           </div>
+        </div>
+
+        <!-- Shown while browsing without an account -->
+        <div class="guest-actions hidden" id="guestActions">
+          <p>You can browse everything as a guest. Logging in lets you post items, message sellers and keep your saved list across devices.</p>
+          <button type="button" class="btn btn-primary" id="btnGuestLogin">Log in or register</button>
         </div>
 
         <!-- Section 1: Contact Us & Feedback Button -->
@@ -819,7 +843,7 @@
         </div>
 
         <!-- Section: My Listings -->
-        <div class="account-section">
+        <div class="account-section" id="listingsSection">
           <button class="account-section-btn open" id="btnToggleListingsSection" type="button">
             <div class="section-title-group">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
@@ -837,7 +861,7 @@
         </div>
 
         <!-- Section: Database Connection -->
-        <div class="account-section">
+        <div class="account-section" id="dbSection">
           <button class="account-section-btn" id="btnToggleDbSection" type="button">
             <div class="section-title-group">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
@@ -886,6 +910,15 @@
 
           <div class="account-section-body hidden" id="appSectionBody">
             <div class="contact-channels-list">
+              <button type="button" class="account-channel-btn" id="btnToggleTheme">
+                <div class="channel-icon-box">🌙</div>
+                <div class="channel-text">
+                  <strong>Dark Mode</strong>
+                  <span id="themeHintText">Off — the marketplace shows on white</span>
+                </div>
+                <span class="theme-switch" id="themeSwitch" role="switch" aria-checked="false" aria-labelledby="themeHintText"></span>
+              </button>
+
               <button type="button" class="account-channel-btn" id="btnInstallApp">
                 <div class="channel-icon-box">📲</div>
                 <div class="channel-text">
