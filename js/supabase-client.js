@@ -151,6 +151,33 @@ class SupabaseMarketplaceClient {
     return () => data.subscription.unsubscribe();
   }
 
+  /**
+   * Send the sign-up confirmation email again.
+   *
+   * This is a different email from a password reset, and asking for the wrong
+   * one leaves the account unconfirmed no matter how many times you click.
+   */
+  async resendConfirmation(email) {
+    const db = this._require();
+    const { error } = await db.auth.resend({
+      type: 'signup',
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    });
+
+    if (error) {
+      const msg = (error.message || '').toLowerCase();
+      // The free tier allows only a handful of emails an hour, and the error
+      // for that is worth naming rather than passing through raw.
+      if (msg.includes('rate limit') || msg.includes('too many') || error.status === 429) {
+        throw new Error('EMAIL_RATE_LIMITED');
+      }
+      if (msg.includes('already confirmed')) throw new Error('ALREADY_CONFIRMED');
+      throw error;
+    }
+    return true;
+  }
+
   /** Send a password-reset email. Always resolves, so we never reveal whether an address is registered. */
   async requestPasswordReset(email) {
     const db = this._require();

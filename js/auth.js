@@ -210,14 +210,20 @@ function wireRegister() {
     }
   });
 
-  document.getElementById('btnResendConfirmation')?.addEventListener('click', async () => {
+  document.getElementById('btnResendConfirmation')?.addEventListener('click', async event => {
     const email = els.confirmAddress?.textContent;
     if (!email) return;
+
+    const btn = event.currentTarget;
+    setBusy(btn, true, 'Sending…');
+
     try {
-      await window.api.requestPasswordReset(email);
-      showToast('Sent. Check your inbox in a moment.');
+      await window.api.resendConfirmation(email);
+      showToast('Confirmation email sent again. Check your inbox and spam folder.', 4500);
     } catch (err) {
-      showToast(describeError(err));
+      showToast(describeError(err), 6000);
+    } finally {
+      setBusy(btn, false, 'Resend Confirmation Email');
     }
   });
 }
@@ -263,7 +269,12 @@ function wireLogin() {
       showToast(`Welcome back, ${user.fullName}.`);
       hooks.onSignedIn?.(user);
     } catch (err) {
-      showToast(describeError(err));
+      if (err.message === 'EMAIL_NOT_CONFIRMED') {
+        showConfirmEmail(identifier.includes('@') ? identifier : '');
+        showToast('This account still needs confirming. Resend the email below if it never arrived.', 5500);
+      } else {
+        showToast(describeError(err));
+      }
     } finally {
       setBusy(btn, false, 'Log In to Account');
     }

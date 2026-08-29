@@ -160,6 +160,10 @@ class MarketplaceAPI {
     return window.supabaseAPI.requestPasswordReset(email);
   }
 
+  resendConfirmation(email) {
+    return window.supabaseAPI.resendConfirmation(email);
+  }
+
   updatePassword(newPassword) {
     return window.supabaseAPI.updatePassword(newPassword);
   }
