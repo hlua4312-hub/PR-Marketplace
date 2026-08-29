@@ -93,9 +93,21 @@ async function start() {
     return;
   }
 
-  // Supabase puts a recovery token in the URL fragment when someone follows a
-  // password-reset link, so check for that before deciding what to show.
-  const arrivingFromReset = /type=recovery/.test(window.location.hash);
+  // Supabase puts the token in the URL fragment when someone follows an
+  // emailed link, and the type says which link it was.
+  const hash = window.location.hash;
+  const arrivingFromReset = /type=recovery/.test(hash);
+  const arrivingFromConfirmation = /type=signup|type=email_change/.test(hash);
+  const linkError = /error_description=/.test(hash);
+
+  if (linkError) {
+    const reason = decodeURIComponent(
+      (hash.match(/error_description=([^&]*)/) || [])[1] || ''
+    ).replace(/\+/g, ' ');
+    // Usually an expired link. Say so rather than dumping them on a blank app.
+    showToast(reason || 'That link is no longer valid. Ask for a new one.', 7000);
+    clearAuthFragment();
+  }
 
   window.api.onAuthStateChange((event, profile) => {
     if (event === 'PASSWORD_RECOVERY') {
@@ -112,6 +124,7 @@ async function start() {
 
   if (arrivingFromReset) {
     showNewPasswordScreen();
+    clearAuthFragment();
     return;
   }
 
@@ -121,9 +134,21 @@ async function start() {
   await enterApp();
   applyLaunchIntent();
 
-  if (!user) {
+  if (arrivingFromConfirmation && user) {
+    clearAuthFragment();
+    showToast(`Email confirmed. Welcome, ${user.fullName}.`, 4500);
+  } else if (!user) {
     setTimeout(() => showToast('Browsing as a guest. Log in from Account to sell or message.', 4500), 900);
   }
+}
+
+/**
+ * Take the access token out of the address bar once Supabase has read it.
+ * It is a live credential and there is no reason to leave it on screen, in
+ * the history, or in whatever the user pastes next.
+ */
+function clearAuthFragment() {
+  history.replaceState(null, '', window.location.pathname + window.location.search);
 }
 
 /**
