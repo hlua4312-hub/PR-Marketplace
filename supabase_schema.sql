@@ -11,6 +11,40 @@
 -- ==========================================================================
 
 -- --------------------------------------------------------------------------
+-- BEFORE YOU RUN THIS
+--
+-- Close the app everywhere first: browser tabs, phones, the Android build,
+-- anything pointed at this project.
+--
+-- Renaming a table needs an exclusive lock on it. A running copy of the app
+-- holds read locks and opens Realtime subscriptions, and the two can deadlock
+-- - Postgres then kills this script. Nothing is half-applied when that
+-- happens (the editor runs the file in one transaction, so it all rolls
+-- back), but it is easier to close the app than to retry.
+--
+-- The lock_timeout below turns a deadlock into a plain, readable error after
+-- ten seconds instead of a wait. If you see "canceling statement due to lock
+-- timeout", something is still connected.
+-- --------------------------------------------------------------------------
+set lock_timeout = '10s';
+
+-- Last resort, if it still times out with nothing obviously connected: a
+-- pooled connection can outlive the browser tab that made it. Run this on its
+-- own to see what is holding on --
+--
+--   select pid, application_name, state, query
+--   from pg_stat_activity
+--   where datname = current_database() and pid <> pg_backend_pid();
+--
+-- and this to close them. It disconnects every other client, so do not run it
+-- against anything with real users on it --
+--
+--   select pg_terminate_backend(pid)
+--   from pg_stat_activity
+--   where datname = current_database() and pid <> pg_backend_pid();
+
+
+-- --------------------------------------------------------------------------
 -- 0. EXTENSIONS
 -- --------------------------------------------------------------------------
 create extension if not exists "pgcrypto";   -- gen_random_uuid()

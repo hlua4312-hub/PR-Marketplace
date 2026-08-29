@@ -51,7 +51,9 @@ You need a [Supabase](https://supabase.com) project (the free tier is fine) and 
 
 ### 1. Create the database
 
-Open your Supabase project → **SQL Editor** → paste the whole of [`supabase_schema.sql`](supabase_schema.sql) → **Run**.
+**Close the app everywhere first** — browser tabs, phones, the Android build. Renaming a table needs an exclusive lock, and a running copy of the app holds read locks and Realtime subscriptions; the two deadlock and Postgres kills the script.
+
+Then open your Supabase project → **SQL Editor** → paste the whole of [`supabase_schema.sql`](supabase_schema.sql) → **Run**.
 
 It is safe to run more than once. It creates the tables, the row-level security policies, the image storage bucket and the Realtime publication.
 
@@ -62,6 +64,13 @@ It is safe to run more than once. It creates the tables, the row-level security 
 > Expect the marketplace to be **empty** afterwards: the new `items` table starts fresh, and old listings cannot be carried over automatically because their owner is a text id that matches no account. To bring them back once you have registered, run [`docs/restore-legacy-listings.sql`](docs/restore-legacy-listings.sql).
 >
 > Drop `users_legacy` sooner rather than later — it is the table that held plaintext passwords.
+
+**If the run fails**, the editor wraps the file in one transaction, so nothing is half-applied — the whole thing rolls back and you can just fix the cause and run it again. Two you might hit:
+
+| Error | Cause | Fix |
+|---|---|---|
+| `deadlock detected` | a copy of the app is connected and holding locks | close every tab and device running it, then re-run |
+| `canceling statement due to lock timeout` | same, but a pooled connection outlived the tab | see the commented `pg_stat_activity` queries at the top of the schema file |
 
 ### 2. Point the app at your project
 
