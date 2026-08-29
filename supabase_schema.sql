@@ -1,118 +1,409 @@
 -- ==========================================================================
--- PR MARKETPLACE - SUPABASE POSTGRESQL DATABASE SCHEMA MIGRATION
--- Paste this script into your Supabase SQL Editor (https://app.supabase.com)
+-- PR MARKETPLACE - SUPABASE SCHEMA
+--
+-- Paste the whole file into the Supabase SQL Editor and press RUN.
+-- It is safe to run more than once.
+--
+-- Security model, in one line: identity comes from Supabase Auth, and every
+-- rule is enforced by row-level security against auth.uid() - never by the
+-- browser. The anon key in js/config.js is public by design; these policies
+-- are what actually protect the data.
 -- ==========================================================================
 
--- 1. Create 'users' Table for Personal Authentication
-CREATE TABLE IF NOT EXISTS public.users (
-    id TEXT PRIMARY KEY,
-    full_name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    phone TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+-- --------------------------------------------------------------------------
+-- 0. EXTENSIONS
+-- --------------------------------------------------------------------------
+create extension if not exists "pgcrypto";   -- gen_random_uuid()
+
+
+-- --------------------------------------------------------------------------
+-- 1. PROFILES
+--    One row per registered user. Passwords are NOT here - Supabase Auth
+--    owns auth.users and stores a bcrypt hash we never see or handle.
+-- --------------------------------------------------------------------------
+create table if not exists public.profiles (
+    id          uuid primary key references auth.users(id) on delete cascade,
+    full_name   text not null,
+    phone       text unique,
+    created_at  timestamptz not null default now()
 );
 
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow public read access to users" ON public.users;
-DROP POLICY IF EXISTS "Allow public insert access to users" ON public.users;
-CREATE POLICY "Allow public read access to users" ON public.users FOR SELECT USING (true);
-CREATE POLICY "Allow public insert access to users" ON public.users FOR INSERT WITH CHECK (true);
+alter table public.profiles enable row level security;
 
--- 2. Create 'items' Table for Marketplace Listings
-CREATE TABLE IF NOT EXISTS public.items (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    category TEXT NOT NULL,
-    price NUMERIC NOT NULL,
-    condition TEXT NOT NULL,
-    location TEXT NOT NULL,
-    description TEXT,
-    image_url TEXT,
-    payment_qr_url TEXT,
-    seller_name TEXT NOT NULL,
-    seller_whatsapp TEXT NOT NULL,
-    seller_instagram TEXT,
-    seller_phone TEXT,
-    user_id TEXT REFERENCES public.users(id) ON DELETE SET NULL,
-    is_sold BOOLEAN DEFAULT FALSE,
-    sold_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
+drop policy if exists "profiles: owner reads own row"     on public.profiles;
+drop policy if exists "profiles: owner updates own row"   on public.profiles;
+drop policy if exists "profiles: public display names"    on public.profiles;
 
--- Ensure user_id column exists if table was already created
-ALTER TABLE public.items ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES public.users(id) ON DELETE SET NULL;
+-- A signed-in user may read their own full row.
+create policy "profiles: owner reads own row"
+    on public.profiles for select
+    using (auth.uid() = id);
 
--- 2. Enable Row Level Security (RLS) on items
-ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
+-- A signed-in user may correct their own name / phone.
+create policy "profiles: owner updates own row"
+    on public.profiles for update
+    using (auth.uid() = id)
+    with check (auth.uid() = id);
 
--- 3. Hardened Row Level Security (RLS) Policies on items
-DROP POLICY IF EXISTS "Allow public read access to items" ON public.items;
-DROP POLICY IF EXISTS "Allow public insert access to items" ON public.items;
-DROP POLICY IF EXISTS "Allow validated insert on items" ON public.items;
-DROP POLICY IF EXISTS "Allow public update access to items" ON public.items;
-DROP POLICY IF EXISTS "Allow update only to mark items as sold" ON public.items;
-DROP POLICY IF EXISTS "Allow public delete access to items" ON public.items;
+-- Rows are created by the trigger below, never by the client.
 
--- 3.1. Public Read: Anyone can browse and view marketplace listings
-CREATE POLICY "Allow public read access to items" 
-    ON public.items FOR SELECT 
-    USING (true);
-
--- 3.2. Validated Insert: Enforces required fields & ensures new items start unsold
-CREATE POLICY "Allow validated insert on items" 
-    ON public.items FOR INSERT 
-    WITH CHECK (true);
-
--- 3.3. Locked-Down Update: Restricts updates exclusively to marking active listings as SOLD
--- Prevents arbitrary tampering with price, title, seller phone, or ownership
-CREATE POLICY "Allow update only to mark items as sold" 
-    ON public.items FOR UPDATE 
-    USING (
-        is_sold = false
+-- Copy the sign-up metadata into a profile row the moment the account exists.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    insert into public.profiles (id, full_name, phone)
+    values (
+        new.id,
+        coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)),
+        nullif(new.raw_user_meta_data ->> 'phone', '')
     )
-    WITH CHECK (
-        is_sold = true AND sold_at IS NOT NULL
+    on conflict (id) do nothing;
+    return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+    after insert on auth.users
+    for each row execute function public.handle_new_user();
+
+
+-- --------------------------------------------------------------------------
+-- 2. SIGN IN BY PHONE NUMBER
+--    The app lets people log in with either email or phone. Supabase Auth
+--    signs in by email, so we resolve phone -> email through this function.
+--    It is SECURITY DEFINER and returns exactly one column, so callers can
+--    never read the profiles table itself.
+-- --------------------------------------------------------------------------
+create or replace function public.email_for_phone(p_phone text)
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+    select u.email
+    from public.profiles p
+    join auth.users u on u.id = p.id
+    where p.phone = regexp_replace(p_phone, '[^0-9]', '', 'g')
+    limit 1;
+$$;
+
+revoke all on function public.email_for_phone(text) from public;
+grant execute on function public.email_for_phone(text) to anon, authenticated;
+
+-- Reject a duplicate phone at sign-up time without exposing the table.
+create or replace function public.phone_is_taken(p_phone text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+    select exists (
+        select 1 from public.profiles
+        where phone = regexp_replace(p_phone, '[^0-9]', '', 'g')
+    );
+$$;
+
+revoke all on function public.phone_is_taken(text) from public;
+grant execute on function public.phone_is_taken(text) to anon, authenticated;
+
+
+-- --------------------------------------------------------------------------
+-- 3. ITEMS
+-- --------------------------------------------------------------------------
+create table if not exists public.items (
+    id               uuid primary key default gen_random_uuid(),
+    user_id          uuid not null references auth.users(id) on delete cascade,
+    title            text not null check (char_length(title) between 3 and 120),
+    category         text not null,
+    price            numeric(12,2) not null check (price >= 0),
+    condition        text not null check (condition in ('Brand New','Like New','Good','Fair')),
+    location         text not null,
+    description      text check (char_length(description) <= 2000),
+    image_url        text,
+    payment_qr_url   text,
+    seller_name      text not null,
+    seller_phone     text,
+    seller_whatsapp  text,
+    seller_instagram text,
+    is_sold          boolean not null default false,
+    sold_at          timestamptz,
+    created_at       timestamptz not null default now(),
+    updated_at       timestamptz not null default now(),
+    constraint sold_at_matches_is_sold check (
+        (is_sold = false and sold_at is null) or
+        (is_sold = true  and sold_at is not null)
+    )
+);
+
+create index if not exists items_created_at_idx on public.items (created_at desc);
+create index if not exists items_category_idx   on public.items (category);
+create index if not exists items_user_id_idx    on public.items (user_id);
+
+alter table public.items enable row level security;
+
+drop policy if exists "Allow public read access to items"        on public.items;
+drop policy if exists "Allow public insert access to items"      on public.items;
+drop policy if exists "Allow validated insert on items"          on public.items;
+drop policy if exists "Allow public update access to items"      on public.items;
+drop policy if exists "Allow update only to mark items as sold"  on public.items;
+drop policy if exists "Allow public delete access to items"      on public.items;
+drop policy if exists "items: anyone may browse"                 on public.items;
+drop policy if exists "items: post as yourself"                  on public.items;
+drop policy if exists "items: owner edits own listing"           on public.items;
+drop policy if exists "items: owner deletes own listing"         on public.items;
+
+-- Browsing the marketplace does not require an account.
+create policy "items: anyone may browse"
+    on public.items for select
+    using (true);
+
+-- You may only create a listing that belongs to you.
+create policy "items: post as yourself"
+    on public.items for insert
+    to authenticated
+    with check (auth.uid() = user_id);
+
+-- Only the seller may edit their listing, and they cannot hand it to someone else.
+create policy "items: owner edits own listing"
+    on public.items for update
+    to authenticated
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id);
+
+-- Only the seller may delete their listing.
+create policy "items: owner deletes own listing"
+    on public.items for delete
+    to authenticated
+    using (auth.uid() = user_id);
+
+-- Keep updated_at honest.
+create or replace function public.touch_updated_at()
+returns trigger language plpgsql as $$
+begin
+    new.updated_at = now();
+    return new;
+end;
+$$;
+
+drop trigger if exists items_touch_updated_at on public.items;
+create trigger items_touch_updated_at
+    before update on public.items
+    for each row execute function public.touch_updated_at();
+
+
+-- --------------------------------------------------------------------------
+-- 4. THE 5-HOUR PURGE OF SOLD LISTINGS
+--    SECURITY DEFINER so it can delete rows regardless of who calls it,
+--    while the RLS policies above still stop anyone deleting by hand.
+-- --------------------------------------------------------------------------
+create or replace function public.purge_expired_sold_items()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    removed integer;
+begin
+    with gone as (
+        delete from public.items
+        where is_sold = true
+          and sold_at < now() - interval '5 hours'
+        returning 1
+    )
+    select count(*) into removed from gone;
+    return removed;
+end;
+$$;
+
+revoke all on function public.purge_expired_sold_items() from public;
+grant execute on function public.purge_expired_sold_items() to anon, authenticated;
+
+-- Optional: if the pg_cron extension is enabled on your project, this runs
+-- the purge every 15 minutes so it does not depend on someone opening the app.
+-- Enable pg_cron under Database > Extensions first, then uncomment:
+--
+-- select cron.schedule('purge-sold-items', '*/15 * * * *',
+--                      $$select public.purge_expired_sold_items()$$);
+
+
+-- --------------------------------------------------------------------------
+-- 5. MESSAGES
+--    One table serves all three conversations in the app:
+--      community            - the public room, channel_id = 'community'
+--      item:<itemId>:<uid>  - a buyer's thread about one listing
+--      direct               - channel_id = '<uuidA>:<uuidB>', sorted
+-- --------------------------------------------------------------------------
+create table if not exists public.messages (
+    id           uuid primary key default gen_random_uuid(),
+    channel_type text not null check (channel_type in ('community','item','direct')),
+    channel_id   text not null,
+    sender_id    uuid not null references auth.users(id) on delete cascade,
+    sender_name  text not null,
+    body         text not null check (char_length(body) between 1 and 2000),
+    created_at   timestamptz not null default now()
+);
+
+create index if not exists messages_channel_idx on public.messages (channel_type, channel_id, created_at);
+
+alter table public.messages enable row level security;
+
+drop policy if exists "Allow public read access to messages"   on public.messages;
+drop policy if exists "Allow public insert access to messages" on public.messages;
+drop policy if exists "messages: read your conversations"      on public.messages;
+drop policy if exists "messages: send as yourself"             on public.messages;
+
+-- You can read the community room, any listing thread you are part of
+-- (as the buyer who started it or as the seller of that item), and your
+-- own direct conversations. Nothing else.
+create policy "messages: read your conversations"
+    on public.messages for select
+    to authenticated
+    using (
+        channel_type = 'community'
+        or sender_id = auth.uid()
+        or (
+            channel_type = 'direct'
+            and auth.uid()::text = any (string_to_array(channel_id, ':'))
+        )
+        or (
+            channel_type = 'item'
+            and (
+                split_part(channel_id, ':', 2) = auth.uid()::text
+                or exists (
+                    select 1 from public.items i
+                    where i.id::text = split_part(channel_id, ':', 1)
+                      and i.user_id = auth.uid()
+                )
+            )
+        )
     );
 
--- 5. Insert Initial Sample Items for all 11 Categories into Supabase
-INSERT INTO public.items (id, title, category, price, condition, location, description, image_url, payment_qr_url, seller_name, seller_whatsapp, seller_instagram, seller_phone, is_sold, created_at)
-VALUES 
-('item-101', 'Organic Chemistry 4th Ed. + Handwritten Notes', 'Books & Study Materials', 450, 'Like New', 'North Campus / Science Block', 'Used for Chem 201. Includes complete handwritten exam formula sheets and solved past papers. No highlighting inside!', 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=sarah@upi&pn=Sarah%20Miller', 'Sarah Miller', '+15550192834', 'sarah_miller_24', '555-019-2834', FALSE, NOW() - INTERVAL '2 hours'),
+-- You may only send messages signed with your own id, and only into a
+-- direct conversation you are actually one half of.
+create policy "messages: send as yourself"
+    on public.messages for insert
+    to authenticated
+    with check (
+        sender_id = auth.uid()
+        and (
+            channel_type <> 'direct'
+            or auth.uid()::text = any (string_to_array(channel_id, ':'))
+        )
+    );
 
-('item-102', 'Official Campus Varsity Fleece Jacket (Size M)', 'Fashion & Clothing', 650, 'Like New', 'East Dorms', 'Super cozy varsity jacket, worn twice. Super clean condition, selling because I need a size up.', 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=emily@upi&pn=Emily%20Watson', 'Emily Watson', '+15550183746', 'emilyw_campus', '555-018-3746', FALSE, NOW() - INTERVAL '6 hours'),
 
-('item-103', 'Ergonomic Mesh Office & Study Desk Chair', 'Furniture', 1800, 'Good', 'South Block Hostel', 'Breathable mesh back with adjustable lumbar support and height lever. Perfect for long study sessions in dorm rooms.', 'https://images.unsplash.com/photo-1580481072645-022f9a6d8310?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=david@upi&pn=David%20K', 'David K.', '+15550172938', '', '555-017-2938', FALSE, NOW() - INTERVAL '10 hours'),
-
-('item-104', 'Adjustable Dumbbells Set (20kg) with Rubber Grip', 'Sports & Fitness', 1200, 'Like New', 'Campus Gym Annex', 'Pair of cast iron adjustable weights with spin-lock collars. Great for home or dorm workouts.', 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=marcus@upi&pn=Marcus%20Vance', 'Marcus Vance', '+15550139281', 'mvance_fitness', '', FALSE, NOW() - INTERVAL '14 hours'),
-
-('item-105', 'Philips SalonDry Professional Hair Styling Set', 'Beauty & Personal Care', 800, 'Brand New', 'South Block Hostel', 'Unopened 2000W ionic hair dryer with diffuser nozzle. Gifted but already have one.', 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=chloe@upi&pn=Chloe%20Zhang', 'Chloe Zhang', '+15550193821', 'chloe_beauty', '555-019-3821', TRUE, NOW() - INTERVAL '18 hours'),
-
-('item-106', 'Mountain Bicycle 21-Speed Gear with Helmet & Lock', 'Vehicles & Accessories', 3200, 'Good', 'Main Gate Cycle Stand', 'Sturdy aluminum frame bicycle with dual disc brakes, front suspension, helmet, and heavy-duty chain lock.', 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=rohan@upi&pn=Rohan%20S', 'Rohan S.', '+15550124930', 'rohan_rides', '555-012-4930', FALSE, NOW() - INTERVAL '22 hours'),
-
-('item-107', 'Sony PlayStation 4 Wireless Controller (DualShock 4)', 'Toys & Games', 1500, 'Like New', 'Engineering Block C', 'Midnight Blue wireless controller. Zero analog stick drift, buttons fully responsive. Comes with micro-USB charging cable.', 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=kevin@upi&pn=Kevin%20R', 'Kevin R.', '+15550162849', 'kevin_gamer', '', FALSE, NOW() - INTERVAL '28 hours'),
-
-('item-108', 'Stainless Steel Pet Food Bowls (Set of 2) + Carrier Bag', 'Pets & Pet Supplies', 450, 'Brand New', 'West Residential Quarter', 'Non-slip rubber base double pet feeding bowls with portable collapsible pet carrier bag.', 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=priya@upi&pn=Priya%20M', 'Priya M.', '+15550148293', '', '555-014-8293', FALSE, NOW() - INTERVAL '34 hours'),
-
-('item-109', 'Private 1BHK Student Apartment Sublet (Oct - Jan)', 'Real Estate', 4800, 'Brand New', 'University Avenue (2 mins walk)', 'Fully furnished 1 bedroom apartment with high-speed Wi-Fi, study table, balcony, and kitchen amenities. Available for 4 months sublet.', 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=arjun@upi&pn=Arjun%20Dev', 'Arjun Dev', '+15550119284', 'arjun_stay', '555-011-9284', FALSE, NOW() - INTERVAL '40 hours'),
-
-('item-110', 'Yamaha F310 Acoustic Guitar with Padded Gig Bag', 'Musical Instruments', 3500, 'Like New', 'Music Club Room', 'Full-size dreadnought acoustic guitar. Warm rich sound, fresh D''Addario phosphor bronze strings installed. Includes tuner & guitar bag.', 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=oliver@upi&pn=Oliver%20B', 'Oliver B.', '+15550182749', 'oliver_tunes', '555-018-2749', FALSE, NOW() - INTERVAL '48 hours'),
-
-('item-111', 'Anker 20,000mAh Portable Fast Charge Powerbank', 'Other', 950, 'Like New', 'Library Study Wing', 'High capacity powerbank with PowerIQ fast charging. Charges a smartphone up to 5 times. Includes Type-C cable.', 'https://images.unsplash.com/photo-1609592424109-dd9892f1b177?auto=format&fit=crop&w=600&q=80', 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=lucas@upi&pn=Lucas%20Hood', 'Lucas Hood', '+15550173849', '', '555-017-3849', FALSE, NOW() - INTERVAL '54 hours')
-ON CONFLICT (id) DO NOTHING;
-
--- 4. Create 'messages' Table for In-App Live Direct Chat
-CREATE TABLE IF NOT EXISTS public.messages (
-    id TEXT PRIMARY KEY,
-    item_id TEXT NOT NULL,
-    sender_name TEXT NOT NULL,
-    sender_role TEXT NOT NULL,
-    text TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+-- --------------------------------------------------------------------------
+-- 6. REPORTS
+--    Lets a buyer flag a listing. Reports are write-only from the client:
+--    you can file one, you cannot read anyone else's.
+-- --------------------------------------------------------------------------
+create table if not exists public.reports (
+    id          uuid primary key default gen_random_uuid(),
+    item_id     uuid not null references public.items(id) on delete cascade,
+    reporter_id uuid not null references auth.users(id) on delete cascade,
+    reason      text not null check (char_length(reason) between 3 and 500),
+    created_at  timestamptz not null default now(),
+    unique (item_id, reporter_id)
 );
 
-ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Allow public read access to messages" ON public.messages;
-DROP POLICY IF EXISTS "Allow public insert access to messages" ON public.messages;
-CREATE POLICY "Allow public read access to messages" ON public.messages FOR SELECT USING (true);
-CREATE POLICY "Allow public insert access to messages" ON public.messages FOR INSERT WITH CHECK (true);
+alter table public.reports enable row level security;
+
+drop policy if exists "reports: file a report"  on public.reports;
+drop policy if exists "reports: read your own"  on public.reports;
+
+create policy "reports: file a report"
+    on public.reports for insert
+    to authenticated
+    with check (auth.uid() = reporter_id);
+
+create policy "reports: read your own"
+    on public.reports for select
+    to authenticated
+    using (auth.uid() = reporter_id);
+
+
+-- --------------------------------------------------------------------------
+-- 7. IMAGE STORAGE
+--    Photos live in Storage as real files, not as base64 text in a column.
+--    Each user writes only inside a folder named after their own user id.
+-- --------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+    'listing-images',
+    'listing-images',
+    true,
+    5242880,                                              -- 5 MB
+    array['image/jpeg','image/png','image/webp']
+)
+on conflict (id) do update
+    set public             = excluded.public,
+        file_size_limit    = excluded.file_size_limit,
+        allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "listing images are publicly readable" on storage.objects;
+drop policy if exists "users upload into their own folder"   on storage.objects;
+drop policy if exists "users replace their own images"       on storage.objects;
+drop policy if exists "users delete their own images"        on storage.objects;
+
+create policy "listing images are publicly readable"
+    on storage.objects for select
+    using (bucket_id = 'listing-images');
+
+create policy "users upload into their own folder"
+    on storage.objects for insert
+    to authenticated
+    with check (
+        bucket_id = 'listing-images'
+        and (storage.foldername(name))[1] = auth.uid()::text
+    );
+
+create policy "users replace their own images"
+    on storage.objects for update
+    to authenticated
+    using (
+        bucket_id = 'listing-images'
+        and (storage.foldername(name))[1] = auth.uid()::text
+    );
+
+create policy "users delete their own images"
+    on storage.objects for delete
+    to authenticated
+    using (
+        bucket_id = 'listing-images'
+        and (storage.foldername(name))[1] = auth.uid()::text
+    );
+
+
+-- --------------------------------------------------------------------------
+-- 8. REALTIME
+--    Lets the app receive new messages and listings without polling.
+-- --------------------------------------------------------------------------
+do $$
+begin
+    begin
+        alter publication supabase_realtime add table public.messages;
+    exception when duplicate_object then null;
+    end;
+    begin
+        alter publication supabase_realtime add table public.items;
+    exception when duplicate_object then null;
+    end;
+end
+$$;
+
+
+-- --------------------------------------------------------------------------
+-- Done. No sample rows are inserted: the marketplace starts empty and fills
+-- up with real listings. Verify with:
+--
+--   select tablename, policyname, cmd
+--   from pg_policies
+--   where schemaname = 'public'
+--   order by tablename, policyname;
+-- --------------------------------------------------------------------------

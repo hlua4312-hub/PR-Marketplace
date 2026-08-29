@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- Pinch zoom stays enabled: blocking it locks out anyone who needs to magnify text. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>PR - Direct Mobile Marketplace</title>
   <!-- Search Engine & Mobile App SEO Meta Tags -->
   <meta name="description" content="PR - Download and use the local P2P mobile community application to buy and sell study materials, textbooks, notes, clothing, furniture, and more directly.">
@@ -20,7 +21,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PR">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#101615" media="(prefers-color-scheme: dark)">
 
   <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -75,9 +77,9 @@
         </div>
 
         <div class="auth-form-group">
-          <label for="regPassword">Password (Letters + Numbers) <span class="required">*</span></label>
+          <label for="regPassword">Password (8+ characters, letters and numbers) <span class="required">*</span></label>
           <div class="password-input-wrap">
-            <input type="password" id="regPassword" placeholder="e.g. Pass123" required minlength="4">
+            <input type="password" id="regPassword" placeholder="e.g. Campus2026" required minlength="8" autocomplete="new-password">
             <button type="button" class="btn-toggle-pwd" data-target="regPassword">👁️</button>
           </div>
         </div>
@@ -97,8 +99,8 @@
         <!-- SAVED ACCOUNTS PICKER (MULTI-ACCOUNT REMEMBER ME) -->
         <div id="savedAccountsContainer" class="saved-accounts-box hidden">
           <div style="font-size:0.75rem; font-weight:700; color:#64748B; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
-            <span>📱 Saved Accounts on this Device:</span>
-            <span style="font-size:0.7rem; color:#4F46E5;">1-Tap Fill</span>
+            <span>📱 Recent sign-ins on this device:</span>
+            <span style="font-size:0.7rem; color:#4F46E5;">Fills your email</span>
           </div>
           <div class="saved-accounts-chips" id="savedAccountsChips"></div>
         </div>
@@ -116,11 +118,12 @@
           </div>
         </div>
 
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:2px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:2px; flex-wrap:wrap;">
           <label style="font-size:0.8rem; color:#475569; display:flex; align-items:center; gap:6px; cursor:pointer;">
             <input type="checkbox" id="chkRememberMe" checked style="accent-color:#4F46E5; width:16px; height:16px;">
-            <span>Remember me on this device</span>
+            <span>Remember my email on this device</span>
           </label>
+          <a href="#" id="linkForgotPassword" style="font-size:0.8rem; font-weight:600;">Forgot password?</a>
         </div>
 
         <button type="submit" class="btn btn-primary auth-submit-btn" id="btnSubmitLogIn">
@@ -131,51 +134,89 @@
           Don't have an account yet? <a href="#" id="linkSwitchToRegister">Sign In (Register) first</a>
         </p>
       </form>
+
+      <!-- FORM 3: REQUEST A PASSWORD RESET EMAIL -->
+      <form id="authResetForm" class="auth-form hidden">
+        <p class="section-subtitle" style="margin-bottom:14px;">
+          Enter the email you registered with and we'll send you a link to choose a new password.
+        </p>
+
+        <div class="auth-form-group">
+          <label for="resetEmail">Email Address <span class="required">*</span></label>
+          <input type="email" id="resetEmail" placeholder="e.g. user@gmail.com" required autocomplete="email">
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-submit-btn" id="btnSubmitReset">
+          <span>Send Reset Link</span>
+        </button>
+
+        <p class="auth-footer-hint">
+          Remembered it? <a href="#" id="linkBackToLogin">Back to Log In</a>
+        </p>
+      </form>
     </div>
   </div>
 
-  <!-- 3. 4-DIGIT OTP VERIFICATION OVERLAY -->
-  <div id="otpOverlay" class="auth-overlay hidden">
-    <div class="auth-card" style="text-align: center;">
+  <!-- 2b. CHOOSE A NEW PASSWORD (shown after following the emailed reset link) -->
+  <div id="newPasswordOverlay" class="auth-overlay hidden">
+    <div class="auth-card">
       <div class="auth-brand-header">
         <img src="pr_app_icon.jpg" alt="PR Logo" class="auth-brand-logo">
-        <h2>Account Verification</h2>
-        <p style="font-size:0.82rem; color:#64748B;">A 4-digit OTP code has been sent to your message inbox and email.</p>
+        <h2>Choose a New Password</h2>
+        <p>Pick something with both letters and numbers.</p>
       </div>
 
-      <div style="background:#F1F5F9; border-radius:12px; padding:10px 14px; margin-bottom:14px; border:1px solid #E2E8F0;">
-        <div style="font-size:0.75rem; color:#64748B; margin-bottom:2px;">Verification sent to:</div>
-        <div style="font-weight:700; color:#0F172A; font-size:0.88rem;" id="otpDisplayEmail">user@gmail.com</div>
-        <div style="font-weight:700; color:#4F46E5; font-size:0.85rem;" id="otpDisplayPhone">+91 9876543210</div>
-      </div>
-
-      <!-- SIMULATED SMS / EMAIL INBOX OTP CODE DISPLAY -->
-      <div style="background:#EEF2FF; border:1.5px dashed #4F46E5; border-radius:12px; padding:10px 14px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between;">
-        <div style="text-align:left;">
-          <div style="font-size:0.72rem; font-weight:800; color:#4338CA; text-transform:uppercase; letter-spacing:0.5px;">📩 Device Inbox (Demo OTP)</div>
-          <div style="font-size:0.78rem; color:#64748B;">Your 4-digit security code:</div>
+      <form id="newPasswordForm" class="auth-form">
+        <div class="auth-form-group">
+          <label for="newPassword">New Password <span class="required">*</span></label>
+          <div class="password-input-wrap">
+            <input type="password" id="newPassword" placeholder="At least 8 characters" required minlength="8" autocomplete="new-password">
+            <button type="button" class="btn-toggle-pwd" data-target="newPassword">👁️</button>
+          </div>
         </div>
-        <div style="font-family:'Outfit', sans-serif; font-size:1.25rem; font-weight:800; color:#4F46E5; letter-spacing:3px; background:#FFFFFF; padding:4px 10px; border-radius:8px; border:1px solid #C7D2FE;" id="otpDisplayCode">----</div>
+
+        <div class="auth-form-group">
+          <label for="newPasswordConfirm">Confirm New Password <span class="required">*</span></label>
+          <div class="password-input-wrap">
+            <input type="password" id="newPasswordConfirm" placeholder="Type it again" required minlength="8" autocomplete="new-password">
+            <button type="button" class="btn-toggle-pwd" data-target="newPasswordConfirm">👁️</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-submit-btn" id="btnSaveNewPassword">
+          <span>Save Password &amp; Continue</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. EMAIL CONFIRMATION NOTICE
+       Supabase Auth sends a real confirmation link on sign-up. The previous
+       version generated a 4-digit code in the browser and printed it on this
+       screen, which verified nothing. -->
+  <div id="confirmEmailOverlay" class="auth-overlay hidden">
+    <div class="auth-card" style="text-align:center;">
+      <div class="auth-brand-header">
+        <img src="pr_app_icon.jpg" alt="PR Logo" class="auth-brand-logo">
+        <h2>Confirm Your Email</h2>
+        <p style="font-size:0.82rem; color:#64748B;">We sent a confirmation link to your inbox. Open it to activate your account.</p>
       </div>
 
-      <!-- 4-DIGIT INPUT BOXES -->
-      <div class="otp-inputs-wrap">
-        <input type="text" maxlength="1" class="otp-digit-input" id="otpBox1" autocomplete="one-time-code" inputmode="numeric">
-        <input type="text" maxlength="1" class="otp-digit-input" id="otpBox2" inputmode="numeric">
-        <input type="text" maxlength="1" class="otp-digit-input" id="otpBox3" inputmode="numeric">
-        <input type="text" maxlength="1" class="otp-digit-input" id="otpBox4" inputmode="numeric">
+      <div style="background:#F1F5F9; border-radius:12px; padding:12px 14px; margin-bottom:16px; border:1px solid #E2E8F0;">
+        <div style="font-size:0.75rem; color:#64748B; margin-bottom:2px;">Sent to</div>
+        <div style="font-weight:700; color:#0F172A; font-size:0.9rem; word-break:break-all;" id="confirmEmailAddress">your@email.com</div>
       </div>
 
-      <button type="button" class="btn-autodetect-otp" id="btnAutoDetectOTP">
-        <span>⚡ Auto-Detect OTP from Device Inbox</span>
-      </button>
+      <p style="font-size:0.8rem; color:#64748B; margin:0 0 18px; line-height:1.55;">
+        Not there yet? Give it a minute, then check your spam folder. The link opens PR Marketplace and signs you straight in.
+      </p>
 
-      <button type="button" class="btn btn-primary auth-submit-btn" id="btnVerifyOTP" style="margin-top:14px;">
-        <span>Verify OTP & Enter App</span>
+      <button type="button" class="btn btn-secondary auth-submit-btn" id="btnResendConfirmation">
+        <span>Resend Confirmation Email</span>
       </button>
 
       <p class="auth-footer-hint" style="margin-top:16px;">
-        Didn't receive code? <a href="#" id="linkResendOTP">Resend OTP</a> <span id="otpCountdownText" style="color:#94A3B8;"></span>
+        Already confirmed? <a href="#" id="linkConfirmedGoToLogin">Log In</a>
       </p>
     </div>
   </div>
@@ -288,6 +329,18 @@
     <!-- Main Content Area -->
     <main class="main-content">
 
+      <!-- Shown when the feed is being served from the on-device cache -->
+      <div class="offline-banner hidden" id="offlineBanner" role="status">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        <span id="offlineBannerText">You're offline — showing the listings saved on this device.</span>
+      </div>
+
+      <!-- Offers carousel. Each slide filters the feed to one category. -->
+      <section class="offers-carousel hidden" id="offersCarousel" aria-label="Category highlights">
+        <div class="offers-track" id="offersTrack"></div>
+        <div class="offers-dots" id="offersDots"></div>
+      </section>
+
       <!-- Active Filters Tag Bar -->
       <div class="active-filters-bar hidden" id="activeFiltersBar">
         <span class="filter-label">Active Filters:</span>
@@ -304,6 +357,11 @@
       <!-- Product Cards Grid -->
       <div class="items-grid" id="itemsGrid">
         <!-- Dynamic Cards Injected via JavaScript -->
+      </div>
+
+      <!-- Pagination: the feed loads a page at a time instead of everything at once -->
+      <div class="load-more-wrap hidden" id="loadMoreWrap">
+        <button class="btn btn-secondary" id="btnLoadMore">Load more listings</button>
       </div>
 
       <!-- Empty State -->
@@ -372,8 +430,8 @@
     <div class="modal-card modal-full-screen sell-modal-card">
       <div class="modal-header-nav">
         <div class="modal-title-wrap">
-          <h2>Post Item for Sale</h2>
-          <p class="modal-subtitle">List your item for local community buyers</p>
+          <h2 id="sellModalTitle">Post Item for Sale</h2>
+          <p class="modal-subtitle" id="sellModalSubtitle">List your item for local community buyers</p>
         </div>
         <button class="modal-close-btn" id="closeSellModalBtn" aria-label="Close Modal">&times;</button>
       </div>
@@ -529,14 +587,29 @@
 
               <div class="form-group">
                 <label for="sellerPhone" class="form-label">Phone Number (Call / SMS) <span class="required">*</span></label>
-                <input type="tel" id="sellerPhone" required placeholder="e.g. 555-0199 or +1234567890">
+                <input type="tel" id="sellerPhone" required placeholder="e.g. 9876543210" autocomplete="tel">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="sellerWhatsapp" class="form-label">WhatsApp Number</label>
+                <input type="tel" id="sellerWhatsapp" placeholder="With country code, e.g. 919876543210">
+                <div class="quick-chips-row">
+                  <button type="button" class="preset-chip" id="btnCopyPhoneToWhatsapp">Same as phone number</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="sellerInstagram" class="form-label">Instagram Handle</label>
+                <input type="text" id="sellerInstagram" placeholder="e.g. @your_handle">
               </div>
             </div>
 
             <div class="chat-info-banner-box">
               <div>
-                <strong>Direct In-App Live Chatbox Enabled!</strong>
-                <p>Buyers can chat directly with you inside PR Marketplace without needing external apps!</p>
+                <strong>In-app chat is always on</strong>
+                <p>Buyers can message you inside PR Marketplace. WhatsApp and Instagram are optional extras — fill them in and buyers get one-tap buttons for those too.</p>
               </div>
             </div>
           </div>
@@ -583,7 +656,7 @@
         <div class="form-actions sticky-actions-bar">
           <button type="button" class="btn btn-secondary" id="cancelSellBtn">Cancel</button>
           <button type="submit" class="btn btn-primary btn-submit" id="submitSellBtn">
-            <span>Publish Listing</span>
+            <span id="submitSellLabel">Publish Listing</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </button>
         </div>
@@ -613,14 +686,26 @@
 
         <div class="filter-group">
           <div class="filter-title-row">
-            <label class="filter-title">Maximum Price</label>
-            <span class="range-value" id="priceValueDisplay">₹5000</span>
+            <label class="filter-title" for="priceRange">Maximum Price</label>
+            <span class="range-value" id="priceValueDisplay">Any price</span>
           </div>
-          <input type="range" id="priceRange" min="100" max="5000" step="100" value="5000">
+          <!-- Top of the range means "no limit" so vehicles and property stay reachable. -->
+          <input type="range" id="priceRange" min="500" max="100000" step="500" value="100000"
+                 aria-describedby="priceRangeHint">
           <div class="range-labels">
-            <span>₹100</span>
-            <span>₹5,000+</span>
+            <span>₹500</span>
+            <span id="priceRangeHint">Any price</span>
           </div>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-title" for="sortSelect">Sort by</label>
+          <select id="sortSelect" class="filter-select">
+            <option value="newest" selected>Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="price_asc">Price: low to high</option>
+            <option value="price_desc">Price: high to low</option>
+          </select>
         </div>
 
         <div class="modal-actions-row">
@@ -698,6 +783,16 @@
                 </div>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </a>
+
+              <!-- Email Support -->
+              <a href="mailto:support@prmarketplace.app?subject=PR%20Marketplace%20feedback" class="account-channel-btn">
+                <div class="channel-icon-box">✉️</div>
+                <div class="channel-text">
+                  <strong>Email Support</strong>
+                  <span>support@prmarketplace.app</span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </a>
             </div>
           </div>
         </div>
@@ -721,11 +816,100 @@
                 <li>🛡️ <strong>Local Safety:</strong> Deal in-person safely within your campus library, student center, or neighborhood.</li>
               </ul>
               <div class="app-version-info">
-                <span>App Version: <strong>v2.4.0 (Mobile Web)</strong></span>
-                <span>Build: <strong>2026.07</strong></span>
+                <span>App Version: <strong id="appVersionLabel">3.0.0</strong></span>
+                <span>Build: <strong id="appBuildLabel">2026.08</strong></span>
               </div>
               <button type="button" class="btn btn-primary" id="btnHowItWorks" style="width:100%; margin-top:12px; font-size:0.85rem; font-weight:800; background:linear-gradient(135deg, var(--primary), var(--secondary)); border:none; padding:10px; border-radius:10px; cursor:pointer;">
                 💡 How PR Marketplace Works (Click to View Guide)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: My Listings -->
+        <div class="account-section">
+          <button class="account-section-btn open" id="btnToggleListingsSection" type="button">
+            <div class="section-title-group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              <h3>My Listings</h3>
+            </div>
+            <span class="section-toggle-icon">▼</span>
+          </button>
+
+          <div class="account-section-body" id="listingsSectionBody">
+            <p class="section-subtitle">Everything you've posted. Edit the details, mark an item sold, or take it down.</p>
+            <div class="my-listings-list" id="myListingsList">
+              <p class="section-subtitle">Loading your listings…</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Database Connection -->
+        <div class="account-section">
+          <button class="account-section-btn" id="btnToggleDbSection" type="button">
+            <div class="section-title-group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+              <h3>Database Connection</h3>
+            </div>
+            <span class="section-toggle-icon">▼</span>
+          </button>
+
+          <div class="account-section-body hidden" id="dbSectionBody">
+            <div class="db-status-row" id="dbStatusRow">
+              <span class="db-status-dot" id="dbStatusDot"></span>
+              <span id="dbStatusText">Checking connection…</span>
+            </div>
+
+            <p class="section-subtitle">
+              Point this device at your own Supabase project. Run <code>supabase_schema.sql</code> in the SQL Editor first,
+              then paste the Project URL and anon key from Project Settings → API.
+            </p>
+
+            <div class="form-group">
+              <label for="supabaseUrlInput" class="form-label">Project URL</label>
+              <input type="url" id="supabaseUrlInput" placeholder="https://your-project.supabase.co" autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="form-group">
+              <label for="supabaseKeyInput" class="form-label">Anon / publishable key</label>
+              <input type="text" id="supabaseKeyInput" placeholder="Paste the anon public key" autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="modal-actions-row">
+              <button type="button" class="btn btn-secondary" id="btnUseDefaultDb">Use default project</button>
+              <button type="button" class="btn btn-primary" id="btnConnectSupabase">Connect</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: App & Security -->
+        <div class="account-section">
+          <button class="account-section-btn" id="btnToggleAppSection" type="button">
+            <div class="section-title-group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              <h3>App &amp; Security</h3>
+            </div>
+            <span class="section-toggle-icon">▼</span>
+          </button>
+
+          <div class="account-section-body hidden" id="appSectionBody">
+            <div class="contact-channels-list">
+              <button type="button" class="account-channel-btn" id="btnInstallApp">
+                <div class="channel-icon-box">📲</div>
+                <div class="channel-text">
+                  <strong>Install PR Marketplace</strong>
+                  <span id="installHintText">Add the app to your home screen</span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+
+              <button type="button" class="account-channel-btn" id="btnChangePassword">
+                <div class="channel-icon-box">🔑</div>
+                <div class="channel-text">
+                  <strong>Change Password</strong>
+                  <span>We'll email you a secure link</span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
             </div>
           </div>
@@ -915,38 +1099,81 @@
     </div>
   </div>
 
-  <!-- Toast Notification Container -->
-  <div class="toast-container" id="toastContainer"></div>
+  <!-- MODAL: REPORT A LISTING -->
+  <div class="modal-overlay hidden" id="reportModal">
+    <div class="modal-card modal-center">
+      <div class="modal-header-nav">
+        <h2>Report this listing</h2>
+        <button class="modal-close-btn" id="closeReportModalBtn" aria-label="Close report form">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="section-subtitle">Tell us what's wrong. Reports go to the moderation queue and the seller is not told who filed them.</p>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <form id="reportForm">
+          <div class="form-group">
+            <label for="reportReason" class="form-label">Reason <span class="required">*</span></label>
+            <select id="reportReason" required>
+              <option value="Scam or fraudulent listing">Scam or fraudulent listing</option>
+              <option value="Prohibited or unsafe item">Prohibited or unsafe item</option>
+              <option value="Misleading description or photo">Misleading description or photo</option>
+              <option value="Wrong category">Wrong category</option>
+              <option value="Harassment or abuse">Harassment or abuse</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="reportDetails" class="form-label">Anything else we should know?</label>
+            <textarea id="reportDetails" rows="3" maxlength="400" placeholder="Optional — a sentence is plenty"></textarea>
+          </div>
+
+          <div class="modal-actions-row">
+            <button type="button" class="btn btn-secondary" id="cancelReportBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="submitReportBtn">Submit Report</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRM A DESTRUCTIVE ACTION -->
+  <div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal-card modal-center confirm-card">
+      <div class="modal-body">
+        <h2 class="confirm-title" id="confirmTitle">Are you sure?</h2>
+        <p class="confirm-message" id="confirmMessage"></p>
+        <div class="modal-actions-row">
+          <button type="button" class="btn btn-secondary" id="confirmCancelBtn">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirmOkBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+
+  <!-- Scripts. supabase-js is vendored under js/vendor so the app has no
+       runtime CDN dependency and keeps working offline inside the WebView. -->
+  <script src="js/vendor/supabase.js"></script>
+  <script src="js/config.js"></script>
   <script src="js/supabase-client.js"></script>
   <script src="js/api.js"></script>
-  <script src="js/app.js"></script>
+  <script type="module" src="js/app.js"></script>
   <script>
-    // Universal Failsafe: Ensure splash screen never stays stuck under any condition
-    setTimeout(() => {
-      const splash = document.getElementById('splashScreen');
-      if (splash && splash.style.display !== 'none') {
-        splash.classList.add('fade-out');
-        setTimeout(() => { 
-          splash.style.display = 'none'; 
-          const authOverlay = document.getElementById('authOverlay');
-          const appViewport = document.getElementById('appViewport');
-          if (authOverlay && appViewport && authOverlay.classList.contains('hidden') && appViewport.classList.contains('hidden')) {
-            appViewport.classList.remove('hidden');
-          }
-        }, 150);
-      }
-    }, 500);
-
-    // Register PWA Service Worker for Mobile Application Support
-    if ('serviceWorker' in navigator) {
+    // Register the service worker. It needs a secure context, so this is a
+    // no-op when the page is opened straight off disk over file:// - run
+    // Start_Local_Server.bat (or npm start) instead of double-clicking the file.
+    if ('serviceWorker' in navigator && window.isSecureContext) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('📱 Mobile App ServiceWorker registered:', reg.scope))
-          .catch(err => console.error('ServiceWorker registration error:', err));
+          .catch(err => console.warn('Service worker did not register:', err));
       });
+    } else if (!window.isSecureContext) {
+      console.warn(
+        'PR Marketplace is running without a secure context, so offline support and install are unavailable. ' +
+        'Serve the folder over http://localhost instead of opening index.html directly.'
+      );
     }
   </script>
 </body>

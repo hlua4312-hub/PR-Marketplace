@@ -1,531 +1,349 @@
 /**
- * PR MARKETPLACE - DATABASE SERVICE & API LAYER
- * 
- * Built for zero-cost P2P direct trading. Uses browser LocalStorage by default,
- * and includes a pluggable configuration layer ready to toggle connection to 
- * real database backends (Node.js/Express, Firebase, Supabase, or MongoDB).
+ * PR MARKETPLACE - APPLICATION API
+ *
+ * The single surface the UI talks to. It delegates anything that needs a
+ * server to js/supabase-client.js and keeps only genuinely device-local
+ * things here: which listings you saved, which email you last signed in
+ * with, and a small read-through cache so browsing still works offline.
+ *
+ * What is deliberately NOT stored on the device any more: passwords, the
+ * user table, and the "which items are mine" list. Ownership is a property
+ * of the row in the database now, not a guess made by the browser.
  */
-
-// Initial Seed Data (Empty catalog as requested)
-const INITIAL_SAMPLE_ITEMS = [];
 
 class MarketplaceAPI {
   constructor() {
-    this.storageKey = 'pr_marketplace_items_v13_empty';
-    this.favKey = 'pr_marketplace_favorites_v13';
-    this.myItemsKey = 'pr_marketplace_my_items_v13';
-    this.chatStorageKey = 'pr_marketplace_chats_v1';
-    this.usersKey = 'pr_marketplace_users_v1';
-    this.currentUserKey = 'pr_marketplace_active_user_v1';
-    this.savedAccountsKey = 'pr_marketplace_remembered_accounts_v1';
-    this._initLocalStorage();
+    this.favKey = 'pr_favorites_v2';
+    this.cacheKey = 'pr_item_cache_v2';
+    this.identifiersKey = 'pr_saved_identifiers_v2';
+    this.profileKey = 'pr_active_profile_v2';
+
+    this._profile = null;
+    this._migrateLegacyStorage();
+    this._restoreCachedProfile();
   }
 
   /**
-   * MULTI-ACCOUNT REMEMBER ME DEVICE REGISTRY
+   * Clear out storage written by earlier versions. The v1 keys held raw
+   * passwords and base64 images, so this is a security cleanup as much as
+   * a tidy-up - it runs once on every device that upgrades.
    */
-  getSavedDeviceAccounts() {
-    return JSON.parse(localStorage.getItem(this.savedAccountsKey)) || [];
-  }
-
-  saveAccountToDevice(accountData) {
-    if (!accountData || !accountData.email || !accountData.password) return;
-    const accounts = this.getSavedDeviceAccounts();
-    const cleanEmail = accountData.email.toLowerCase().trim();
-    const existingIdx = accounts.findIndex(a => a.email.toLowerCase() === cleanEmail);
-
-    const record = {
-      fullName: accountData.fullName || cleanEmail.split('@')[0],
-      email: cleanEmail,
-      phone: accountData.phone || '',
-      password: accountData.password,
-      savedAt: new Date().toISOString()
-    };
-
-    if (existingIdx >= 0) {
-      accounts[existingIdx] = record;
-    } else {
-      accounts.push(record);
-    }
-
-    localStorage.setItem(this.savedAccountsKey, JSON.stringify(accounts));
-  }
-
-  removeAccountFromDevice(emailOrPhone) {
-    let accounts = this.getSavedDeviceAccounts();
-    const clean = emailOrPhone.trim().toLowerCase();
-    accounts = accounts.filter(a => a.email.toLowerCase() !== clean && a.phone !== clean);
-    localStorage.setItem(this.savedAccountsKey, JSON.stringify(accounts));
-  }
-
-  /**
-   * Initializes local storage (Empty catalog)
-   */
-  _initLocalStorage() {
+  _migrateLegacyStorage() {
+    const dead = [
+      'pr_marketplace_users_v1',
+      'pr_marketplace_active_user_v1',
+      'pr_marketplace_remembered_accounts_v1',
+      'pr_marketplace_items_v13_empty',
+      'pr_marketplace_items_v12_clean',
+      'pr_marketplace_items_v10',
+      'pr_marketplace_items_v1',
+      'pr_marketplace_my_items_v13',
+      'pr_marketplace_favorites_v13',
+      'pr_marketplace_chats_v1',
+      'pr_user_permanent_posts',
+      'pr_community_all_chat_v1',
+      'pr_notifications'
+    ];
     try {
-      localStorage.removeItem('pr_user_permanent_posts');
-      localStorage.removeItem('pr_marketplace_items_v12_clean');
-      localStorage.removeItem('pr_marketplace_items_v10');
-      localStorage.removeItem('pr_marketplace_items_v1');
-    } catch (e) {}
+      dead.forEach(key => localStorage.removeItem(key));
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('pr_private_chat_'))
+        .forEach(k => localStorage.removeItem(k));
+    } catch (e) {
+      /* private browsing - nothing to clean */
+    }
+  }
 
-    const existing = localStorage.getItem(this.storageKey);
-    let items = existing ? JSON.parse(existing) : [];
+  _read(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
 
-    const fakeIds = ['item-101', 'item-102', 'item-103', 'item-104', 'item-105', 'item-106', 'item-107', 'item-108', 'item-109', 'item-110', 'item-111', 'item-sjwvaisb'];
-    items = items.filter(i => {
-      if (!i) return false;
-      if (fakeIds.includes(String(i.id))) return false;
-      if (i.title && i.title.toLowerCase().includes('sjwvaisb')) return false;
-      if (i.sellerPhone && i.sellerPhone.startsWith('555-')) return false;
+  _write(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
       return true;
-    });
+    } catch (e) {
+      console.warn(`Could not save ${key}:`, e);
+      return false;
+    }
+  }
 
+  isReady() {
+    return window.supabaseAPI.isReady();
+  }
+
+  reconnect() {
+    const ok = window.supabaseAPI.reconnect();
+    this._profile = null;
+    return ok;
+  }
+
+  /* ======================================================================
+     SESSION
+     ====================================================================== */
+
+  _restoreCachedProfile() {
+    // Display details only - never a credential. The real session is the
+    // signed token Supabase holds, and it is what any request is checked against.
+    this._profile = this._read(this.profileKey, null);
+  }
+
+  _cacheProfile(profile) {
+    this._profile = profile;
+    if (profile) {
+      this._write(this.profileKey, {
+        id: profile.id,
+        fullName: profile.fullName,
+        email: profile.email,
+        phone: profile.phone
+      });
+    } else {
+      try { localStorage.removeItem(this.profileKey); } catch (e) { /* ignore */ }
+    }
+  }
+
+  /** Synchronous read for rendering. May be stale; refreshUser() confirms it. */
+  getCurrentUser() {
+    return this._profile;
+  }
+
+  /** Ask Supabase who is signed in, and update the cache. */
+  async refreshUser() {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(items));
-    } catch (e) {}
-
-    if (!localStorage.getItem(this.favKey)) {
-      localStorage.setItem(this.favKey, JSON.stringify([]));
-    }
-    if (!localStorage.getItem(this.myItemsKey)) {
-      localStorage.setItem(this.myItemsKey, JSON.stringify([]));
-    }
-    if (!localStorage.getItem(this.chatStorageKey)) {
-      localStorage.setItem(this.chatStorageKey, JSON.stringify({}));
-    }
-    if (!localStorage.getItem(this.usersKey)) {
-      localStorage.setItem(this.usersKey, JSON.stringify([]));
+      const user = await window.supabaseAPI.getCurrentUser();
+      this._cacheProfile(user);
+      return user;
+    } catch (err) {
+      return this._profile;
     }
   }
+
+  onAuthStateChange(callback) {
+    return window.supabaseAPI.onAuthStateChange((event, profile) => {
+      this._cacheProfile(profile);
+      callback(event, profile);
+    });
+  }
+
+  async signUp(userData) {
+    const result = await window.supabaseAPI.signUp(userData);
+    if (!result.needsEmailConfirmation) {
+      await this.refreshUser();
+    }
+    return result;
+  }
+
+  async signIn(emailOrPhone, password) {
+    const user = await window.supabaseAPI.signIn(emailOrPhone, password);
+    this._cacheProfile(user);
+    return user;
+  }
+
+  async signOut() {
+    await window.supabaseAPI.signOut();
+    this._cacheProfile(null);
+  }
+
+  requestPasswordReset(email) {
+    return window.supabaseAPI.requestPasswordReset(email);
+  }
+
+  updatePassword(newPassword) {
+    return window.supabaseAPI.updatePassword(newPassword);
+  }
+
+  /* ======================================================================
+     SAVED SIGN-IN IDENTIFIERS
+     Only the email or phone is kept, so the picker can fill the first field.
+     Passwords are never written to the device.
+     ====================================================================== */
+
+  getSavedIdentifiers() {
+    return this._read(this.identifiersKey, []);
+  }
+
+  saveIdentifier(identifier, displayName) {
+    const clean = (identifier || '').trim().toLowerCase();
+    if (!clean) return;
+    const list = this.getSavedIdentifiers().filter(a => a.identifier !== clean);
+    list.unshift({ identifier: clean, name: displayName || clean.split('@')[0], savedAt: new Date().toISOString() });
+    this._write(this.identifiersKey, list.slice(0, 5));
+  }
+
+  removeIdentifier(identifier) {
+    const clean = (identifier || '').trim().toLowerCase();
+    this._write(this.identifiersKey, this.getSavedIdentifiers().filter(a => a.identifier !== clean));
+  }
+
+  /* ======================================================================
+     LISTINGS
+     ====================================================================== */
 
   /**
-   * USER ITEM OWNERSHIP HELPERS
-   */
-  getMyPostedItemIds() {
-    return JSON.parse(localStorage.getItem(this.myItemsKey)) || [];
-  }
-
-  trackMyPostedItem(itemId) {
-    const myItems = this.getMyPostedItemIds();
-    if (!myItems.includes(itemId)) {
-      myItems.push(itemId);
-      localStorage.setItem(this.myItemsKey, JSON.stringify(myItems));
-    }
-  }
-
-  isItemOwnedByCurrentUser(itemId) {
-    return this.getMyPostedItemIds().includes(itemId);
-  }
-
-  /**
-   * GET ALL ITEMS (Supports Category, Search, Price Range, and Condition filters)
-   * Merges local device items with cloud database seamlessly!
+   * Fetch the feed. On a network failure we fall back to the cached page so
+   * the app still shows something useful offline, and tell the caller it is
+   * looking at cached data rather than pretending the fetch succeeded.
    */
   async fetchItems(filters = {}) {
-    let cloudItems = [];
-    if (window.supabaseAPI && window.supabaseAPI.client) {
-      try {
-        cloudItems = await window.supabaseAPI.fetchItems(filters);
-      } catch (err) {
-        console.warn('⚡ Supabase fetch error, falling back to LocalStorage:', err);
-      }
-    }
-
-    let localItems = JSON.parse(localStorage.getItem(this.storageKey)) || [];
-    let myPermanentPosts = JSON.parse(localStorage.getItem('pr_user_permanent_posts')) || [];
-
-    // AUTO-PURGE EXPIRED SOLD ITEMS ONLY (Unsold items are NEVER deleted and remain permanently)
-    const AUTO_DELETE_HOURS = 5;
-    const now = Date.now();
-    
-    localItems = localItems.filter(item => {
-      if (item.isSold && item.soldAt) {
-        const hoursSinceSold = (now - new Date(item.soldAt).getTime()) / (1000 * 60 * 60);
-        return hoursSinceSold < AUTO_DELETE_HOURS;
-      }
-      return true;
-    });
-
-    myPermanentPosts = myPermanentPosts.filter(item => {
-      if (item.isSold && item.soldAt) {
-        const hoursSinceSold = (now - new Date(item.soldAt).getTime()) / (1000 * 60 * 60);
-        return hoursSinceSold < AUTO_DELETE_HOURS;
-      }
-      return true;
-    });
-
-    // Merge cloudItems with localItems and user permanent posts
-    const combinedMap = new Map();
-    // 1. Add all items from cloud database
-    cloudItems.forEach(item => {
-      if (item && item.id) combinedMap.set(String(item.id), item);
-    });
-    // 2. Add all items from local device
-    localItems.forEach(item => {
-      if (item && item.id) combinedMap.set(String(item.id), item);
-    });
-    // 3. Add all user permanent posts (guarantees user's posted items NEVER vanish on app exit)
-    myPermanentPosts.forEach(item => {
-      if (item && item.id) combinedMap.set(String(item.id), item);
-    });
-
-    let items = Array.from(combinedMap.values());
-
-    // Update local storage so that all cloud items and local items are kept permanently synced
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(items));
-      localStorage.setItem('pr_user_permanent_posts', JSON.stringify(myPermanentPosts));
-    } catch (e) {}
+      const items = await window.supabaseAPI.fetchItems(filters);
+      if (!filters.page) this._cacheItems(items);
+      return { items, fromCache: false };
+    } catch (err) {
+      console.warn('Falling back to cached listings:', err.message);
+      return { items: this._filterCached(filters), fromCache: true, error: err };
+    }
+  }
 
-    // Filter by Category
+  /** Cache listing metadata only. Images are URLs now, so this stays small. */
+  _cacheItems(items) {
+    this._write(this.cacheKey, items.slice(0, 60));
+  }
+
+  _filterCached(filters = {}) {
+    let items = this._read(this.cacheKey, []);
+    const cutoff = Date.now() - window.PRConfig.SOLD_ITEM_LIFETIME_HOURS * 3600 * 1000;
+    items = items.filter(i => !(i.isSold && i.soldAt && new Date(i.soldAt).getTime() < cutoff));
+
     if (filters.category && filters.category !== 'all') {
-      items = items.filter(i => i.category.toLowerCase() === filters.category.toLowerCase());
+      items = items.filter(i => i.category === filters.category);
     }
-
-    // Filter by Location
-    if (filters.location && filters.location !== 'all' && filters.location !== 'detect_gps') {
-      const locFilter = filters.location.toLowerCase().trim();
-      items = items.filter(i => {
-        const itemLoc = (i.location || '').toLowerCase();
-        return itemLoc.includes(locFilter) || locFilter.includes(itemLoc) || (locFilter.includes('aizawl') && itemLoc.includes('aizawl'));
-      });
-    }
-
-    // Filter by Search Query
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      items = items.filter(i => 
-        i.title.toLowerCase().includes(q) || 
-        (i.description && i.description.toLowerCase().includes(q)) ||
-        (i.location && i.location.toLowerCase().includes(q))
-      );
-    }
-
-    // Filter by Condition
-    if (filters.conditions && filters.conditions.length > 0) {
+    if (filters.conditions && filters.conditions.length) {
       items = items.filter(i => filters.conditions.includes(i.condition));
     }
-
-    // Filter by Max Price
-    if (filters.maxPrice !== undefined) {
-      items = items.filter(i => Number(i.price) <= Number(filters.maxPrice));
+    if (typeof filters.maxPrice === 'number' && Number.isFinite(filters.maxPrice)) {
+      items = items.filter(i => Number(i.price) <= filters.maxPrice);
+    }
+    if (filters.sellerId) {
+      items = items.filter(i => i.userId === filters.sellerId);
+    }
+    if (filters.location && filters.location !== 'all' && filters.location !== 'detect_gps') {
+      const loc = filters.location.toLowerCase();
+      items = items.filter(i => (i.location || '').toLowerCase().includes(loc));
+    }
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      items = items.filter(i =>
+        i.title.toLowerCase().includes(q) ||
+        (i.description || '').toLowerCase().includes(q) ||
+        (i.location || '').toLowerCase().includes(q));
     }
 
-    // Sort by newest first
-    items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
+    switch (filters.sort) {
+      case 'price_asc':  items.sort((a, b) => a.price - b.price); break;
+      case 'price_desc': items.sort((a, b) => b.price - a.price); break;
+      case 'oldest':     items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); break;
+      default:           items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
     return items;
   }
 
-  /**
-   * MARK ITEM AS SOLD (Triggers 5h Auto-Deletion Schedule)
-   */
-  async markItemAsSold(id) {
-    if (window.supabaseAPI && window.supabaseAPI.client) {
-      try {
-        await window.supabaseAPI.markItemAsSold(id);
-      } catch (err) {
-        console.warn('⚡ Supabase mark sold error:', err);
-      }
-    }
-
-    const items = JSON.parse(localStorage.getItem(this.storageKey)) || [];
-    const item = items.find(i => i.id === id);
-    if (item) {
-      item.isSold = true;
-      item.soldAt = new Date().toISOString();
-      localStorage.setItem(this.storageKey, JSON.stringify(items));
-    }
-    return item;
-  }
-
-  /**
-   * DELETE ITEM (Deletes automatically from Supabase Cloud DB & LocalStorage)
-   */
-  async deleteItem(id) {
-    if (window.supabaseAPI && window.supabaseAPI.client) {
-      try {
-        await window.supabaseAPI.deleteItem(id);
-      } catch (err) {
-        console.warn('⚡ Supabase delete item error:', err);
-      }
-    }
-
-    let items = JSON.parse(localStorage.getItem(this.storageKey)) || [];
-    items = items.filter(i => String(i.id) !== String(id));
-    localStorage.setItem(this.storageKey, JSON.stringify(items));
-
-    let myPermanentPosts = JSON.parse(localStorage.getItem('pr_user_permanent_posts')) || [];
-    myPermanentPosts = myPermanentPosts.filter(i => String(i.id) !== String(id));
-    localStorage.setItem('pr_user_permanent_posts', JSON.stringify(myPermanentPosts));
-
-    return true;
-  }
-
-  /**
-   * GET SINGLE ITEM BY ID
-   */
   async fetchItemById(id) {
-    if (window.supabaseAPI && window.supabaseAPI.client) {
-      try {
-        const item = await window.supabaseAPI.fetchItemById(id);
-        if (item) return item;
-      } catch (err) {
-        console.warn('⚡ Supabase fetch single item error:', err);
-      }
-    }
-
-    const items = JSON.parse(localStorage.getItem(this.storageKey)) || INITIAL_SAMPLE_ITEMS;
-    const found = items.find(i => String(i.id) === String(id)) || INITIAL_SAMPLE_ITEMS.find(i => String(i.id) === String(id));
-    return found || null;
-  }
-
-  /**
-   * CREATE NEW LISTING / POST AD (Permanently saved to Supabase DB & Local Device Storage)
-   */
-  async createItem(itemData) {
-    let createdItem = null;
-
-    if (window.supabaseAPI && window.supabaseAPI.client) {
-      try {
-        createdItem = await window.supabaseAPI.createItem(itemData);
-        console.log('⚡ Successfully stored item in Supabase Database:', createdItem.id);
-      } catch (err) {
-        console.warn('⚡ Supabase create error, continuing with local storage:', err);
-      }
-    }
-
-    const newItem = createdItem || {
-      id: 'item-' + Date.now(),
-      ...itemData,
-      price: parseFloat(itemData.price) || 0,
-      createdAt: new Date().toISOString(),
-      isSold: false
-    };
-    
-    // Save permanently in local storage and permanent user posts store
-    let items = JSON.parse(localStorage.getItem(this.storageKey)) || [];
-    items = items.filter(i => String(i.id) !== String(newItem.id));
-    items.unshift(newItem);
-
-    let myPermanentPosts = JSON.parse(localStorage.getItem('pr_user_permanent_posts')) || [];
-    myPermanentPosts = myPermanentPosts.filter(i => String(i.id) !== String(newItem.id));
-    myPermanentPosts.unshift(newItem);
-    
     try {
-      localStorage.setItem('pr_user_permanent_posts', JSON.stringify(myPermanentPosts));
-      localStorage.setItem(this.storageKey, JSON.stringify(items));
-    } catch (quotaErr) {
-      console.warn('LocalStorage quota handling, keeping top items:', quotaErr);
-      localStorage.setItem(this.storageKey, JSON.stringify(items.slice(0, 50)));
-      localStorage.setItem('pr_user_permanent_posts', JSON.stringify(myPermanentPosts.slice(0, 50)));
+      return await window.supabaseAPI.fetchItemById(id);
+    } catch (err) {
+      return this._read(this.cacheKey, []).find(i => String(i.id) === String(id)) || null;
     }
-
-    this.trackMyPostedItem(newItem.id); // Track item ownership for seller
-    return newItem;
   }
 
+  createItem(itemData)      { return window.supabaseAPI.createItem(itemData); }
+  updateItem(id, patch)     { return window.supabaseAPI.updateItem(id, patch); }
+  markItemAsSold(id)        { return window.supabaseAPI.markItemAsSold(id); }
+  relistItem(id)            { return window.supabaseAPI.relistItem(id); }
+  deleteItem(id)            { return window.supabaseAPI.deleteItem(id); }
+  reportItem(id, reason)    { return window.supabaseAPI.reportItem(id, reason); }
+  uploadImage(blob, kind)   { return window.supabaseAPI.uploadImage(blob, kind); }
+  purgeExpiredSoldItems()   { return window.supabaseAPI.purgeExpiredSoldItems(); }
+
   /**
-   * FAVORITES / SAVED ITEMS MANAGEMENT
+   * Ownership, decided by comparing the row's user_id to the signed-in user.
+   * The database enforces the same rule, so this only controls which buttons
+   * are drawn - it is no longer the thing standing between a stranger and
+   * your listing.
    */
+  isItemOwnedByCurrentUser(item) {
+    const user = this.getCurrentUser();
+    return Boolean(user && item && item.userId && item.userId === user.id);
+  }
+
+  /* ======================================================================
+     FAVOURITES (device-local by design)
+     ====================================================================== */
+
   getFavoriteIds() {
-    const raw = JSON.parse(localStorage.getItem(this.favKey)) || [];
-    return raw.map(String);
+    return this._read(this.favKey, []).map(String);
   }
 
   toggleFavorite(itemId) {
-    const cleanId = String(itemId);
+    const id = String(itemId);
     let favs = this.getFavoriteIds();
-    if (favs.includes(cleanId)) {
-      favs = favs.filter(id => id !== cleanId);
-    } else {
-      favs.push(cleanId);
-    }
-    localStorage.setItem(this.favKey, JSON.stringify(favs));
+    favs = favs.includes(id) ? favs.filter(f => f !== id) : favs.concat(id);
+    this._write(this.favKey, favs);
     return favs;
   }
 
-  /**
-   * IN-APP LIVE CHAT: FETCH MESSAGES FOR AN ITEM
-   */
-  async fetchMessages(itemId) {
-    if (window.supabaseAPI && window.supabaseAPI.client) {
-      try {
-        return await window.supabaseAPI.fetchMessages(itemId);
-      } catch (err) {
-        console.warn('⚡ Supabase fetchMessages error:', err);
-      }
-    }
-
-    return new Promise((resolve) => {
-      const chats = JSON.parse(localStorage.getItem(this.chatStorageKey)) || {};
-      const itemMsgs = chats[itemId] || [
-        {
-          id: 'msg-welcome-' + itemId,
-          itemId: itemId,
-          senderName: 'System',
-          senderRole: 'system',
-          text: '💬 Live In-App Chat connected! Send a message below to start chatting directly with the seller.',
-          createdAt: new Date().toISOString()
-        }
-      ];
-      resolve(itemMsgs);
-    });
+  isFavorite(itemId) {
+    return this.getFavoriteIds().includes(String(itemId));
   }
 
-  /**
-   * IN-APP LIVE CHAT: SEND MESSAGE FOR AN ITEM
-   */
-  async sendMessage(itemId, messageData) {
-    if (window.supabaseAPI && window.supabaseAPI.client) {
-      try {
-        await window.supabaseAPI.sendMessage(itemId, messageData);
-      } catch (err) {
-        console.warn('⚡ Supabase sendMessage error:', err);
-      }
-    }
+  /* ======================================================================
+     MESSAGING
+     ====================================================================== */
 
-    return new Promise((resolve) => {
-      const chats = JSON.parse(localStorage.getItem(this.chatStorageKey)) || {};
-      if (!chats[itemId]) chats[itemId] = [];
-
-      const newMsg = {
-        id: 'msg-' + Date.now(),
-        itemId: itemId,
-        senderName: messageData.senderName || 'Buyer',
-        senderRole: messageData.senderRole || 'buyer',
-        text: messageData.text,
-        createdAt: new Date().toISOString()
-      };
-
-      chats[itemId].push(newMsg);
-      localStorage.setItem(this.chatStorageKey, JSON.stringify(chats));
-      resolve(newMsg);
-    });
+  /** Channel id for a buyer's thread about one listing. */
+  itemChannelId(itemId, buyerId) {
+    return `${itemId}:${buyerId}`;
   }
 
-  /**
-   * AUTHENTICATION API METHODS
-   */
-  getCurrentUser() {
-    return JSON.parse(localStorage.getItem(this.currentUserKey)) || null;
+  /** Channel id for a private conversation, stable whichever side builds it. */
+  directChannelId(userIdA, userIdB) {
+    return [String(userIdA), String(userIdB)].sort().join(':');
   }
 
-  setCurrentUser(user) {
-    if (user) {
-      localStorage.setItem(this.currentUserKey, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(this.currentUserKey);
+  fetchMessages(channelType, channelId) {
+    return window.supabaseAPI.fetchMessages(channelType, channelId);
+  }
+
+  sendMessage(channelType, channelId, body) {
+    return window.supabaseAPI.sendMessage(channelType, channelId, body);
+  }
+
+  subscribeToMessages(channelType, channelId, onMessage) {
+    return window.supabaseAPI.subscribeToMessages(channelType, channelId, onMessage);
+  }
+
+  fetchInbox() {
+    return window.supabaseAPI.fetchInbox();
+  }
+
+  /* ======================================================================
+     READ RECEIPTS FOR THE NOTIFICATIONS TAB
+     Which threads you have already opened is a per-device preference, so it
+     lives here rather than in the database.
+     ====================================================================== */
+
+  getSeenMessageIds() {
+    return this._read('pr_seen_messages_v2', []);
+  }
+
+  markThreadSeen(latestMessageId) {
+    if (!latestMessageId) return;
+    const seen = this.getSeenMessageIds();
+    if (!seen.includes(latestMessageId)) {
+      seen.unshift(latestMessageId);
+      this._write('pr_seen_messages_v2', seen.slice(0, 200));
     }
   }
 
-  logoutUser() {
-    localStorage.removeItem(this.currentUserKey);
-  }
-
-  async signUpUser(userData) {
-    if (window.supabaseAPI && window.supabaseAPI.client) {
-      try {
-        const newUser = await window.supabaseAPI.signUpUser(userData);
-        this.setCurrentUser(newUser);
-        return newUser;
-      } catch (err) {
-        if (err.message && err.message.startsWith('DUPLICATE_')) {
-          throw err;
-        }
-        console.warn('⚡ Supabase signUpUser error, falling back to LocalStorage:', err);
-      }
-    }
-
-    const users = JSON.parse(localStorage.getItem(this.usersKey)) || [];
-
-    const existingEmail = users.find(u => u.email.toLowerCase() === userData.email.toLowerCase());
-    if (existingEmail) throw new Error('DUPLICATE_EMAIL');
-
-    const existingPhone = users.find(u => u.phone.replace(/[^\d]/g,'') === userData.phone.replace(/[^\d]/g,''));
-    if (existingPhone) throw new Error('DUPLICATE_PHONE');
-
-    const newUser = {
-      id: 'user-' + Date.now(),
-      fullName: userData.fullName,
-      email: userData.email,
-      phone: userData.phone,
-      password: userData.password,
-      createdAt: new Date().toISOString()
-    };
-
-    users.push(newUser);
-    localStorage.setItem(this.usersKey, JSON.stringify(users));
-
-    const userSession = {
-      id: newUser.id,
-      fullName: newUser.fullName,
-      email: newUser.email,
-      phone: newUser.phone,
-      createdAt: newUser.createdAt
-    };
-
-    this.setCurrentUser(userSession);
-    return userSession;
-  }
-
-  async logInUser(emailOrPhone, password) {
-    if (window.supabaseAPI && window.supabaseAPI.client) {
-      try {
-        const user = await window.supabaseAPI.logInUser(emailOrPhone, password);
-        this.setCurrentUser(user);
-        return user;
-      } catch (err) {
-        if (err.message === 'GMAIL_NOT_FOUND' || err.message === 'GMAIL_PASSWORD_MISMATCH' || err.message === 'USER_NOT_FOUND' || err.message === 'INVALID_PASSWORD') {
-          throw err;
-        }
-        console.warn('⚡ Supabase logInUser error, falling back to LocalStorage:', err);
-      }
-    }
-
-    const users = JSON.parse(localStorage.getItem(this.usersKey)) || [];
-    const cleanInput = emailOrPhone.trim().toLowerCase();
-    const phoneDigits = cleanInput.replace(/[^\d]/g, '');
-
-    const user = users.find(u => {
-      if (cleanInput.includes('@')) {
-        return u.email && u.email.toLowerCase() === cleanInput;
-      } else {
-        return u.phone && u.phone.replace(/[^\d]/g, '') === phoneDigits;
-      }
-    });
-
-    if (!user) {
-      throw new Error('GMAIL_NOT_FOUND');
-    }
-
-    if (user.password !== password) {
-      throw new Error('GMAIL_PASSWORD_MISMATCH');
-    }
-
-    const userSession = {
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      phone: user.phone,
-      createdAt: user.createdAt
-    };
-
-    this.setCurrentUser(userSession);
-    return userSession;
-  }
-
-  /**
-   * RESET MOCK DATABASE TO ORIGINAL SEED DATA
-   */
-  resetDatabase() {
-    localStorage.setItem(this.storageKey, JSON.stringify(INITIAL_SAMPLE_ITEMS));
-    localStorage.setItem(this.favKey, JSON.stringify([]));
-    localStorage.removeItem(this.chatStorageKey);
-    return INITIAL_SAMPLE_ITEMS;
+  markAllSeen(messageIds) {
+    const seen = Array.from(new Set(messageIds.concat(this.getSeenMessageIds())));
+    this._write('pr_seen_messages_v2', seen.slice(0, 200));
   }
 }
 
-// Export global singleton API instance
 window.api = new MarketplaceAPI();

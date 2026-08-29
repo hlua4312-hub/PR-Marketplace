@@ -1,219 +1,398 @@
 /**
- * PR MARKETPLACE - SUPABASE REALTIME DATABASE CLIENT & INTEGRATION MODULE
- * Connects the web application directly to your Supabase PostgreSQL cloud database.
+ * PR MARKETPLACE - SUPABASE DATA LAYER
+ *
+ * Everything that talks to the backend lives here: authentication, listings,
+ * image uploads, messaging and reports.
+ *
+ * Two rules this file follows and the rest of the app relies on:
+ *   1. Identity comes from Supabase Auth. This file never sees, stores or
+ *      compares a password - signInWithPassword does that on the server.
+ *   2. Permission is never decided here. The policies in supabase_schema.sql
+ *      decide; a call that is not allowed comes back as an error, and we
+ *      surface it rather than pretending it worked.
  */
 
-// Supabase Configuration Credentials (stored in LocalStorage or defaults)
-const SUPABASE_CONFIG = {
-  get URL() {
-    return localStorage.getItem('pr_supabase_url') || 'https://pjvxssxcmdvchelglnzr.supabase.co';
-  },
-  get ANON_KEY() {
-    return localStorage.getItem('pr_supabase_key') || 'sb_publishable_gWK3Y6uOIq7sRreua8z16Q_dTvB-Nls';
-  },
-  setCredentials(url, key) {
-    if (url) localStorage.setItem('pr_supabase_url', url.trim());
-    if (key) localStorage.setItem('pr_supabase_key', key.trim());
-  },
-  isConfigured() {
-    const u = this.URL;
-    const k = this.ANON_KEY;
-    return Boolean(u && k && u.startsWith('http') && k.length > 20);
-  }
-};
+const CONNECTION_ERROR =
+  'Could not reach the database. Check your connection, or set your Supabase project under Account > Database Connection.';
 
 class SupabaseMarketplaceClient {
   constructor() {
     this.client = null;
+    this.bucket = window.PRConfig.STORAGE_BUCKET;
     this.initClient();
   }
 
   initClient() {
-    if (window.supabase && SUPABASE_CONFIG.isConfigured()) {
-      try {
-        this.client = window.supabase.createClient(SUPABASE_CONFIG.URL, SUPABASE_CONFIG.ANON_KEY);
-        console.log('⚡ Supabase Client initialized successfully!');
-      } catch (err) {
-        console.error('Failed to initialize Supabase client:', err);
-        this.client = null;
-      }
-    } else {
+    const cfg = window.PRConfig;
+    if (!window.supabase || !cfg.isConfigured()) {
+      this.client = null;
+      return;
+    }
+    try {
+      this.client = window.supabase.createClient(cfg.url, cfg.anonToken, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storageKey: 'pr_marketplace_session'
+        }
+      });
+    } catch (err) {
+      console.error('Supabase client could not start:', err);
       this.client = null;
     }
   }
 
+  /** Re-create the client after the user points the app at a different project. */
+  reconnect() {
+    this.client = null;
+    this.initClient();
+    return this.isReady();
+  }
+
+  isReady() {
+    return Boolean(this.client);
+  }
+
+  _require() {
+    if (!this.client) throw new Error(CONNECTION_ERROR);
+    return this.client;
+  }
+
+  /* ======================================================================
+     AUTHENTICATION
+     ====================================================================== */
+
   /**
-   * FETCH ITEMS FROM SUPABASE DATABASE
+   * Register an account. The password goes straight to Supabase Auth, which
+   * stores a bcrypt hash. It is never written to any table we control and
+   * never touches localStorage.
    */
+  async signUp({ fullName, email, phone, password }) {
+    const db = this._require();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = (phone || '').replace(/[^\d]/g, '');
+
+    if (cleanPhone) {
+      const { data: taken, error: phoneErr } = await db.rpc('phone_is_taken', { p_phone: cleanPhone });
+      if (!phoneErr && taken) {
+        throw new Error('DUPLICATE_PHONE');
+      }
+    }
+
+    const { data, error } = await db.auth.signUp({
+      email: cleanEmail,
+      password,
+      options: {
+        data: { full_name: fullName.trim(), phone: cleanPhone }
+      }
+    });
+
+    if (error) {
+      const msg = (error.message || '').toLowerCase();
+      if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('user already')) {
+        throw new Error('DUPLICATE_EMAIL');
+      }
+      if (msg.includes('password')) throw new Error('WEAK_PASSWORD');
+      throw error;
+    }
+
+    // With email confirmation switched on, Supabase returns a user but no
+    // session. The caller shows the "check your inbox" state in that case.
+    return {
+      user: this._toProfile(data.user, { fullName, email: cleanEmail, phone: cleanPhone }),
+      needsEmailConfirmation: Boolean(data.user && !data.session)
+    };
+  }
+
+  /** Sign in with either an email address or a registered phone number. */
+  async signIn(emailOrPhone, password) {
+    const db = this._require();
+    const raw = (emailOrPhone || '').trim();
+    let email = raw.toLowerCase();
+
+    if (!raw.includes('@')) {
+      const digits = raw.replace(/[^\d]/g, '');
+      const { data: resolved, error } = await db.rpc('email_for_phone', { p_phone: digits });
+      if (error || !resolved) throw new Error('ACCOUNT_NOT_FOUND');
+      email = resolved;
+    }
+
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      const msg = (error.message || '').toLowerCase();
+      if (msg.includes('email not confirmed')) throw new Error('EMAIL_NOT_CONFIRMED');
+      if (msg.includes('invalid login')) throw new Error('INVALID_CREDENTIALS');
+      throw error;
+    }
+
+    return this._toProfile(data.user);
+  }
+
+  async signOut() {
+    if (!this.client) return;
+    await this.client.auth.signOut();
+  }
+
+  /** The signed-in user, or null. Reads the token Supabase already verified. */
+  async getCurrentUser() {
+    if (!this.client) return null;
+    const { data, error } = await this.client.auth.getUser();
+    if (error || !data || !data.user) return null;
+    return this._toProfile(data.user);
+  }
+
+  onAuthStateChange(callback) {
+    if (!this.client) return () => {};
+    const { data } = this.client.auth.onAuthStateChange((event, session) => {
+      callback(event, session ? this._toProfile(session.user) : null);
+    });
+    return () => data.subscription.unsubscribe();
+  }
+
+  /** Send a password-reset email. Always resolves, so we never reveal whether an address is registered. */
+  async requestPasswordReset(email) {
+    const db = this._require();
+    const redirectTo = window.location.origin + window.location.pathname;
+    await db.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
+    return true;
+  }
+
+  async updatePassword(newPassword) {
+    const db = this._require();
+    const { error } = await db.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return true;
+  }
+
+  _toProfile(user, fallback = {}) {
+    if (!user) return null;
+    const meta = user.user_metadata || {};
+    return {
+      id: user.id,
+      fullName: meta.full_name || fallback.fullName || (user.email || '').split('@')[0],
+      email: user.email || fallback.email || '',
+      phone: meta.phone || fallback.phone || '',
+      createdAt: user.created_at
+    };
+  }
+
+  /* ======================================================================
+     IMAGES
+     ====================================================================== */
+
+  /**
+   * Upload a photo and return its public URL. Files live under a folder named
+   * after the user id, which is the only place storage policy lets them write.
+   */
+  async uploadImage(blob, kind = 'item') {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) throw new Error('NOT_SIGNED_IN');
+
+    const ext = blob.type === 'image/png' ? 'png' : blob.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${user.id}/${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+    const { error } = await db.storage
+      .from(this.bucket)
+      .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false });
+
+    if (error) throw error;
+
+    const { data } = db.storage.from(this.bucket).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  /** Best-effort cleanup when a listing is deleted or its photo replaced. */
+  async removeImage(publicUrl) {
+    if (!this.client || !publicUrl) return;
+    const marker = `/${this.bucket}/`;
+    const idx = publicUrl.indexOf(marker);
+    if (idx === -1) return;
+    const path = decodeURIComponent(publicUrl.slice(idx + marker.length).split('?')[0]);
+    try {
+      await this.client.storage.from(this.bucket).remove([path]);
+    } catch (err) {
+      console.warn('Could not remove stored image:', err);
+    }
+  }
+
+  /* ======================================================================
+     LISTINGS
+     ====================================================================== */
+
   async fetchItems(filters = {}) {
-    if (!this.client) throw new Error('Supabase client not initialized');
+    const db = this._require();
+    const pageSize = filters.pageSize || window.PRConfig.PAGE_SIZE;
+    const page = filters.page || 0;
 
-    let query = this.client.from('items').select('*');
+    let query = db.from('items').select('*');
 
-    // Filter by Category
     if (filters.category && filters.category !== 'all') {
       query = query.eq('category', filters.category);
     }
-
-    // Filter by Max Price
-    if (filters.maxPrice !== undefined) {
+    if (filters.conditions && filters.conditions.length) {
+      query = query.in('condition', filters.conditions);
+    }
+    if (typeof filters.maxPrice === 'number' && Number.isFinite(filters.maxPrice)) {
       query = query.lte('price', filters.maxPrice);
     }
+    if (typeof filters.minPrice === 'number' && Number.isFinite(filters.minPrice)) {
+      query = query.gte('price', filters.minPrice);
+    }
+    if (filters.location && filters.location !== 'all' && filters.location !== 'detect_gps') {
+      query = query.ilike('location', `%${filters.location}%`);
+    }
+    if (filters.sellerId) {
+      query = query.eq('user_id', filters.sellerId);
+    }
+    if (filters.search) {
+      const q = filters.search.replace(/[%,()]/g, ' ').trim();
+      if (q) {
+        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%`);
+      }
+    }
 
-    // Sort by creation date descending
-    query = query.order('created_at', { ascending: false });
+    switch (filters.sort) {
+      case 'price_asc':  query = query.order('price', { ascending: true }); break;
+      case 'price_desc': query = query.order('price', { ascending: false }); break;
+      case 'oldest':     query = query.order('created_at', { ascending: true }); break;
+      default:           query = query.order('created_at', { ascending: false });
+    }
+
+    query = query.range(page * pageSize, page * pageSize + pageSize - 1);
 
     const { data, error } = await query;
     if (error) throw error;
 
-    // AUTO-PURGE EXPIRED SOLD ITEMS FROM SUPABASE DATABASE (Auto-delete after 5 hours)
-    const AUTO_DELETE_HOURS = 5;
-    const now = Date.now();
-    for (const row of data || []) {
-      if (row.is_sold && row.sold_at) {
-        const hrs = (now - new Date(row.sold_at).getTime()) / (1000 * 60 * 60);
-        if (hrs >= AUTO_DELETE_HOURS) {
-          this.client.from('items').delete().eq('id', row.id).then(() => {
-            console.log(`🗑️ Auto-deleted expired sold item ${row.id} from Supabase Cloud DB`);
-          });
-        }
-      }
-    }
-
-    // Convert snake_case from Postgres to camelCase for frontend & filter expired items
-    let items = (data || [])
-      .filter(row => {
-        if (row.is_sold && row.sold_at) {
-          const hrs = (now - new Date(row.sold_at).getTime()) / (1000 * 60 * 60);
-          return hrs < AUTO_DELETE_HOURS;
-        }
-        return true;
-      })
-      .map(row => ({
-        id: row.id,
-        title: row.title,
-        category: row.category,
-        price: Number(row.price),
-        condition: row.condition,
-        location: row.location,
-        description: row.description,
-        imageUrl: row.image_url,
-        paymentQrUrl: row.payment_qr_url,
-        sellerName: row.seller_name,
-        sellerWhatsapp: row.seller_whatsapp,
-        sellerInstagram: row.seller_instagram,
-        sellerPhone: row.seller_phone,
-        userId: row.user_id || null,
-        isSold: Boolean(row.is_sold),
-        soldAt: row.sold_at,
-      }));
-
-    // STRICT PURGE: Filter out all fake mock sample listings (item-101 to item-111, 555- numbers) except 'sjwvaisb'
-    const FAKE_MOCK_IDS = ['item-101', 'item-102', 'item-103', 'item-104', 'item-105', 'item-106', 'item-107', 'item-108', 'item-109', 'item-110', 'item-111'];
-    items = items.filter(i => {
-      const isSjwvaisb = (i.title && i.title.toLowerCase().includes('sjwvaisb')) || String(i.id).includes('sjwvaisb');
-      if (isSjwvaisb) return true;
-      if (FAKE_MOCK_IDS.includes(String(i.id))) return false;
-      if (i.sellerPhone && i.sellerPhone.startsWith('555-')) return false;
-      if (i.sellerWhatsapp && i.sellerWhatsapp.includes('55501')) return false;
-      return true;
-    });
-
-    // Local Search Filter
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      items = items.filter(i => 
-        i.title.toLowerCase().includes(q) || 
-        (i.description && i.description.toLowerCase().includes(q)) ||
-        (i.location && i.location.toLowerCase().includes(q))
-      );
-    }
-
-    // Local Condition Filter
-    if (filters.conditions && filters.conditions.length > 0) {
-      items = items.filter(i => filters.conditions.includes(i.condition));
-    }
-
-    return items;
+    const cutoff = Date.now() - window.PRConfig.SOLD_ITEM_LIFETIME_HOURS * 3600 * 1000;
+    return (data || [])
+      .filter(row => !(row.is_sold && row.sold_at && new Date(row.sold_at).getTime() < cutoff))
+      .map(row => this._toItem(row));
   }
 
-  /**
-   * POST / INSERT NEW ITEM TO SUPABASE
-   */
+  async fetchItemById(id) {
+    const db = this._require();
+    const { data, error } = await db.from('items').select('*').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data ? this._toItem(data) : null;
+  }
+
   async createItem(itemData) {
-    if (!this.client) throw new Error('Supabase client not initialized');
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) throw new Error('NOT_SIGNED_IN');
 
-    const isValidUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-    const safeUserId = (itemData.userId && isValidUUID(itemData.userId)) ? itemData.userId : null;
-
-    const dbRow = {
-      id: 'item-' + Date.now(),
+    const row = {
+      user_id: user.id,
       title: itemData.title,
       category: itemData.category,
-      price: parseFloat(itemData.price) || 0,
+      price: Number.parseFloat(itemData.price) || 0,
       condition: itemData.condition,
       location: itemData.location,
-      description: itemData.description || '',
+      description: itemData.description || null,
       image_url: itemData.imageUrl || null,
       payment_qr_url: itemData.paymentQrUrl || null,
       seller_name: itemData.sellerName,
-      seller_whatsapp: itemData.sellerWhatsapp || itemData.sellerPhone || '',
-      seller_instagram: itemData.sellerInstagram || null,
       seller_phone: itemData.sellerPhone || null,
-      user_id: safeUserId,
-      is_sold: false,
-      created_at: new Date().toISOString()
+      seller_whatsapp: itemData.sellerWhatsapp || null,
+      seller_instagram: itemData.sellerInstagram || null,
+      is_sold: false
     };
 
-    let row = null;
-    try {
-      const { data, error } = await this.client.from('items').insert([dbRow]).select();
-      if (error) {
-        console.warn('⚡ Initial Supabase insert error, trying safe schema fallback:', error);
-        const safeRow = {
-          id: dbRow.id,
-          title: dbRow.title,
-          category: dbRow.category,
-          price: dbRow.price,
-          condition: dbRow.condition,
-          location: dbRow.location,
-          description: dbRow.description,
-          image_url: dbRow.image_url,
-          seller_name: dbRow.seller_name,
-          seller_whatsapp: dbRow.seller_whatsapp,
-          is_sold: false,
-          created_at: dbRow.created_at
-        };
-        const res2 = await this.client.from('items').insert([safeRow]).select();
-        if (res2.error) throw res2.error;
-        row = res2.data[0];
-      } else {
-        row = data[0];
-      }
-    } catch (err) {
-      console.warn('⚡ Supabase cloud insertion caught:', err);
-      return {
-        id: dbRow.id,
-        title: dbRow.title,
-        category: dbRow.category,
-        price: dbRow.price,
-        condition: dbRow.condition,
-        location: dbRow.location,
-        description: dbRow.description,
-        imageUrl: dbRow.image_url,
-        paymentQrUrl: dbRow.payment_qr_url,
-        sellerName: dbRow.seller_name,
-        sellerWhatsapp: dbRow.seller_whatsapp,
-        sellerInstagram: dbRow.seller_instagram,
-        sellerPhone: dbRow.seller_phone,
-        userId: dbRow.user_id,
-        isSold: false,
-        createdAt: dbRow.created_at
-      };
-    }
+    const { data, error } = await db.from('items').insert([row]).select().single();
+    if (error) throw error;
+    return this._toItem(data);
+  }
 
+  /** Edit a listing. RLS rejects this unless the caller owns the row. */
+  async updateItem(id, patch) {
+    const db = this._require();
+    const row = {};
+    if (patch.title !== undefined)          row.title = patch.title;
+    if (patch.category !== undefined)       row.category = patch.category;
+    if (patch.price !== undefined)          row.price = Number.parseFloat(patch.price) || 0;
+    if (patch.condition !== undefined)      row.condition = patch.condition;
+    if (patch.location !== undefined)       row.location = patch.location;
+    if (patch.description !== undefined)    row.description = patch.description || null;
+    if (patch.imageUrl !== undefined)       row.image_url = patch.imageUrl;
+    if (patch.paymentQrUrl !== undefined)   row.payment_qr_url = patch.paymentQrUrl;
+    if (patch.sellerName !== undefined)     row.seller_name = patch.sellerName;
+    if (patch.sellerPhone !== undefined)    row.seller_phone = patch.sellerPhone || null;
+    if (patch.sellerWhatsapp !== undefined) row.seller_whatsapp = patch.sellerWhatsapp || null;
+    if (patch.sellerInstagram !== undefined) row.seller_instagram = patch.sellerInstagram || null;
+
+    const { data, error } = await db.from('items').update(row).eq('id', id).select().single();
+    if (error) throw this._ownershipError(error);
+    return this._toItem(data);
+  }
+
+  async markItemAsSold(id) {
+    const db = this._require();
+    const { data, error } = await db
+      .from('items')
+      .update({ is_sold: true, sold_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw this._ownershipError(error);
+    return this._toItem(data);
+  }
+
+  async relistItem(id) {
+    const db = this._require();
+    const { data, error } = await db
+      .from('items')
+      .update({ is_sold: false, sold_at: null })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw this._ownershipError(error);
+    return this._toItem(data);
+  }
+
+  /**
+   * Delete a listing. Unlike the previous version this checks the row count,
+   * so a delete refused by policy raises instead of reporting success.
+   */
+  async deleteItem(id) {
+    const db = this._require();
+    const existing = await this.fetchItemById(id).catch(() => null);
+
+    const { data, error } = await db.from('items').delete().eq('id', id).select();
+    if (error) throw this._ownershipError(error);
+    if (!data || data.length === 0) throw new Error('NOT_YOUR_LISTING');
+
+    if (existing) {
+      await this.removeImage(existing.imageUrl);
+      await this.removeImage(existing.paymentQrUrl);
+    }
+    return true;
+  }
+
+  /** Ask the database to clear sold listings past their 5-hour window. */
+  async purgeExpiredSoldItems() {
+    if (!this.client) return 0;
+    const { data, error } = await this.client.rpc('purge_expired_sold_items');
+    if (error) {
+      console.warn('Purge could not run:', error.message);
+      return 0;
+    }
+    return data || 0;
+  }
+
+  _ownershipError(error) {
+    if (error && (error.code === 'PGRST116' || error.code === '42501')) {
+      return new Error('NOT_YOUR_LISTING');
+    }
+    return error;
+  }
+
+  _toItem(row) {
     return {
       id: row.id,
+      userId: row.user_id,
       title: row.title,
       category: row.category,
       price: Number(row.price),
@@ -221,222 +400,139 @@ class SupabaseMarketplaceClient {
       location: row.location,
       description: row.description,
       imageUrl: row.image_url,
-      paymentQrUrl: row.payment_qr_url || dbRow.payment_qr_url,
+      paymentQrUrl: row.payment_qr_url,
       sellerName: row.seller_name,
+      sellerPhone: row.seller_phone,
       sellerWhatsapp: row.seller_whatsapp,
       sellerInstagram: row.seller_instagram,
-      sellerPhone: row.seller_phone,
-      userId: row.user_id || null,
-      isSold: row.is_sold,
-      createdAt: row.created_at
+      isSold: Boolean(row.is_sold),
+      soldAt: row.sold_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
     };
   }
 
-  /**
-   * MARK ITEM AS SOLD IN SUPABASE
-   */
-  async markItemAsSold(itemId) {
-    if (!this.client) throw new Error('Supabase client not initialized');
+  /* ======================================================================
+     MESSAGES
+     ====================================================================== */
 
-    const timestamp = new Date().toISOString();
-    const { data, error } = await this.client
-      .from('items')
-      .update({ is_sold: true, sold_at: timestamp })
-      .eq('id', itemId)
-      .select();
-
-    if (error) throw error;
-    return data[0];
-  }
-
-  /**
-   * DELETE ITEM FROM SUPABASE DATABASE
-   */
-  async deleteItem(itemId) {
-    if (!this.client) throw new Error('Supabase client not initialized');
-
-    const { data, error } = await this.client
-      .from('items')
-      .delete()
-      .eq('id', itemId);
-
-    if (error) throw error;
-    console.log(`🗑️ Item ${itemId} successfully deleted from Supabase Cloud DB!`);
-    return true;
-  }
-
-  /**
-   * FETCH MESSAGES FOR AN ITEM FROM SUPABASE
-   */
-  async fetchMessages(itemId) {
-    if (!this.client) throw new Error('Supabase client not initialized');
-
-    const { data, error } = await this.client
+  async fetchMessages(channelType, channelId) {
+    const db = this._require();
+    const { data, error } = await db
       .from('messages')
       .select('*')
-      .eq('item_id', itemId)
-      .order('created_at', { ascending: true });
-
+      .eq('channel_type', channelType)
+      .eq('channel_id', channelId)
+      .order('created_at', { ascending: true })
+      .limit(200);
     if (error) throw error;
-
-    return (data || []).map(row => ({
-      id: row.id,
-      itemId: row.item_id,
-      senderName: row.sender_name,
-      senderRole: row.sender_role,
-      text: row.text,
-      createdAt: row.created_at
-    }));
+    return (data || []).map(row => this._toMessage(row));
   }
 
-  /**
-   * SEND MESSAGE TO SUPABASE
-   */
-  async sendMessage(itemId, messageData) {
-    if (!this.client) throw new Error('Supabase client not initialized');
+  async sendMessage(channelType, channelId, body) {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) throw new Error('NOT_SIGNED_IN');
 
-    const dbRow = {
-      id: 'msg-' + Date.now(),
-      item_id: itemId,
-      sender_name: messageData.senderName || 'Buyer',
-      sender_role: messageData.senderRole || 'buyer',
-      text: messageData.text,
-      created_at: new Date().toISOString()
-    };
+    const text = (body || '').trim();
+    if (!text) throw new Error('EMPTY_MESSAGE');
+    if (text.length > 2000) throw new Error('MESSAGE_TOO_LONG');
 
-    const { data, error } = await this.client
+    const { data, error } = await db
       .from('messages')
-      .insert([dbRow])
-      .select();
+      .insert([{
+        channel_type: channelType,
+        channel_id: channelId,
+        sender_id: user.id,
+        sender_name: user.fullName,
+        body: text
+      }])
+      .select()
+      .single();
 
     if (error) throw error;
-    return data[0];
+    return this._toMessage(data);
   }
 
   /**
-   * AUTHENTICATION: CHECK DUPLICATE USER (EMAIL OR PHONE)
+   * Live updates for one conversation. Returns an unsubscribe function.
+   * This is what makes the chat actually live rather than a snapshot.
    */
-  async checkUserDuplicate(email, phone) {
-    if (!this.client) throw new Error('Supabase client not initialized');
+  subscribeToMessages(channelType, channelId, onMessage) {
+    if (!this.client) return () => {};
+    const name = `messages:${channelType}:${channelId}`;
+    const channel = this.client
+      .channel(name)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `channel_id=eq.${channelId}`
+        },
+        payload => {
+          if (payload.new && payload.new.channel_type === channelType) {
+            onMessage(this._toMessage(payload.new));
+          }
+        }
+      )
+      .subscribe();
 
-    const { data: existingEmail } = await this.client
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (existingEmail) return 'email';
-
-    const { data: existingPhone } = await this.client
-      .from('users')
-      .select('id')
-      .eq('phone', phone)
-      .maybeSingle();
-
-    if (existingPhone) return 'phone';
-
-    return null;
-  }
-
-  /**
-   * AUTHENTICATION: SIGN UP (REGISTER NEW USER IN SUPABASE)
-   */
-  async signUpUser(userData) {
-    if (!this.client) throw new Error('Supabase client not initialized');
-
-    const cleanEmail = userData.email.trim().toLowerCase();
-    const cleanPhone = userData.phone.trim();
-
-    const duplicateType = await this.checkUserDuplicate(cleanEmail, cleanPhone);
-    if (duplicateType) {
-      throw new Error(`DUPLICATE_${duplicateType.toUpperCase()}`);
-    }
-
-    const newUser = {
-      id: 'user-' + Date.now(),
-      full_name: userData.fullName,
-      email: cleanEmail,
-      phone: cleanPhone,
-      password_hash: userData.password,
-      password: userData.password,
-      created_at: new Date().toISOString()
+    return () => {
+      try { this.client.removeChannel(channel); } catch (e) { /* already gone */ }
     };
+  }
 
-    let data = null;
-    let error = null;
-    try {
-      const res = await this.client.from('users').insert([newUser]).select();
-      data = res.data;
-      error = res.error;
-      if (error) {
-        // Fallback for tables without password column
-        const safeUser = {
-          id: newUser.id,
-          full_name: newUser.full_name,
-          email: newUser.email,
-          phone: newUser.phone,
-          password_hash: newUser.password_hash,
-          created_at: newUser.created_at
-        };
-        const res2 = await this.client.from('users').insert([safeUser]).select();
-        data = res2.data;
-        error = res2.error;
-      }
-    } catch (err) {
-      console.warn('⚡ Supabase user insertion error:', err);
-      throw err;
+  /** Every conversation the signed-in user is part of, newest first. */
+  async fetchInbox() {
+    const db = this._require();
+    const { data, error } = await db
+      .from('messages')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(300);
+    if (error) throw error;
+
+    const threads = new Map();
+    for (const row of data || []) {
+      const key = `${row.channel_type}:${row.channel_id}`;
+      if (!threads.has(key)) threads.set(key, this._toMessage(row));
     }
+    return Array.from(threads.values());
+  }
 
-    if (error || !data || data.length === 0) {
-      throw error || new Error('SIGNUP_FAILED');
-    }
-
-    const row = data[0];
+  _toMessage(row) {
     return {
       id: row.id,
-      fullName: row.full_name || userData.fullName,
-      email: row.email || cleanEmail,
-      phone: row.phone || cleanPhone,
-      createdAt: row.created_at || new Date().toISOString()
+      channelType: row.channel_type,
+      channelId: row.channel_id,
+      senderId: row.sender_id,
+      senderName: row.sender_name,
+      body: row.body,
+      createdAt: row.created_at
     };
   }
 
-  /**
-   * AUTHENTICATION: LOG IN USER FROM SUPABASE
-   */
-  async logInUser(emailOrPhone, password) {
-    if (!this.client) throw new Error('Supabase client not initialized');
+  /* ======================================================================
+     REPORTS
+     ====================================================================== */
 
-    const cleanInput = emailOrPhone.trim().toLowerCase();
-    const phoneDigits = cleanInput.replace(/[^\d]/g, '');
+  async reportItem(itemId, reason) {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) throw new Error('NOT_SIGNED_IN');
 
-    let query = this.client.from('users').select('*');
-    if (phoneDigits.length >= 10 && !cleanInput.includes('@')) {
-      query = query.eq('phone', phoneDigits);
-    } else {
-      query = query.eq('email', cleanInput);
+    const { error } = await db
+      .from('reports')
+      .insert([{ item_id: itemId, reporter_id: user.id, reason: reason.trim() }]);
+
+    if (error) {
+      if (error.code === '23505') throw new Error('ALREADY_REPORTED');
+      throw error;
     }
-
-    const { data, error } = await query.maybeSingle();
-
-    if (error || !data) {
-      throw new Error('GMAIL_NOT_FOUND');
-    }
-
-    const storedPassword = data.password_hash || data.password;
-    if (storedPassword && storedPassword !== password) {
-      throw new Error('GMAIL_PASSWORD_MISMATCH');
-    }
-
-    return {
-      id: data.id,
-      fullName: data.full_name,
-      email: data.email,
-      phone: data.phone,
-      createdAt: data.created_at
-    };
+    return true;
   }
 }
 
-// Global Supabase API instance
 window.supabaseAPI = new SupabaseMarketplaceClient();
