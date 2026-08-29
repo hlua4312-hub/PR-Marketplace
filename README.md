@@ -55,7 +55,13 @@ Open your Supabase project → **SQL Editor** → paste the whole of [`supabase_
 
 It is safe to run more than once. It creates the tables, the row-level security policies, the image storage bucket and the Realtime publication.
 
-> **Upgrading from an earlier version?** The script renames your old `users`, `items` and `messages` tables to `*_legacy` and revokes API access to them rather than deleting anything. Your rows are still there if you need them. Drop `users_legacy` sooner rather than later — it is the table that held plaintext passwords.
+> **Upgrading from an earlier version?** The script renames your old `users`, `items` and `messages` tables to `*_legacy` and revokes API access to them rather than deleting anything. Your rows are still there if you need them.
+>
+> The SQL Editor will warn that the query contains destructive operations. That is triggered by the `ALTER TABLE ... RENAME`, `DROP POLICY` and `REVOKE` statements — there is no `DROP TABLE` or `TRUNCATE` in the file, and no row is deleted.
+>
+> Expect the marketplace to be **empty** afterwards: the new `items` table starts fresh, and old listings cannot be carried over automatically because their owner is a text id that matches no account. To bring them back once you have registered, run [`docs/restore-legacy-listings.sql`](docs/restore-legacy-listings.sql).
+>
+> Drop `users_legacy` sooner rather than later — it is the table that held plaintext passwords.
 
 ### 2. Point the app at your project
 
