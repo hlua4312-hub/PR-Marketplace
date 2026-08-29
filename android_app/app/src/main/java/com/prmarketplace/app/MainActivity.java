@@ -69,6 +69,14 @@ public class MainActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.webView);
 
+        // On a debug build only, let chrome://inspect attach to this WebView.
+        // Without it, a JavaScript error on the phone is invisible - you can
+        // see that something is wrong but not what. Never enabled in release:
+        // it would expose the page to anyone with adb access.
+        if ((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
+
         final WebViewAssetLoader assetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
                 .build();
@@ -150,6 +158,15 @@ public class MainActivity extends AppCompatActivity {
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage message) {
+                // Mirror the page's console into logcat under a single tag,
+                // so `adb logcat -s PRWebView` is enough to watch the app.
+                android.util.Log.d("PRWebView", String.format("%s  [%s:%d]",
+                        message.message(), message.sourceId(), message.lineNumber()));
+                return true;
+            }
+
             @Override
             public void onGeolocationPermissionsShowPrompt(String origin, android.webkit.GeolocationPermissions.Callback callback) {
                 callback.invoke(origin, true, false);

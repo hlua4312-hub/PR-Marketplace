@@ -127,6 +127,23 @@ npm run android:debug     # or open android_app/ in Android Studio
 
 The APK lands in `APK_Outputs/PR_Marketplace.apk`. Copy it to your phone and install.
 
+### Working against a real phone
+
+With USB debugging on (Settings → About phone → tap Build number seven times, then Developer options → USB debugging), the loop is one command:
+
+```bash
+npm run android:debug && adb install -r android_app/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Debug builds install as `com.prmarketplace.app.debug` and are labelled **PR Marketplace (Debug)**, so they sit alongside a signed release rather than colliding with it.
+
+Two things the debug build turns on that release does not:
+
+- **`adb logcat -s PRWebView`** shows the page's own console, so a JavaScript error on the phone is readable instead of invisible.
+- **`chrome://inspect`** in desktop Chrome attaches full DevTools to the WebView while it runs on the phone.
+
+Both are gated behind `FLAG_DEBUGGABLE` and are off in release, where they would expose the page to anyone with adb access.
+
 > **Editing the web files does not change an APK that is already installed.** The assets are compiled into the package, so after any change you have to rebuild and reinstall — otherwise the phone keeps running the build it was given. If a change still does not appear after reinstalling, uninstall first: an update keeps the WebView's storage, including the old service worker cache.
 
 > **`local.properties`** holds the path to your Android SDK and is gitignored, so it will not exist on a fresh clone. Opening `android_app/` in Android Studio once writes it for you. Writing it by hand works too, but note it is a Java `.properties` file — either double every backslash or just use forward slashes:

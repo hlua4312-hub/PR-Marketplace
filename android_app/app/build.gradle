@@ -41,14 +41,25 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            resValue 'string', 'app_name', 'PR Marketplace'
             if (hasReleaseKeystore) {
                 signingConfig signingConfigs.release
             }
         }
         debug {
+            // A separate application id so a debug build and a signed release
+            // can sit side by side without an install-time signature clash.
+            // The label differs too, or you cannot tell the two icons apart.
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
+            resValue 'string', 'app_name', 'PR Marketplace (Debug)'
         }
+    }
+
+    // AGP 9 turns generated resource values off by default; the build types
+    // below use resValue to give the debug build its own label.
+    buildFeatures {
+        resValues true
     }
 
     compileOptions {
