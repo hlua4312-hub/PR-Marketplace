@@ -10,6 +10,7 @@ import {
   showToast, openModal, closeModal, prepareImage, describeError, confirmAction
 } from './ui.js';
 import { openCropper } from './cropper.js';
+import { isValidVpa } from './upi.js';
 
 const CATEGORIES = [
   'Books & Study Materials', 'Fashion & Clothing', 'Furniture', 'Sports & Fitness',
@@ -23,10 +24,8 @@ let hooks = {};
 /** Pending image work: a Blob replaces the photo, a URL keeps the existing one. */
 const draft = {
   editingId: null,
-  itemBlob: null,
-  itemUrl: null,
-  qrBlob: null,
-  qrUrl: null
+  photoBlob: null,
+  photoUrl: null
 };
 
 export function initSell(injected) {
@@ -47,13 +46,6 @@ export function initSell(injected) {
     itemRemove: document.getElementById('removePhotoBtn'),
     itemCrop: document.getElementById('cropImageBtn'),
 
-    qrInput: document.getElementById('sellerQrCodeInput'),
-    qrPlaceholder: document.getElementById('sellerQrPlaceholder'),
-    qrPreviewWrap: document.getElementById('sellerQrPreviewContainer'),
-    qrPreview: document.getElementById('sellerQrPreview'),
-    qrRemove: document.getElementById('removeSellerQrBtn'),
-    qrCrop: document.getElementById('cropSellerQrBtn'),
-
     fields: {
       title: document.getElementById('itemTitle'),
       category: document.getElementById('itemCategory'),
@@ -64,7 +56,8 @@ export function initSell(injected) {
       sellerName: document.getElementById('sellerName'),
       sellerPhone: document.getElementById('sellerPhone'),
       sellerWhatsapp: document.getElementById('sellerWhatsapp'),
-      sellerInstagram: document.getElementById('sellerInstagram')
+      sellerInstagram: document.getElementById('sellerInstagram'),
+      sellerUpiVpa: document.getElementById('sellerUpiVpa')
     }
   };
 
@@ -101,8 +94,7 @@ export function openSellModal() {
 export function openEditModal(item) {
   resetForm();
   draft.editingId = item.id;
-  draft.itemUrl = item.imageUrl || null;
-  draft.qrUrl = item.paymentQrUrl || null;
+  draft.photoUrl = item.imageUrl || null;
 
   els.fields.title.value = item.title || '';
   els.fields.category.value = CATEGORIES.includes(item.category) ? item.category : 'Other';
@@ -114,9 +106,9 @@ export function openEditModal(item) {
   els.fields.sellerPhone.value = item.sellerPhone || '';
   els.fields.sellerWhatsapp.value = item.sellerWhatsapp || '';
   els.fields.sellerInstagram.value = item.sellerInstagram || '';
+  els.fields.sellerUpiVpa.value = item.sellerUpiVpa || '';
 
-  if (draft.itemUrl) showPreview('item', draft.itemUrl);
-  if (draft.qrUrl) showPreview('qr', draft.qrUrl);
+  if (draft.photoUrl) showPreview(draft.photoUrl);
 
   els.title.textContent = 'Edit Listing';
   els.subtitle.textContent = 'Update the details buyers see';
@@ -140,7 +132,7 @@ export async function closeSellModal({ confirm = true } = {}) {
 }
 
 function isDirty() {
-  if (draft.itemBlob || draft.qrBlob) return true;
+  if (draft.photoBlob) return true;
   return Boolean(
     els.fields.title.value.trim() ||
     els.fields.price.value ||
@@ -151,12 +143,9 @@ function isDirty() {
 function resetForm() {
   els.form?.reset();
   draft.editingId = null;
-  draft.itemBlob = null;
-  draft.itemUrl = null;
-  draft.qrBlob = null;
-  draft.qrUrl = null;
-  clearPreview('item');
-  clearPreview('qr');
+  draft.photoBlob = null;
+  draft.photoUrl = null;
+  clearPreview();
 }
 
 function prefillFromProfile() {
@@ -169,35 +158,22 @@ function prefillFromProfile() {
 /* =============================================================== images === */
 
 function wireImagePickers() {
-  els.itemInput?.addEventListener('change', event => onPick(event, 'item'));
-  els.qrInput?.addEventListener('change', event => onPick(event, 'qr'));
+  els.itemInput?.addEventListener('change', onPick);
 
   els.itemRemove?.addEventListener('click', event => {
     event.stopPropagation();
-    draft.itemBlob = null;
-    draft.itemUrl = null;
-    clearPreview('item');
-  });
-
-  els.qrRemove?.addEventListener('click', event => {
-    event.stopPropagation();
-    draft.qrBlob = null;
-    draft.qrUrl = null;
-    clearPreview('qr');
+    draft.photoBlob = null;
+    draft.photoUrl = null;
+    clearPreview();
   });
 
   els.itemCrop?.addEventListener('click', event => {
     event.stopPropagation();
-    recrop('item');
-  });
-
-  els.qrCrop?.addEventListener('click', event => {
-    event.stopPropagation();
-    recrop('qr');
+    recrop();
   });
 }
 
-async function onPick(event, kind) {
+async function onPick(event) {
   const file = event.target.files && event.target.files[0];
   event.target.value = '';           // let the same file be picked again
   if (!file) return;
@@ -205,57 +181,38 @@ async function onPick(event, kind) {
   try {
     showToast('Preparing photo…', 1200);
     const { blob, previewUrl } = await prepareImage(file);
-    setImage(kind, blob, previewUrl);
+    setImage(blob, previewUrl);
   } catch (err) {
     showToast(describeError(err));
   }
 }
 
-async function recrop(kind) {
-  const source = kind === 'item'
-    ? (draft.itemBlob ? URL.createObjectURL(draft.itemBlob) : draft.itemUrl)
-    : (draft.qrBlob ? URL.createObjectURL(draft.qrBlob) : draft.qrUrl);
-
+async function recrop() {
+  const source = draft.photoBlob ? URL.createObjectURL(draft.photoBlob) : draft.photoUrl;
   if (!source) {
     showToast('Add a photo first.');
     return;
   }
 
-  const cropped = await openCropper(source, {
-    title: kind === 'qr' ? 'Crop & Adjust Payment QR Code' : 'Crop & Adjust Item Photo',
-    aspectRatio: kind === 'qr' ? '1:1' : 'free'
-  });
-
-  if (cropped) setImage(kind, cropped, URL.createObjectURL(cropped));
+  const cropped = await openCropper(source, { title: 'Crop & Adjust Item Photo' });
+  if (cropped) setImage(cropped, URL.createObjectURL(cropped));
 }
 
-function setImage(kind, blob, previewUrl) {
-  if (kind === 'item') {
-    draft.itemBlob = blob;
-  } else {
-    draft.qrBlob = blob;
-  }
-  showPreview(kind, previewUrl);
+function setImage(blob, previewUrl) {
+  draft.photoBlob = blob;
+  showPreview(previewUrl);
 }
 
-function showPreview(kind, url) {
-  const preview = kind === 'item' ? els.itemPreview : els.qrPreview;
-  const wrap = kind === 'item' ? els.itemPreviewWrap : els.qrPreviewWrap;
-  const placeholder = kind === 'item' ? els.itemPlaceholder : els.qrPlaceholder;
-
-  if (preview) preview.src = url;
-  wrap?.classList.remove('hidden');
-  placeholder?.classList.add('hidden');
+function showPreview(url) {
+  if (els.itemPreview) els.itemPreview.src = url;
+  els.itemPreviewWrap?.classList.remove('hidden');
+  els.itemPlaceholder?.classList.add('hidden');
 }
 
-function clearPreview(kind) {
-  const preview = kind === 'item' ? els.itemPreview : els.qrPreview;
-  const wrap = kind === 'item' ? els.itemPreviewWrap : els.qrPreviewWrap;
-  const placeholder = kind === 'item' ? els.itemPlaceholder : els.qrPlaceholder;
-
-  if (preview) preview.src = '';
-  wrap?.classList.add('hidden');
-  placeholder?.classList.remove('hidden');
+function clearPreview() {
+  if (els.itemPreview) els.itemPreview.src = '';
+  els.itemPreviewWrap?.classList.add('hidden');
+  els.itemPlaceholder?.classList.remove('hidden');
 }
 
 /* ============================================================== presets === */
@@ -302,21 +259,16 @@ async function onSubmit(event) {
   setSubmitting(true);
 
   try {
-    let imageUrl = draft.itemUrl;
-    let qrUrl = draft.qrUrl;
+    let imageUrl = draft.photoUrl;
 
-    if (draft.itemBlob) {
+    if (draft.photoBlob) {
       setSubmitting(true, 'Uploading photo…');
-      imageUrl = await window.api.uploadImage(draft.itemBlob, 'item');
-    }
-    if (draft.qrBlob) {
-      setSubmitting(true, 'Uploading QR code…');
-      qrUrl = await window.api.uploadImage(draft.qrBlob, 'qr');
+      imageUrl = await window.api.uploadImage(draft.photoBlob, 'item');
     }
 
     setSubmitting(true, draft.editingId ? 'Saving…' : 'Publishing…');
 
-    const payload = { ...values, imageUrl, paymentQrUrl: qrUrl };
+    const payload = { ...values, imageUrl };
 
     if (draft.editingId) {
       await window.api.updateItem(draft.editingId, payload);
@@ -349,12 +301,13 @@ function readForm() {
     sellerName: f.sellerName.value.trim(),
     sellerPhone: f.sellerPhone.value.trim(),
     sellerWhatsapp: f.sellerWhatsapp.value.replace(/[^\d]/g, ''),
-    sellerInstagram: f.sellerInstagram.value.replace(/^@/, '').trim()
+    sellerInstagram: f.sellerInstagram.value.replace(/^@/, '').trim(),
+    sellerUpiVpa: f.sellerUpiVpa.value.trim().toLowerCase()
   };
 }
 
 function validate(values) {
-  if (!draft.itemBlob && !draft.itemUrl) return 'Add a photo of the item.';
+  if (!draft.photoBlob && !draft.photoUrl) return 'Add a photo of the item.';
   if (values.title.length < 3) return 'Give the listing a title of at least 3 characters.';
   if (values.title.length > 120) return 'That title is too long — keep it under 120 characters.';
 
@@ -369,6 +322,12 @@ function validate(values) {
   if (phoneDigits.length < 7) return 'Enter a phone number buyers can reach you on.';
 
   if (values.description.length > 2000) return 'That description is too long — keep it under 2000 characters.';
+
+  // Optional, but a malformed one produces a payment link that silently fails
+  // in the buyer's UPI app, which is worse than not offering one at all.
+  if (values.sellerUpiVpa && !isValidVpa(values.sellerUpiVpa)) {
+    return 'That UPI ID does not look right. It should read something like name@okhdfcbank.';
+  }
   return null;
 }
 

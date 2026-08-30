@@ -273,6 +273,11 @@ class MarketplaceAPI {
   relistItem(id)            { return window.supabaseAPI.relistItem(id); }
   deleteItem(id)            { return window.supabaseAPI.deleteItem(id); }
   reportItem(id, reason)    { return window.supabaseAPI.reportItem(id, reason); }
+
+  createPayment(details)       { return window.supabaseAPI.createPayment(details); }
+  fetchPayments()              { return window.supabaseAPI.fetchPayments(); }
+  fetchMyPaymentForItem(id)    { return window.supabaseAPI.fetchMyPaymentForItem(id); }
+  settlePayment(id, s, note)   { return window.supabaseAPI.settlePayment(id, s, note); }
   uploadImage(blob, kind)   { return window.supabaseAPI.uploadImage(blob, kind); }
   purgeExpiredSoldItems()   { return window.supabaseAPI.purgeExpiredSoldItems(); }
 

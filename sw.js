@@ -35,7 +35,10 @@ const SHELL_ASSETS = [
   './js/auth.js',
   './js/account.js',
   './js/app.js',
-  './js/updates.js'
+  './js/updates.js',
+  './js/upi.js',
+  './js/payments.js',
+  './js/vendor/qrcode.js'
 ];
 
 self.addEventListener('install', event => {

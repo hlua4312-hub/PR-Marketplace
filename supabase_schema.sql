@@ -233,6 +233,7 @@ create table if not exists public.items (
     seller_phone     text,
     seller_whatsapp  text,
     seller_instagram text,
+    seller_upi_vpa   text,
     is_sold          boolean not null default false,
     sold_at          timestamptz,
     created_at       timestamptz not null default now(),
@@ -242,6 +243,9 @@ create table if not exists public.items (
         (is_sold = true  and sold_at is not null)
     )
 );
+
+-- Added after the table existed for some projects, so do it separately too.
+alter table public.items add column if not exists seller_upi_vpa text;
 
 create index if not exists items_created_at_idx on public.items (created_at desc);
 create index if not exists items_category_idx   on public.items (category);
@@ -432,6 +436,111 @@ create policy "reports: read your own"
 
 
 -- --------------------------------------------------------------------------
+-- 6b. PAYMENTS
+--
+-- The app takes no money and has no gateway. A buyer pays the seller directly
+-- over UPI and then records the reference number here, so both sides have the
+-- same record of what was claimed.
+--
+-- Read this row for what it is: the buyer's own statement that they paid.
+-- Nothing here verifies a transaction - that would need a payment gateway.
+-- The seller confirms against their own bank app, which is why the status
+-- starts at 'submitted' and only the seller can move it.
+-- --------------------------------------------------------------------------
+create table if not exists public.payments (
+    id          uuid primary key default gen_random_uuid(),
+
+    -- Nullable on purpose: a sold listing is purged after 5 hours, and the
+    -- payment record has to outlive it. The snapshot columns below carry
+    -- enough to make sense of the row on its own.
+    item_id     uuid references public.items(id) on delete set null,
+    item_title  text not null,
+    amount      numeric(12,2) not null check (amount >= 0),
+
+    buyer_id    uuid not null references auth.users(id) on delete cascade,
+    seller_id   uuid not null references auth.users(id) on delete cascade,
+
+    utr         text not null check (char_length(trim(utr)) between 6 and 40),
+    status      text not null default 'submitted'
+                check (status in ('submitted', 'received', 'rejected')),
+    seller_note text check (char_length(seller_note) <= 300),
+
+    created_at  timestamptz not null default now(),
+    updated_at  timestamptz not null default now(),
+
+    -- One UTR is one bank transaction, so the same buyer cannot file it twice.
+    unique (buyer_id, utr)
+);
+
+create index if not exists payments_seller_idx on public.payments (seller_id, created_at desc);
+create index if not exists payments_buyer_idx  on public.payments (buyer_id, created_at desc);
+
+alter table public.payments enable row level security;
+
+drop policy if exists "payments: both sides can read"   on public.payments;
+drop policy if exists "payments: buyer files their own" on public.payments;
+drop policy if exists "payments: seller settles"        on public.payments;
+
+-- Only the two people involved.
+create policy "payments: both sides can read"
+    on public.payments for select
+    to authenticated
+    using (auth.uid() = buyer_id or auth.uid() = seller_id);
+
+-- A buyer files their own payment, and the seller named on it has to be the
+-- person who actually owns the listing.
+create policy "payments: buyer files their own"
+    on public.payments for insert
+    to authenticated
+    with check (
+        auth.uid() = buyer_id
+        and auth.uid() <> seller_id
+        and exists (
+            select 1 from public.items i
+            where i.id = item_id and i.user_id = seller_id
+        )
+    );
+
+-- Only the seller settles it, and only ever as themselves.
+create policy "payments: seller settles"
+    on public.payments for update
+    to authenticated
+    using (auth.uid() = seller_id)
+    with check (auth.uid() = seller_id);
+
+-- No delete policy: with RLS on, that denies it. A payment claim should not
+-- be removable by either party.
+
+-- The update policy lets the seller write the row, which on its own would let
+-- them rewrite the amount or the UTR after the fact. Everything except the
+-- status and their note is frozen.
+create or replace function public.payments_freeze_claim()
+returns trigger
+language plpgsql
+as $$
+begin
+    if new.item_id   is distinct from old.item_id
+    or new.item_title is distinct from old.item_title
+    or new.amount    is distinct from old.amount
+    or new.buyer_id  is distinct from old.buyer_id
+    or new.seller_id is distinct from old.seller_id
+    or new.utr       is distinct from old.utr
+    or new.created_at is distinct from old.created_at then
+        raise exception 'Only status and seller_note can change on a payment.';
+    end if;
+
+    new.updated_at = now();
+    return new;
+end;
+$$;
+
+drop trigger if exists payments_freeze_claim on public.payments;
+create trigger payments_freeze_claim
+    before update on public.payments
+    for each row execute function public.payments_freeze_claim();
+
+
+-- --------------------------------------------------------------------------
 -- 7. IMAGE STORAGE
 --    Photos live in Storage as real files, not as base64 text in a column.
 --    Each user writes only inside a folder named after their own user id.
@@ -495,6 +604,10 @@ begin
     end;
     begin
         alter publication supabase_realtime add table public.items;
+    exception when duplicate_object then null;
+    end;
+    begin
+        alter publication supabase_realtime add table public.payments;
     exception when duplicate_object then null;
     end;
 end

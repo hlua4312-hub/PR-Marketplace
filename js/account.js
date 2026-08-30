@@ -10,6 +10,7 @@ import {
   confirmAction, describeError, initials, PLACEHOLDER_IMAGE
 } from './ui.js';
 import { checkAndroidUpdate } from './updates.js';
+import { renderPaymentsList } from './payments.js';
 
 let els = {};
 let hooks = {};
@@ -32,6 +33,7 @@ export function initAccount(injected) {
   wireInstall();
   wireSecurity();
   wireListings();
+  wirePayments();
   wireTheme();
   showBuildVersion();
   lookForNewerBuild();
@@ -78,7 +80,10 @@ export async function openAccount() {
   openModal(els.modal);
   document.getElementById('btnAccount')?.classList.add('active');
 
-  if (window.api.getCurrentUser()) await renderMyListings();
+  if (window.api.getCurrentUser()) {
+    await renderMyListings();
+    await renderPayments();
+  }
 }
 
 export function closeAccount() {
@@ -95,7 +100,7 @@ function renderProfile() {
   document.getElementById('profileBadges')?.classList.toggle('hidden', guest);
 
   // Controls that need an identity are hidden rather than shown broken.
-  ['btnLogoutUser', 'btnChangePassword', 'listingsSection'].forEach(id => {
+  ['btnLogoutUser', 'btnChangePassword', 'listingsSection', 'paymentsSection'].forEach(id => {
     document.getElementById(id)?.classList.toggle('hidden', guest);
   });
 
@@ -266,6 +271,58 @@ function wireInstall() {
   });
 }
 
+/* ============================================================== payments === */
+
+function wirePayments() {
+  document.getElementById('paymentsList')?.addEventListener('click', async event => {
+    const button = event.target.closest('[data-settle]');
+    if (!button) return;
+
+    const status = button.dataset.settle;
+    const ok = await confirmAction({
+      title: status === 'received' ? 'Confirm you received this?' : 'Mark as not received?',
+      message: status === 'received'
+        ? 'Check the amount actually landed in your bank app first. This cannot be undone.'
+        : 'The buyer will be told you could not find the payment, and can submit a corrected reference.',
+      confirmLabel: status === 'received' ? 'Yes, received' : 'Not received',
+      danger: status !== 'received'
+    });
+    if (!ok) return;
+
+    try {
+      await window.api.settlePayment(button.dataset.id, status);
+      showToast(status === 'received' ? 'Marked as received.' : 'Marked as not received.');
+      await renderPayments();
+    } catch (err) {
+      showToast(describeError(err));
+    }
+  });
+}
+
+async function renderPayments() {
+  const list = document.getElementById('paymentsList');
+  const badge = document.getElementById('paymentsBadge');
+  const user = window.api.getCurrentUser();
+  if (!list || !user) return;
+
+  list.innerHTML = '<p class="section-subtitle">Loading…</p>';
+
+  try {
+    const payments = await window.api.fetchPayments();
+    renderPaymentsList(list, payments, user.id);
+
+    // The badge counts only what needs the user to act: money claimed
+    // against their listings that they have not settled yet.
+    const awaiting = payments.filter(p => p.sellerId === user.id && p.status === 'submitted').length;
+    if (badge) {
+      badge.textContent = String(awaiting);
+      badge.classList.toggle('hidden', awaiting === 0);
+    }
+  } catch (err) {
+    list.innerHTML = `<p class="section-subtitle">${escapeHtml(describeError(err))}</p>`;
+  }
+}
+
 /* ================================================================= theme === */
 
 const THEME_KEY = 'pr_theme';
@@ -353,6 +410,7 @@ function wireSections() {
     ['btnToggleContactSection', 'contactSectionBody'],
     ['btnToggleAboutSection', 'aboutSectionBody'],
     ['btnToggleListingsSection', 'listingsSectionBody'],
+    ['btnTogglePaymentsSection', 'paymentsSectionBody'],
     ['btnToggleAppSection', 'appSectionBody']
   ];
 

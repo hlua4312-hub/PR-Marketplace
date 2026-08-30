@@ -688,45 +688,11 @@ mark.search-highlight {
 }
 
 /* SELLER PAYMENT QR CODE STYLES */
-.payment-qr-card {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: var(--radius-sm);
-  padding: 14px;
-  margin: 16px 0;
-  text-align: center;
-}
-
-.qr-header-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: var(--primary);
-  margin-bottom: 10px;
-}
-
-.qr-image-wrapper {
-  background: white;
-  padding: 10px;
-  border-radius: var(--radius-sm);
-  display: inline-block;
-  box-shadow: var(--shadow-sm);
-}
-
 .qr-image-wrapper img {
   width: 160px;
   height: 160px;
   object-fit: contain;
   display: block;
-}
-
-.qr-pay-hint {
-  display: block;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-top: 8px;
 }
 
 /* Bottom Navigation Bar (Full Width Borderless Nav) */
@@ -3900,8 +3866,6 @@ input[type="range"] {
 .whatsapp-box { background-color: rgba(37, 211, 102, 0.14); }
 .instagram-box { background-color: rgba(225, 48, 108, 0.14); }
 
-.qr-upload-box { min-height: 150px; }
-
 .price-presets,
 .location-presets {
   display: flex;
@@ -4268,6 +4232,222 @@ input[type="range"] {
 @media (max-width: 420px) {
   .update-banner { flex-direction: column; align-items: stretch; }
   .update-banner-actions { justify-content: flex-end; }
+}
+
+/* ---------------------------------------------------------- UPI payment -- */
+
+.pay-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+}
+.pay-item {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pay-amount {
+  flex-shrink: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The QR keeps a white card in both themes. A code tinted to match a dark
+   background is a code that will not scan. */
+.pay-qr {
+  display: flex;
+  justify-content: center;
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: #ffffff;
+}
+.pay-qr canvas { display: block; image-rendering: pixelated; }
+
+.upi-qr-fallback {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.pay-vpa {
+  margin-bottom: 14px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  text-align: center;
+  word-break: break-all;
+}
+.pay-vpa strong { color: var(--text-main); }
+
+.pay-open-app {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 8px;
+  text-decoration: none;
+}
+
+.pay-hint,
+.form-hint {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.pay-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 16px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-light);
+}
+.pay-divider::before,
+.pay-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--border);
+}
+
+.pay-status {
+  padding: 13px 14px;
+  margin-top: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background-color: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pay-status strong { font-size: 0.88rem; color: var(--text-main); }
+.pay-status span { font-size: 0.8rem; line-height: 1.5; color: var(--text-muted); }
+
+.pay-status.is-received { border-color: var(--success); background-color: var(--success-soft); }
+.pay-status.is-received strong { color: var(--success); }
+.pay-status.is-rejected { border-color: var(--danger); background-color: var(--danger-soft); }
+.pay-status.is-rejected strong { color: var(--danger); }
+
+/* Says plainly that the app is not in the middle of this transaction. */
+.pay-disclaimer {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 0.74rem;
+  line-height: 1.55;
+  color: var(--text-light);
+}
+
+.btn-pay {
+  background-color: var(--success);
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------- payments in Account -- */
+
+.payments-list { display: flex; flex-direction: column; gap: 8px; }
+
+.payment-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+}
+.payment-row.is-received { border-color: var(--success); }
+.payment-row.is-rejected { opacity: 0.75; }
+
+.payment-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.payment-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.payment-title {
+  font-size: 0.87rem;
+  font-weight: 700;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.payment-amount {
+  flex-shrink: 0;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-meta { font-size: 0.75rem; color: var(--text-muted); word-break: break-all; }
+.payment-note { font-size: 0.76rem; color: var(--text-body); font-style: italic; }
+
+.payment-side {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.payment-status {
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.payment-row.is-received .payment-status { background-color: var(--success-soft); color: var(--success); }
+.payment-row.is-rejected .payment-status { background-color: var(--danger-soft); color: var(--danger); }
+
+.payment-actions { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
+
+.payments-badge {
+  min-width: 19px;
+  height: 19px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
 }
 
 /* ==========================================================================

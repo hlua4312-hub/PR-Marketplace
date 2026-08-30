@@ -363,6 +363,7 @@ class SupabaseMarketplaceClient {
       seller_phone: itemData.sellerPhone || null,
       seller_whatsapp: itemData.sellerWhatsapp || null,
       seller_instagram: itemData.sellerInstagram || null,
+      seller_upi_vpa: itemData.sellerUpiVpa || null,
       is_sold: false
     };
 
@@ -387,6 +388,7 @@ class SupabaseMarketplaceClient {
     if (patch.sellerPhone !== undefined)    row.seller_phone = patch.sellerPhone || null;
     if (patch.sellerWhatsapp !== undefined) row.seller_whatsapp = patch.sellerWhatsapp || null;
     if (patch.sellerInstagram !== undefined) row.seller_instagram = patch.sellerInstagram || null;
+    if (patch.sellerUpiVpa !== undefined)    row.seller_upi_vpa = patch.sellerUpiVpa || null;
 
     const { data, error } = await db.from('items').update(row).eq('id', id).select().single();
     if (error) throw this._ownershipError(error);
@@ -470,6 +472,7 @@ class SupabaseMarketplaceClient {
       sellerPhone: row.seller_phone,
       sellerWhatsapp: row.seller_whatsapp,
       sellerInstagram: row.seller_instagram,
+      sellerUpiVpa: row.seller_upi_vpa,
       isSold: Boolean(row.is_sold),
       soldAt: row.sold_at,
       createdAt: row.created_at,
@@ -576,6 +579,114 @@ class SupabaseMarketplaceClient {
       senderName: row.sender_name,
       body: row.body,
       createdAt: row.created_at
+    };
+  }
+
+  /* ======================================================================
+     PAYMENTS
+
+     The app moves no money. A buyer pays the seller over UPI and records the
+     reference here so both sides hold the same account of what was claimed.
+     Nothing in this file verifies a transaction - only a gateway could - so
+     the seller settles it against their own bank app.
+     ====================================================================== */
+
+  /** File a payment claim against a listing. */
+  async createPayment({ itemId, sellerId, amount, itemTitle, utr }) {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) throw new Error('NOT_SIGNED_IN');
+    if (user.id === sellerId) throw new Error('CANNOT_PAY_YOURSELF');
+
+    const { data, error } = await db
+      .from('payments')
+      .insert([{
+        item_id: itemId,
+        // Snapshotted: the listing is purged five hours after it sells, and
+        // the record of what was paid for has to outlive it.
+        item_title: itemTitle,
+        amount: Number(amount) || 0,
+        buyer_id: user.id,
+        seller_id: sellerId,
+        utr
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') throw new Error('UTR_ALREADY_SUBMITTED');
+      if (error.code === '42501') throw new Error('PAYMENT_NOT_ALLOWED');
+      throw error;
+    }
+    return this._toPayment(data);
+  }
+
+  /** Every payment the signed-in user is a party to, either side. */
+  async fetchPayments() {
+    const db = this._require();
+    const { data, error } = await db
+      .from('payments')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    return (data || []).map(row => this._toPayment(row));
+  }
+
+  /** What this buyer has already filed against one listing. */
+  async fetchMyPaymentForItem(itemId) {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) return null;
+
+    const { data, error } = await db
+      .from('payments')
+      .select('*')
+      .eq('item_id', itemId)
+      .eq('buyer_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    return data && data.length ? this._toPayment(data[0]) : null;
+  }
+
+  /**
+   * Settle a claim. RLS allows this only to the seller, and a trigger keeps
+   * everything except the status and the note frozen - otherwise the update
+   * policy would also let a seller rewrite the amount after the fact.
+   */
+  async settlePayment(id, status, note) {
+    const db = this._require();
+    if (!['received', 'rejected'].includes(status)) throw new Error('BAD_PAYMENT_STATUS');
+
+    const { data, error } = await db
+      .from('payments')
+      .update({ status, seller_note: note || null })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116' || error.code === '42501') throw new Error('NOT_YOUR_PAYMENT');
+      throw error;
+    }
+    return this._toPayment(data);
+  }
+
+  _toPayment(row) {
+    return {
+      id: row.id,
+      itemId: row.item_id,
+      itemTitle: row.item_title,
+      amount: Number(row.amount),
+      buyerId: row.buyer_id,
+      sellerId: row.seller_id,
+      utr: row.utr,
+      status: row.status,
+      sellerNote: row.seller_note,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
     };
   }
 

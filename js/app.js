@@ -24,6 +24,7 @@ import {
 import { initAccount, openAccount, closeAccount, isAccountOpen } from './account.js';
 import { cancelCropper } from './cropper.js';
 import { initWebUpdates } from './updates.js';
+import { initPayments, openPaySheet, isPayOpen, close as closePaySheet } from './payments.js';
 
 /* ================================================================= start === */
 
@@ -40,7 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
     onEdit: openEditModal,
     onFeedChanged: () => loadFeed(),
     openZoom: openZoomViewer,
+    onPay: openPaySheet,
     requireLogin
+  });
+
+  initPayments({
+    requireLogin,
+    onPaymentFiled: () => loadFeed()
   });
 
   initSell({
@@ -313,6 +320,7 @@ function wireBottomNav() {
 function wireBackButton() {
   window.handleAndroidBackButton = function handleBack() {
     if (isRecoveryOtpOpen()) { closeRecoveryOtp(); showAuth({ tab: 'login' }); return true; }
+    if (isPayOpen()) { closePaySheet(); return true; }
     if (isAuthOpen() && window.api.getCurrentUser()) { hideAuth(); return true; }
     if (isAuthOpen()) { hideAuth(); loadFeed(); return true; }
     if (cancelCropper()) return true;

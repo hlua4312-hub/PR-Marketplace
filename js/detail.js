@@ -135,18 +135,6 @@ function detailMarkup(item) {
       <p class="detail-meta">Meetup: ${escapeHtml(item.location)}</p>
     </div>
 
-    ${item.paymentQrUrl ? `
-      <div class="payment-qr-card">
-        <div class="qr-header-title">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          <strong>Direct Seller Payment QR Code</strong>
-        </div>
-        <div class="qr-image-wrapper">
-          <img src="${escapeHtml(item.paymentQrUrl)}" alt="Seller payment QR code">
-        </div>
-        <span class="qr-pay-hint">Scan with GPay, PhonePe, Paytm, BHIM UPI or Venmo to pay the seller directly</span>
-      </div>` : ''}
-
     <div class="seller-contact-card">
       <div class="seller-profile-row">
         <div class="seller-avatar">${escapeHtml(initials(item.sellerName, 'S'))}</div>
@@ -194,6 +182,9 @@ function ownerPanel(item, isSold) {
 }
 
 function buyerPanel(item, { user, isSold, phone, whatsapp, instagram, waMessage }) {
+  // Offered only when the seller published a UPI ID. Nothing is charged here -
+  // it opens the buyer's own UPI app.
+  const canPay = Boolean(item.sellerUpiVpa);
   if (isSold) {
     return `
       <div class="sold-disabled-notice">
@@ -254,6 +245,12 @@ function buyerPanel(item, { user, isSold, phone, whatsapp, instagram, waMessage 
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
           <span>@${escapeHtml(instagram)}</span>
         </a>` : ''}
+
+      ${canPay ? `
+        <button type="button" class="contact-btn btn-pay" data-action="pay">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <span>Pay ${escapeHtml(item.sellerName)} ${escapeHtml(formatPrice(item.price))} by UPI</span>
+        </button>` : ''}
 
       <button type="button" class="contact-btn btn-report" data-action="report">
         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
@@ -403,6 +400,11 @@ async function onContentClick(event) {
     });
     if (!ok) return;
     await runOwnerAction(() => window.api.deleteItem(currentItem.id), 'Listing deleted.', { closeAfter: true });
+    return;
+  }
+
+  if (action === 'pay') {
+    hooks.onPay?.(currentItem);
     return;
   }
 

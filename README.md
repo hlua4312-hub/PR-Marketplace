@@ -21,7 +21,7 @@ Runs as an installable web app (PWA) and as an Android app that wraps the same c
 **Sell**
 - Post with a photo, price, condition, location and description
 - Optional WhatsApp number and Instagram handle for buyers who prefer those
-- Optional payment QR code (UPI / GPay / PhonePe / Paytm) shown on the listing
+- Optional UPI ID, which turns into a scannable QR with the amount filled in
 - Crop and rotate photos before they upload
 - Edit or delete anything you posted, from the listing or from **Account → My Listings**
 - Mark an item sold; it comes off the marketplace 5 hours later, or put it back on sale
@@ -32,6 +32,19 @@ Runs as an installable web app (PWA) and as an Android app that wraps the same c
 - One-to-one private chats, opened by tapping someone's avatar in the room
 - All of it live over Supabase Realtime — messages arrive without reopening anything
 - A Messages tab collecting every conversation you're part of
+
+**Get paid** — direct UPI, no gateway, no fee
+- Sellers add a UPI ID; buyers get a QR and a `upi://` link with the amount
+  already set, which opens GPay, PhonePe or any UPI app
+- The buyer submits the reference number their app returns, and the seller
+  marks it Received or Not received under **Account → Payments**
+- **The app never touches the money and cannot verify a transfer.** That would
+  need a payment gateway. What is stored is the buyer's own claim, for the
+  seller to check against their bank app — which is why nothing is marked paid
+  until the seller says so. Two related limits worth knowing: the amount in a
+  UPI link is only a suggestion, since most apps let the payer edit it before
+  sending; and a reference number of the right shape is accepted whether or not
+  it corresponds to a real transaction.
 
 **Stay safe**
 - Report a listing; the seller is never told who reported it
