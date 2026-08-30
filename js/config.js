@@ -41,7 +41,7 @@ window.PRConfig = {
    * check off. A sideloaded APK cannot install itself silently, so this
    * points people at a download rather than pretending to auto-update.
    */
-  UPDATE_MANIFEST_URL: '',
+  UPDATE_MANIFEST_URL: 'https://hlua4312-hub.github.io/PR-Marketplace/version.json',
 
   isConfigured() {
     return Boolean(
