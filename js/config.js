@@ -121,7 +121,7 @@ window.PRConfig = {
   PAGE_SIZE: 24,
 
   /** This build. Kept in step with package.json and app/build.gradle. */
-  APP_VERSION: '4.0.0',
+  APP_VERSION: '4.1.0',
 
   /**
    * Where the deployed site publishes its version. The Android build checks

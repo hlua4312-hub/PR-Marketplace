@@ -47,9 +47,17 @@ export function initPullToRefresh({ canPull, onRefresh: handler }) {
     pulling = true;
     claimed = false;
     distance = 0;
+    // Only now does a listener that can block scrolling go on. Left attached
+    // permanently, it makes every touchmove on the page wait for JavaScript
+    // before the browser is allowed to scroll - the browser cannot know we
+    // will not call preventDefault until we have run. On a phone with a busy
+    // main thread that reads as a feed which will not move at all. Away from
+    // the top of the page there is no pull to detect, so there is nothing to
+    // attach and scrolling stays on the compositor's fast path.
+    document.addEventListener('touchmove', onMove, { passive: false });
   }, { passive: true });
 
-  document.addEventListener('touchmove', event => {
+  function onMove(event) {
     if (!pulling || refreshing) return;
 
     const dy = event.touches[0].clientY - startY;
@@ -59,7 +67,10 @@ export function initPullToRefresh({ canPull, onRefresh: handler }) {
     // scrolling the category chips sideways.
     if (!claimed) {
       if (dy <= 0 || Math.abs(dy) < Math.abs(dx)) {
+        // Not a pull after all - a scroll or a sideways swipe. Get out of the
+        // browser's way for the rest of this gesture.
         pulling = false;
+        detachMove();
         return;
       }
       if (dy < 8) return;      // too small to call yet
@@ -77,9 +88,12 @@ export function initPullToRefresh({ canPull, onRefresh: handler }) {
 
     distance = Math.min(MAX_PULL, dy * RESISTANCE);
     render(distance);
-  }, { passive: false });
+  }
+
+  const detachMove = () => document.removeEventListener('touchmove', onMove);
 
   const finish = async () => {
+    detachMove();
     if (!pulling || refreshing) {
       reset();
       return;
@@ -107,7 +121,7 @@ export function initPullToRefresh({ canPull, onRefresh: handler }) {
   };
 
   document.addEventListener('touchend', finish, { passive: true });
-  document.addEventListener('touchcancel', () => { pulling = false; reset(); }, { passive: true });
+  document.addEventListener('touchcancel', () => { detachMove(); pulling = false; reset(); }, { passive: true });
 
   function render(px) {
     const progress = Math.min(1, px / TRIGGER_DISTANCE);
