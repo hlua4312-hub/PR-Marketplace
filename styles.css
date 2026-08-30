@@ -103,13 +103,27 @@ html, body {
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow-x: hidden;
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
   /* Chrome on controls only. Blocking selection everywhere stopped people
      copying a seller's phone number or an address out of a description. */
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* The x axis is clipped on the root and nowhere else.
+   overflow-x: hidden on <body> looks harmless and is not: CSS says that when
+   one axis is not visible the other computes from visible to auto, so it
+   quietly turns <body> into a scroll container of its own. Body's box is
+   exactly as tall as its content, so it can never scroll - and with
+   overscroll-behavior contain below, a wheel or a swipe over it is held
+   inside that dead box instead of chaining to the viewport. The page then
+   ignores the wheel, the keyboard and a finger while window.scrollTo still
+   works, because that addresses the viewport directly.
+   On the root there is no such trap: the root's overflow propagates to the
+   viewport, which is the thing we wanted to clip in the first place. */
+html {
+  overflow-x: hidden;
 }
 
 button, .nav-item, .cat-chip, .preset-chip, .chip-hint {
@@ -4501,8 +4515,10 @@ input[type="range"] {
 }
 
 /* The browser's own pull-to-refresh reloads the whole document, which would
-   throw away the session restore and the feed we just drew. Ours replaces it. */
-html, body {
+   throw away the session restore and the feed we just drew. Ours replaces it.
+   Root only: on <body> this is what turns a stray scroll container into a
+   dead end rather than letting the scroll chain up to the page. */
+html {
   overscroll-behavior-y: contain;
 }
 
