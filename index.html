@@ -4,16 +4,34 @@
   <meta charset="UTF-8">
   <!-- Pinch zoom stays enabled: blocking it locks out anyone who needs to magnify text. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Campus Cart — Buy, Sell and Swap on Campus</title>
-  <!-- Search Engine & Mobile App SEO Meta Tags -->
-  <meta name="description" content="Campus Cart — the student marketplace for your college. Buy, sell, give away and swap textbooks, notes, gadgets, cycles and room furniture with verified students on your own campus.">
-  <meta name="keywords" content="Campus Cart, campus marketplace, student marketplace, buy textbooks, sell notes, barter, college classifieds, secondhand campus">
+  <title>Campus Cart - The Student Marketplace</title>
 
-  <!-- Open Graph / Search Engine App Metadata -->
-  <meta property="og:title" content="Campus Cart — the student marketplace">
-  <meta property="og:description" content="Buy, sell, give away and swap secondhand things with verified students on your own campus. No fees, no middleman.">
+  <!-- Search engine metadata. The canonical URL matters more than usual here:
+       GitHub Pages also answers on the repository's other hostnames, and
+       without this every one of them looks like a separate copy of the site. -->
+  <link rel="canonical" href="https://hlua4312-hub.github.io/PR-Marketplace/">
+  <meta name="description" content="Buy, sell, and swap college campus essentials, books, electronics, and stationery with verified students.">
+  <meta name="keywords" content="Campus Cart, student marketplace, buy sell swap, college marketplace, PR Marketplace">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph, for the card that appears when someone shares the link.
+       Every URL here is absolute on purpose: a crawler fetching the page from
+       its own server has no base to resolve "./icons/..." against, so a
+       relative og:image silently produces a card with no picture. -->
   <meta property="og:type" content="website">
-  <meta property="og:image" content="./icons/icon-512.png">
+  <meta property="og:site_name" content="Campus Cart">
+  <meta property="og:title" content="Campus Cart - The Student Marketplace">
+  <meta property="og:description" content="Buy, sell, and swap college campus essentials, books, electronics, and stationery with verified students.">
+  <meta property="og:url" content="https://hlua4312-hub.github.io/PR-Marketplace/">
+  <meta property="og:image" content="https://hlua4312-hub.github.io/PR-Marketplace/icons/icon-512.png">
+  <meta property="og:image:alt" content="The Campus Cart logo">
+
+  <!-- summary, not summary_large_image: the icon is square, and asking for the
+       wide card with a square image gets it cropped to a letterbox strip. -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Campus Cart - The Student Marketplace">
+  <meta name="twitter:description" content="Buy, sell, and swap college campus essentials, books, electronics, and stationery with verified students.">
+  <meta name="twitter:image" content="https://hlua4312-hub.github.io/PR-Marketplace/icons/icon-512.png">
 
   <!-- Mobile PWA Application Meta Tags -->
   <link rel="manifest" href="manifest.json">

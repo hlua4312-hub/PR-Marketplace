@@ -1,0 +1,12 @@
+# Campus Cart
+#
+# Everything public is welcome to be indexed. There is nothing private served
+# from this origin: listings are drawn in the browser from Supabase, and what
+# a crawler is allowed to read is decided by row-level security there, not by
+# this file. A rule here would not protect anything - it would only hide the
+# marketplace from students looking for it.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://hlua4312-hub.github.io/PR-Marketplace/sitemap.xml

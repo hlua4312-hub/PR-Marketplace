@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Campus Cart is a single page. Explore, Saved, Messages and Account are
+  states inside it rather than separate URLs, and listings are drawn in the
+  browser from Supabase, so there is no per-listing address to point a
+  crawler at. Listing a set of invented URLs would only earn a page of 404s
+  in Search Console.
+
+  If listings ever get their own URLs, this is where they go - generated at
+  deploy time from the database rather than written by hand.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://hlua4312-hub.github.io/PR-Marketplace/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
