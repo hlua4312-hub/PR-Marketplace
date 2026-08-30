@@ -38,6 +38,7 @@ const SHELL_ASSETS = [
   './js/updates.js',
   './js/upi.js',
   './js/payments.js',
+  './js/gestures.js',
   './js/vendor/qrcode.js'
 ];
 

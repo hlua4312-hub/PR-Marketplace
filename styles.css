@@ -4450,6 +4450,74 @@ input[type="range"] {
   font-weight: 800;
 }
 
+/* ------------------------------------------------------ pull to refresh -- */
+
+.pull-indicator {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 900;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -19px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background-color: var(--bg-card);
+  box-shadow: var(--shadow-md);
+  color: var(--primary);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0);
+}
+
+/* While the finger is down the position follows it, so no transition. It is
+   put back only for the release, which should spring rather than jump. */
+.pull-indicator:not(.is-pulling) {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.pull-indicator svg {
+  transform: rotate(var(--pull-rotate, 0deg));
+}
+
+/* Past the trigger point, so releasing now will refresh. */
+.pull-indicator.is-ready {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.pull-indicator.is-refreshing {
+  opacity: 1;
+}
+.pull-indicator.is-refreshing svg {
+  animation: pull-spin 0.7s linear infinite;
+}
+
+@keyframes pull-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* The browser's own pull-to-refresh reloads the whole document, which would
+   throw away the session restore and the feed we just drew. Ours replaces it. */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
+/* The load-more wrapper doubles as the scroll sentinel, so it stays in the
+   layout even with nothing left to load. */
+.load-more-wrap.is-empty {
+  padding: 0;
+  min-height: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pull-indicator.is-refreshing svg { animation: none; }
+  .pull-indicator svg { transform: none; }
+}
+
 /* ==========================================================================
    DARK THEME - opt in only
    Deliberately NOT wired to prefers-color-scheme. Shoppers expect a white

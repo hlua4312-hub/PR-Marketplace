@@ -1,0 +1,161 @@
+/**
+ * PR MARKETPLACE - FEED GESTURES
+ *
+ * Pull down from the top of the feed to refresh, and keep scrolling at the
+ * bottom to pull in the next page.
+ *
+ * Both only apply to the feed itself. Pulling inside an open sheet, or on a
+ * tab that is not the listing feed, does nothing — refreshing the marketplace
+ * out from under someone reading a listing would be worse than not offering
+ * the gesture at all.
+ */
+
+/** How far to pull before it counts, in CSS pixels. */
+const TRIGGER_DISTANCE = 72;
+
+/** Pull past the trigger and it keeps moving, but less and less. */
+const MAX_PULL = 120;
+const RESISTANCE = 0.45;
+
+let pullEnabled = () => true;
+let onRefresh = async () => {};
+let indicator = null;
+let refreshing = false;
+
+/* ==================================================== pull to refresh === */
+
+export function initPullToRefresh({ canPull, onRefresh: handler }) {
+  pullEnabled = canPull || pullEnabled;
+  onRefresh = handler || onRefresh;
+
+  indicator = document.getElementById('pullIndicator');
+  if (!indicator) return;
+
+  let startY = 0;
+  let startX = 0;
+  let pulling = false;
+  let claimed = false;      // decided this gesture is a vertical pull
+  let distance = 0;
+
+  const atTop = () => (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+
+  document.addEventListener('touchstart', event => {
+    // One finger only: a pinch is not a pull.
+    if (refreshing || event.touches.length !== 1 || !atTop() || !pullEnabled()) return;
+    startY = event.touches[0].clientY;
+    startX = event.touches[0].clientX;
+    pulling = true;
+    claimed = false;
+    distance = 0;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', event => {
+    if (!pulling || refreshing) return;
+
+    const dy = event.touches[0].clientY - startY;
+    const dx = event.touches[0].clientX - startX;
+
+    // Downward, and more vertical than horizontal — otherwise this is someone
+    // scrolling the category chips sideways.
+    if (!claimed) {
+      if (dy <= 0 || Math.abs(dy) < Math.abs(dx)) {
+        pulling = false;
+        return;
+      }
+      if (dy < 8) return;      // too small to call yet
+      claimed = true;
+    }
+
+    if (!atTop()) {
+      reset();
+      return;
+    }
+
+    // Cancelable is false once the browser has committed to scrolling, and
+    // calling preventDefault then only produces a console warning.
+    if (event.cancelable) event.preventDefault();
+
+    distance = Math.min(MAX_PULL, dy * RESISTANCE);
+    render(distance);
+  }, { passive: false });
+
+  const finish = async () => {
+    if (!pulling || refreshing) {
+      reset();
+      return;
+    }
+    pulling = false;
+
+    if (distance < TRIGGER_DISTANCE) {
+      reset();
+      return;
+    }
+
+    refreshing = true;
+    indicator.classList.add('is-refreshing');
+    indicator.style.transform = `translateY(${TRIGGER_DISTANCE}px)`;
+
+    try {
+      await onRefresh();
+    } catch (err) {
+      console.warn('Refresh failed:', err);
+    } finally {
+      refreshing = false;
+      indicator.classList.remove('is-refreshing');
+      reset();
+    }
+  };
+
+  document.addEventListener('touchend', finish, { passive: true });
+  document.addEventListener('touchcancel', () => { pulling = false; reset(); }, { passive: true });
+
+  function render(px) {
+    const progress = Math.min(1, px / TRIGGER_DISTANCE);
+    indicator.classList.add('is-pulling');
+    indicator.classList.toggle('is-ready', progress >= 1);
+    indicator.style.transform = `translateY(${px}px)`;
+    indicator.style.opacity = String(Math.min(1, progress * 1.4));
+    // Spinning with the pull makes the gesture feel connected to the finger.
+    indicator.style.setProperty('--pull-rotate', `${progress * 270}deg`);
+  }
+
+  function reset() {
+    distance = 0;
+    claimed = false;
+    if (!indicator) return;
+    indicator.classList.remove('is-pulling', 'is-ready');
+    indicator.style.transform = '';
+    indicator.style.opacity = '';
+  }
+}
+
+/* ====================================================== infinite scroll === */
+
+/**
+ * Load the next page when the end of the list comes into view, a screen
+ * early so the new rows are usually there before the user arrives.
+ *
+ * The Load more button stays in the markup: it is the fallback where
+ * IntersectionObserver is unavailable, and the thing a keyboard reaches.
+ */
+export function initInfiniteScroll({ sentinel, hasMore, onReachEnd }) {
+  if (!sentinel || typeof IntersectionObserver !== 'function') return null;
+
+  let loading = false;
+
+  const observer = new IntersectionObserver(async entries => {
+    if (!entries[0].isIntersecting || loading || !hasMore()) return;
+
+    loading = true;
+    try {
+      await onReachEnd();
+    } catch (err) {
+      console.warn('Could not load the next page:', err);
+    } finally {
+      loading = false;
+    }
+  }, { rootMargin: '600px 0px' });
+
+  observer.observe(sentinel);
+  return () => observer.disconnect();
+}

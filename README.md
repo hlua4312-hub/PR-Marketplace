@@ -16,7 +16,8 @@ Runs as an installable web app (PWA) and as an Android app that wraps the same c
 - Filter by condition and maximum price, sort by newest, oldest or price
 - Filter by area in Aizawl, or use GPS to snap to the nearest one
 - Save listings to a device-local favourites list
-- Pages load 24 at a time rather than everything at once
+- Pull down at the top of the feed to refresh; keep scrolling at the bottom
+  and the next 24 load themselves
 
 **Sell**
 - Post with a photo, price, condition, location and description

@@ -8,6 +8,7 @@ import {
   showToast, PLACEHOLDER_IMAGE
 } from './ui.js';
 import { filters, view, queryFilters, setFilter, setTab, resetFilters, activeFilterCount, PRICE_SLIDER_MAX } from './store.js';
+import { initPullToRefresh, initInfiniteScroll } from './gestures.js';
 
 let els = {};
 let loadedItems = [];
@@ -43,6 +44,30 @@ export function initFeed({ onOpenItem }) {
   wireCategories();
   wireFilters();
   wirePagination();
+  wireGestures();
+}
+
+function wireGestures() {
+  initPullToRefresh({
+    // Not while a sheet is open, and not on a tab where a refresh would
+    // rearrange something the user is reading.
+    canPull: () => !document.body.classList.contains('modal-open'),
+    onRefresh: async () => {
+      filters.page = 0;
+      await loadFeed();
+      // A refresh that finishes in 80ms reads as nothing having happened.
+      await new Promise(resolve => setTimeout(resolve, 260));
+    }
+  });
+
+  initInfiniteScroll({
+    sentinel: els.loadMoreWrap,
+    hasMore: () => view.tab === 'explore' && view.hasMorePages,
+    onReachEnd: async () => {
+      filters.page += 1;
+      await loadFeed({ append: true });
+    }
+  });
 }
 
 /* ============================================================== loading === */
@@ -245,7 +270,14 @@ function renderEmptyState() {
 function renderPagination() {
   if (!els.loadMoreWrap) return;
   const show = view.tab === 'explore' && view.hasMorePages;
-  els.loadMoreWrap.classList.toggle('hidden', !show);
+
+  // The wrapper stays in the layout as the scroll sentinel; hiding it would
+  // take it out of the flow and the observer would never fire. Only the
+  // button is hidden, and it is the fallback for anyone without an
+  // IntersectionObserver or using a keyboard.
+  els.loadMoreWrap.classList.remove('hidden');
+  els.loadMoreBtn?.classList.toggle('hidden', !show);
+  els.loadMoreWrap.classList.toggle('is-empty', !show);
 }
 
 /* ============================================================ interaction === */
