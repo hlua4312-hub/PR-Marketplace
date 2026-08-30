@@ -56,14 +56,26 @@ export function renderAreaOptions(select) {
 
 /* =========================================================== the sell form === */
 
-export function renderCategoryOptions(select) {
+export function renderCategoryOptions(select, hint) {
   if (!select) return;
+  const cats = campus().categories || [];
   select.innerHTML = [
     '<option value="" disabled selected>Choose a category</option>',
-    ...(campus().categories || []).map(
+    ...cats.map(
       cat => `<option value="${escapeHtml(cat.id)}">${escapeHtml(cat.icon || '')} ${escapeHtml(cat.id)}</option>`
     )
   ].join('');
+
+  // "Electronics" on its own left people guessing where a graphics card went.
+  // The examples for whichever category is chosen show under the picker.
+  if (!hint) return;
+  const paint = () => {
+    const cat = cats.find(c => c.id === select.value);
+    hint.textContent = cat?.examples || '';
+    hint.classList.toggle('hidden', !cat?.examples);
+  };
+  select.addEventListener('change', paint);
+  paint();
 }
 
 /**
@@ -151,7 +163,8 @@ export function applyCampusLabels(root = document) {
 export function initCampus() {
   renderCategoryChips(document.getElementById('categoriesNav'));
   renderAreaOptions(document.getElementById('locationSelect'));
-  renderCategoryOptions(document.getElementById('itemCategory'));
+  renderCategoryOptions(document.getElementById('itemCategory'),
+                        document.getElementById('itemCategoryHint'));
   renderSellAreaOptions(document.getElementById('itemLocation'));
   renderPickupOptions(document.getElementById('itemPickupSpot'));
   renderDepartmentOptions(document.getElementById('profileDepartment'));

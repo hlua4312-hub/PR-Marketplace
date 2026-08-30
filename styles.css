@@ -1667,6 +1667,14 @@ input.file-input-hidden {
   color: var(--text-main);
 }
 
+/* Examples for the chosen category, under the picker. Muted and small:
+   it is a prompt for someone who is unsure, not a label. */
+.category-hint {
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 .upload-hint {
   font-size: 0.72rem;
   color: var(--text-muted);

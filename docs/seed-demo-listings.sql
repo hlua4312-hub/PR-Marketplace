@@ -87,7 +87,7 @@ begin
          'Tenth edition. The cover is worn and a few pages had pencil notes, all rubbed out. Nothing missing.',
          v_name, 'sell', null, 'Library entrance', false, now() - interval '2 hours'),
 
-        (v_owner, 'Casio fx-991EX scientific calculator', 'Electronics',
+        (v_owner, 'Casio fx-991EX scientific calculator', 'Electronics & Computers',
          900, 'Like New', 'Chanmari',
          'Bought for a semester of numerical methods and barely used since. Slip cover included.',
          v_name, 'sell', null, 'Academic Block', false, now() - interval '5 hours'),

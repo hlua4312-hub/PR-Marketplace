@@ -49,17 +49,37 @@ window.PRConfig = {
     emailDomain: '',
 
     /** Feed chips and the category dropdown on the sell form. */
+    /**
+     * One list, three surfaces: the chips on Explore, the sell form and the
+     * Wanted board all render from here, so a seller cannot file something
+     * under a category the filter has never heard of.
+     *
+     * `examples` is shown under the picker. It is not a sub-category and
+     * nothing is stored from it - a laptop and a processor both file under
+     * Electronics & Computers. It exists because "Electronics" alone left
+     * people guessing where a graphics card was supposed to go.
+     */
     categories: [
-      { id: 'Books & Notes',        short: 'Books',      icon: '📚' },
-      { id: 'Electronics',          short: 'Electronics', icon: '💻' },
-      { id: 'Stationery',           short: 'Stationery', icon: '✏️' },
-      { id: 'Room & Furniture',     short: 'Room',       icon: '🛏️' },
-      { id: 'Clothing & Uniforms',  short: 'Clothing',   icon: '👕' },
-      { id: 'Cycles & Transport',   short: 'Cycles',     icon: '🚲' },
-      { id: 'Sports & Fitness',     short: 'Sports',     icon: '⚽' },
-      { id: 'Lab & Project Kit',    short: 'Lab Kit',    icon: '🔬' },
-      { id: 'Musical Instruments',  short: 'Music',      icon: '🎸' },
-      { id: 'Other',                short: 'Other',      icon: '📦' }
+      { id: 'Books & Notes',           short: 'Books',      icon: '📚',
+        examples: 'Textbooks, notes, question papers, guides' },
+      { id: 'Electronics & Computers', short: 'Computers',  icon: '💻',
+        examples: 'Laptops, processors, RAM, graphics cards, SSDs, monitors, keyboards, phones, headphones, chargers' },
+      { id: 'Stationery',              short: 'Stationery', icon: '✏️',
+        examples: 'Pens, files, drafting sets, calculators' },
+      { id: 'Room & Furniture',        short: 'Room',       icon: '🛏️',
+        examples: 'Tables, chairs, mattresses, lamps, storage' },
+      { id: 'Clothing & Uniforms',     short: 'Clothing',   icon: '👕',
+        examples: 'Lab coats, uniforms, jackets, shoes' },
+      { id: 'Cycles & Transport',      short: 'Cycles',     icon: '🚲',
+        examples: 'Cycles, helmets, spares, scooter accessories' },
+      { id: 'Sports & Fitness',        short: 'Sports',     icon: '⚽',
+        examples: 'Rackets, balls, gym gear, jerseys' },
+      { id: 'Lab & Project Kit',       short: 'Lab Kit',    icon: '🔬',
+        examples: 'Arduino, sensors, breadboards, project components' },
+      { id: 'Musical Instruments',     short: 'Music',      icon: '🎸',
+        examples: 'Guitars, keyboards, amps, accessories' },
+      { id: 'Other',                   short: 'Other',      icon: '📦',
+        examples: 'Anything that does not fit the list above' }
     ],
 
     /**
@@ -121,7 +141,7 @@ window.PRConfig = {
   PAGE_SIZE: 24,
 
   /** This build. Kept in step with package.json and app/build.gradle. */
-  APP_VERSION: '4.1.2',
+  APP_VERSION: '4.2.0',
 
   /**
    * Where the deployed site publishes its version. The Android build checks

@@ -45,7 +45,8 @@ export function initRequests(injected) {
     }
   };
 
-  renderCategoryOptions(els.fields.category);
+  renderCategoryOptions(els.fields.category,
+                        document.getElementById('requestCategoryHint'));
 
   els.tabs?.addEventListener('click', event => {
     const tab = event.target.closest('[data-board]');
