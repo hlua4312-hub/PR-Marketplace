@@ -232,9 +232,9 @@ input, textarea, select {
   border-radius: var(--radius-full);
   border: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 0.72rem;
-  max-width: 105px;
-  flex-shrink: 1;
+  font-size: 0.78rem;
+  max-width: none;
+  flex: 1;
   min-width: 0;
 }
 
@@ -243,28 +243,15 @@ input, textarea, select {
   border: none;
   outline: none;
   font-family: inherit;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-main);
   cursor: pointer;
-  max-width: 70px;
+  max-width: none;
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.btn-gps-detect {
-  background: none;
-  border: none;
-  padding: 2px;
-  color: var(--primary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: transform 0.2s ease, color 0.2s ease;
-  flex-shrink: 0;
 }
 
 .btn-gps-detect:hover {
@@ -1187,21 +1174,7 @@ mark.search-highlight {
   flex-wrap: wrap;
 }
 
-.badge-status, .badge-campus {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background-color: rgba(37, 211, 102, 0.15);
-  color: #15803d;
-}
-
-.badge-campus {
-  background-color: var(--primary-light);
-  color: var(--primary);
-}
-
-.account-section {
+.badge-status, .account-section {
   margin-bottom: 18px;
 }
 
@@ -1343,14 +1316,6 @@ mark.search-highlight {
   border: 1px solid var(--border);
   font-size: 0.82rem;
   line-height: 1.5;
-}
-
-.about-bullet-list {
-  list-style: none;
-  margin: 10px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
 .app-version-info {
@@ -2052,57 +2017,7 @@ mark.search-highlight {
 }
 
 /* Step Progress Indicator Bar */
-.form-steps-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: var(--bg-surface);
-  padding: 10px 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  margin-bottom: 4px;
-}
-
-.step-indicator-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-.step-indicator-item.active {
-  color: var(--primary);
-}
-
-.step-num {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: var(--border);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 800;
-}
-
-.step-indicator-item.active .step-num {
-  background-color: var(--primary);
-  color: white;
-}
-
-.step-line {
-  flex: 1;
-  height: 2px;
-  background-color: var(--border);
-  margin: 0 8px;
-  border-radius: 2px;
-}
-
-/* Section Header Badges & Title Group */
+.step-indicator-item.active /* Section Header Badges & Title Group */
 .section-card-header {
   display: flex;
   align-items: center;
@@ -2117,16 +2032,6 @@ mark.search-highlight {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.section-step-badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  background-color: var(--primary-light);
-  color: var(--primary);
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
-  white-space: nowrap;
 }
 
 /* Quick Preset Chips */
@@ -2762,24 +2667,6 @@ mark.search-highlight {
 /* ==========================================================================
    HEADER ALL CHAT BUTTON
    ========================================================================== */
-.all-chat-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: var(--primary-light);
-  color: var(--primary);
-  border: 1px solid rgba(79, 70, 229, 0.25);
-  padding: 5px 9px;
-  border-radius: var(--radius-full);
-  font-family: inherit;
-  font-size: 0.73rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
 .all-chat-btn svg {
   width: 14px;
   height: 14px;
@@ -2791,19 +2678,6 @@ mark.search-highlight {
   color: #FFFFFF;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-}
-
-.all-chat-live-tag {
-  font-size: 0.58rem;
-  font-weight: 800;
-  background-color: #10b981;
-  color: #FFFFFF;
-  padding: 1px 5px;
-  border-radius: var(--radius-full);
-  letter-spacing: 0.03em;
-  line-height: 1.1;
-  animation: pulse-online 2s infinite;
-  flex-shrink: 0;
 }
 
 /* ==========================================================================
@@ -3234,74 +3108,6 @@ select.filter-select {
 .offline-banner svg { flex-shrink: 0; }
 
 /* ------------------------------------------------------ offers carousel --- */
-
-.offers-carousel { margin: 0 0 16px; }
-
-.offers-track {
-  position: relative;
-  height: 96px;
-}
-
-.offer-slide {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  width: 100%;
-  padding: 14px 18px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: linear-gradient(120deg, var(--primary), var(--secondary));
-  color: #ffffff;
-  text-align: left;
-  font-family: inherit;
-  cursor: pointer;
-  opacity: 0;
-  transform: translateY(6px);
-  pointer-events: none;
-  transition: opacity var(--transition-normal), transform var(--transition-normal);
-}
-
-.offer-slide.active {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-}
-
-.offer-label { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
-.offer-blurb { font-size: 0.8rem; opacity: 0.9; }
-.offer-cta {
-  margin-top: 4px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.85;
-}
-
-.offers-dots {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.offer-dot {
-  width: 6px;
-  height: 6px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-full);
-  background-color: var(--border-strong);
-  cursor: pointer;
-  transition: width var(--transition-fast), background-color var(--transition-fast);
-}
-.offer-dot.active {
-  width: 18px;
-  background-color: var(--primary);
-}
 
 /* ---------------------------------------------------------- feed extras -- */
 
@@ -4112,8 +3918,6 @@ input[type="range"] {
   justify-content: center;
 }
 
-.step-text { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
-
 .logout-section { padding-top: 4px; }
 
 .whatsapp-box { background-color: rgba(37, 211, 102, 0.14); }
@@ -4322,6 +4126,48 @@ input[type="range"] {
 }
 .auth-card a:hover { text-decoration: underline; }
 
+/* ------------------------------------------------- community room entry -- */
+
+.community-room-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 12px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  font-family: inherit;
+  text-align: left;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+.community-room-row:hover { border-color: var(--primary); }
+
+.community-room-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.community-room-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.community-room-text strong { font-size: 0.88rem; color: var(--text-main); }
+.community-room-text span { font-size: 0.78rem; }
+
 /* ---------------------------------------------------------- boot failure -- */
 
 /* Shown by the watchdog in index.html when the app cannot start - most often
@@ -4471,6 +4317,5 @@ input[type="range"] {
     scroll-behavior: auto !important;
   }
 
-  .offer-slide { transition: none !important; }
   .splash-loader-progress { animation: none !important; }
 }

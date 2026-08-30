@@ -1,6 +1,6 @@
 /**
  * PR MARKETPLACE - LISTING FEED
- * Cards, filters, search, sorting, pagination and the category carousel.
+ * Cards, filters, search, sorting and pagination.
  */
 
 import {
@@ -36,17 +36,13 @@ export function initFeed({ onOpenItem }) {
     loadMoreWrap: document.getElementById('loadMoreWrap'),
     loadMoreBtn: document.getElementById('btnLoadMore'),
     offline: document.getElementById('offlineBanner'),
-    offlineText: document.getElementById('offlineBannerText'),
-    carousel: document.getElementById('offersCarousel'),
-    carouselTrack: document.getElementById('offersTrack'),
-    carouselDots: document.getElementById('offersDots')
+    offlineText: document.getElementById('offlineBannerText')
   };
 
   wireSearch();
   wireCategories();
   wireFilters();
   wirePagination();
-  buildCarousel();
 }
 
 /* ============================================================== loading === */
@@ -429,89 +425,6 @@ function wirePagination() {
     filters.page += 1;
     loadFeed({ append: true });
   });
-}
-
-/* ============================================================== carousel === */
-
-const CAROUSEL_SLIDES = [
-  { category: 'Books & Study Materials', label: 'Textbooks & notes', blurb: 'Last semester’s set, half the price' },
-  { category: 'Furniture',               label: 'Room essentials',   blurb: 'Desks, chairs and shelves nearby' },
-  { category: 'Vehicles & Accessories',  label: 'Get around',        blurb: 'Cycles and scooters around campus' },
-  { category: 'Fashion & Clothing',      label: 'Wardrobe swaps',    blurb: 'Barely-worn pieces from your block' },
-  { category: 'Musical Instruments',     label: 'Play something',    blurb: 'Guitars, keys and gear' }
-];
-
-let carouselIndex = 0;
-let carouselTimer = null;
-
-function buildCarousel() {
-  if (!els.carousel || !els.carouselTrack) return;
-
-  els.carouselTrack.innerHTML = CAROUSEL_SLIDES.map((slide, i) => `
-    <button type="button" class="offer-slide ${i === 0 ? 'active' : ''}" data-category="${escapeHtml(slide.category)}">
-      <span class="offer-label">${escapeHtml(slide.label)}</span>
-      <span class="offer-blurb">${escapeHtml(slide.blurb)}</span>
-      <span class="offer-cta">Browse ${escapeHtml(slide.category)}</span>
-    </button>
-  `).join('');
-
-  els.carouselDots.innerHTML = CAROUSEL_SLIDES.map((_, i) =>
-    `<button type="button" class="offer-dot ${i === 0 ? 'active' : ''}" data-index="${i}" aria-label="Show highlight ${i + 1}"></button>`
-  ).join('');
-
-  els.carousel.classList.remove('hidden');
-
-  els.carouselTrack.addEventListener('click', event => {
-    const slide = event.target.closest('.offer-slide');
-    if (!slide) return;
-    const category = slide.dataset.category;
-
-    setFilter({ category });
-    setTab('explore');
-    syncNavButtons('explore');
-    els.categories?.querySelectorAll('.cat-chip').forEach(c => {
-      c.classList.toggle('active', c.dataset.category === category);
-    });
-    document.querySelector(`.cat-chip[data-category="${CSS.escape(category)}"]`)
-      ?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-    loadFeed();
-  });
-
-  els.carouselDots.addEventListener('click', event => {
-    const dot = event.target.closest('.offer-dot');
-    if (dot) showSlide(Number(dot.dataset.index));
-  });
-
-  ['pointerenter', 'pointerdown', 'focusin'].forEach(evt =>
-    els.carousel.addEventListener(evt, stopCarousel));
-  ['pointerleave', 'focusout'].forEach(evt =>
-    els.carousel.addEventListener(evt, startCarousel));
-
-  startCarousel();
-}
-
-function showSlide(index) {
-  const slides = els.carouselTrack?.children;
-  const dots = els.carouselDots?.children;
-  if (!slides || !slides.length) return;
-
-  carouselIndex = (index + slides.length) % slides.length;
-  Array.from(slides).forEach((s, i) => s.classList.toggle('active', i === carouselIndex));
-  Array.from(dots || []).forEach((d, i) => d.classList.toggle('active', i === carouselIndex));
-}
-
-function startCarousel() {
-  stopCarousel();
-  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  if (reduceMotion) return;
-  carouselTimer = setInterval(() => showSlide(carouselIndex + 1), 3500);
-}
-
-function stopCarousel() {
-  if (carouselTimer) {
-    clearInterval(carouselTimer);
-    carouselTimer = null;
-  }
 }
 
 /* ============================================================ navigation === */

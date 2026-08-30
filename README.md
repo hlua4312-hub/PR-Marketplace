@@ -26,7 +26,7 @@ Runs as an installable web app (PWA) and as an Android app that wraps the same c
 - Edit or delete anything you posted, from the listing or from **Account → My Listings**
 - Mark an item sold; it comes off the marketplace 5 hours later, or put it back on sale
 
-**Talk**
+**Talk** — all under the Messages tab
 - A private thread per listing between the buyer and the seller
 - A community room everyone can read and post in
 - One-to-one private chats, opened by tapping someone's avatar in the room

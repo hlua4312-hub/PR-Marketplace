@@ -438,15 +438,6 @@ function wireOpenClose() {
     hooks.onSignedOut?.();
   });
 
-  document.getElementById('btnExitApp')?.addEventListener('click', () => {
-    // A web page cannot close a tab it did not open, so send the app to the
-    // background where that is possible and otherwise say what happened.
-    if (window.AndroidBridge?.moveToBackground) {
-      window.AndroidBridge.moveToBackground();
-      return;
-    }
-    showToast('Use your device’s home or back gesture to leave the app.', 3500);
-  });
 }
 
 /* ================================================================== guide === */

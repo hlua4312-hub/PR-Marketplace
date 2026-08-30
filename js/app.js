@@ -378,8 +378,12 @@ const AIZAWL_AREAS = [
   { name: 'Luangmual', lat: 23.7450, lon: 92.6850 }
 ];
 
+/**
+ * Location detection is driven entirely by the "Use my location" option in
+ * the area dropdown. There used to be a separate arrow button beside it doing
+ * the same job, which made the header carry two controls for one action.
+ */
 function wireGps() {
-  const button = document.getElementById('btnGpsDetect');
   const select = document.getElementById('locationSelect');
 
   const detect = () => {
@@ -422,7 +426,6 @@ function wireGps() {
     );
   };
 
-  button?.addEventListener('click', detect);
   select?.addEventListener('change', event => {
     if (event.target.value === 'detect_gps') detect();
   });

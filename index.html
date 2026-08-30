@@ -300,33 +300,27 @@
         </div>
 
         <div class="header-actions">
+          <!-- The separate GPS button is gone: the dropdown's own
+               "Use my location" option already triggers detection, so the
+               header carried two controls for one job. -->
           <div class="location-selector">
-            <select id="locationSelect" aria-label="Select Location">
-              <option value="all">All Aizawl & Nearby</option>
-              <option value="detect_gps">Detect My Location (Turn On GPS)</option>
+            <select id="locationSelect" aria-label="Filter by area">
+              <option value="all">All Aizawl &amp; nearby</option>
+              <option value="detect_gps">Use my location</option>
               <option value="Aizawl City">Aizawl City Center</option>
               <option value="MZU Campus">MZU Campus</option>
-              <option value="Zarkawt">Zarkawt & Dawrpui</option>
-              <option value="Chanmari">Chanmari & Ramhlun</option>
-              <option value="Khatla">Khatla & Treasury Sq</option>
-              <option value="Temple Veng">Temple Veng & College Veng</option>
-              <option value="Kulikawn">Kulikawn & Tuikual</option>
-              <option value="Bawngkawn">Bawngkawn & Durtlang</option>
-              <option value="Vaivakawn">Vaivakawn & Edenthar</option>
-              <option value="Luangmual">Luangmual & Tanhril</option>
+              <option value="Zarkawt">Zarkawt &amp; Dawrpui</option>
+              <option value="Chanmari">Chanmari &amp; Ramhlun</option>
+              <option value="Khatla">Khatla &amp; Treasury Sq</option>
+              <option value="Temple Veng">Temple Veng &amp; College Veng</option>
+              <option value="Kulikawn">Kulikawn &amp; Tuikual</option>
+              <option value="Bawngkawn">Bawngkawn &amp; Durtlang</option>
+              <option value="Vaivakawn">Vaivakawn &amp; Edenthar</option>
+              <option value="Luangmual">Luangmual &amp; Tanhril</option>
             </select>
-            <button class="btn-gps-detect" id="btnGpsDetect" title="Turn On GPS / Detect Map Location">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-            </button>
           </div>
 
-          <button class="all-chat-btn" id="btnOpenAllChat" title="Open Community All Chat Room" aria-label="Open Community All Chat">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>All Chat</span>
-            <span class="all-chat-live-tag">LIVE</span>
-          </button>
-
-          <button class="filter-btn" id="filterModalBtn" aria-label="Open Filters">
+          <button class="filter-btn" id="filterModalBtn" aria-label="Filter and sort">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
           </button>
         </div>
@@ -335,7 +329,7 @@
       <!-- Real-Time Instant Search Bar -->
       <div class="search-container">
         <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="searchInput" placeholder="Search textbooks, notes, electronics, furniture..." autocomplete="off">
+        <input type="text" id="searchInput" placeholder="Search listings" autocomplete="off">
         <button class="clear-search-btn hidden" id="clearSearchBtn" aria-label="Clear Search">&times;</button>
       </div>
 
@@ -348,11 +342,11 @@
           </button>
           <button class="cat-chip" data-category="Books & Study Materials">
             <span class="chip-icon">📚</span>
-            <span>Books & Study Materials</span>
+            <span>Books</span>
           </button>
           <button class="cat-chip" data-category="Fashion & Clothing">
             <span class="chip-icon">👕</span>
-            <span>Fashion & Clothing</span>
+            <span>Fashion</span>
           </button>
           <button class="cat-chip" data-category="Furniture">
             <span class="chip-icon">🛋️</span>
@@ -360,15 +354,15 @@
           </button>
           <button class="cat-chip" data-category="Sports & Fitness">
             <span class="chip-icon">⚽</span>
-            <span>Sports & Fitness</span>
+            <span>Sports</span>
           </button>
           <button class="cat-chip" data-category="Beauty & Personal Care">
             <span class="chip-icon">💄</span>
-            <span>Beauty & Personal Care</span>
+            <span>Beauty</span>
           </button>
           <button class="cat-chip" data-category="Vehicles & Accessories">
             <span class="chip-icon">🚲</span>
-            <span>Vehicles & Accessories</span>
+            <span>Vehicles</span>
           </button>
           <button class="cat-chip" data-category="Toys & Games">
             <span class="chip-icon">🎮</span>
@@ -376,7 +370,7 @@
           </button>
           <button class="cat-chip" data-category="Pets & Pet Supplies">
             <span class="chip-icon">🐾</span>
-            <span>Pets & Pet Supplies</span>
+            <span>Pets</span>
           </button>
           <button class="cat-chip" data-category="Real Estate">
             <span class="chip-icon">🏡</span>
@@ -384,7 +378,7 @@
           </button>
           <button class="cat-chip" data-category="Musical Instruments">
             <span class="chip-icon">🎸</span>
-            <span>Musical Instruments</span>
+            <span>Music</span>
           </button>
           <button class="cat-chip" data-category="Other">
             <span class="chip-icon">📦</span>
@@ -402,12 +396,6 @@
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
         <span id="offlineBannerText">You're offline — showing the listings saved on this device.</span>
       </div>
-
-      <!-- Offers carousel. Each slide filters the feed to one category. -->
-      <section class="offers-carousel hidden" id="offersCarousel" aria-label="Category highlights">
-        <div class="offers-track" id="offersTrack"></div>
-        <div class="offers-dots" id="offersDots"></div>
-      </section>
 
       <!-- Active Filters Tag Bar -->
       <div class="active-filters-bar hidden" id="activeFiltersBar">
@@ -462,12 +450,12 @@
       </button>
 
       <!-- Notifications Nav Tab -->
-      <button class="nav-item" data-tab="notifications" id="navNotifications" title="Notifications">
+      <button class="nav-item" data-tab="messages" id="navNotifications" title="Messages">
         <div class="nav-icon-wrap">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <span class="notif-badge hidden" id="notifBadge">0</span>
         </div>
-        <span>Notifications</span>
+        <span>Messages</span>
       </button>
 
       <button class="nav-item" id="btnAccount" title="My Account">
@@ -501,24 +489,6 @@
       <form id="sellForm" class="sell-form">
         <div class="modal-scroll-content">
           
-          <!-- Step Progress Indicator Bar -->
-          <div class="form-steps-indicator">
-            <div class="step-indicator-item active">
-              <span class="step-num">1</span>
-              <span class="step-text">Item Info</span>
-            </div>
-            <div class="step-line"></div>
-            <div class="step-indicator-item">
-              <span class="step-num">2</span>
-              <span class="step-text">Contact</span>
-            </div>
-            <div class="step-line"></div>
-            <div class="step-indicator-item">
-              <span class="step-num">3</span>
-              <span class="step-text">Payment QR</span>
-            </div>
-          </div>
-
           <!-- Section 1: Item Essentials -->
           <div class="form-section-card">
             <div class="section-card-header">
@@ -528,7 +498,6 @@
                   <p>Add primary photo, title, pricing and description</p>
                 </div>
               </div>
-              <span class="section-step-badge">Step 1 of 3</span>
             </div>
 
             <!-- Item Cover Photo -->
@@ -636,7 +605,6 @@
                   <p>Buyers connect directly with you. Zero middleman fees!</p>
                 </div>
               </div>
-              <span class="section-step-badge">Step 2 of 3</span>
             </div>
 
             <div class="form-row">
@@ -683,7 +651,6 @@
                   <p>Upload your UPI / GPay / PhonePe / Paytm QR image for instant meetup scan & pay</p>
                 </div>
               </div>
-              <span class="section-step-badge">Step 3 of 3</span>
             </div>
 
             <div class="form-group">
@@ -803,7 +770,6 @@
             <span class="profile-email" id="accountUserEmail">user@gmail.com</span>
             <div class="profile-badges" id="profileBadges">
               <span class="badge-status">Verified email</span>
-              <span class="badge-campus">Aizawl &amp; nearby</span>
             </div>
           </div>
         </div>
@@ -873,18 +839,16 @@
 
           <div class="account-section-body" id="aboutSectionBody">
             <div class="about-card-box">
-              <p><strong>PR Marketplace</strong> is a lightweight, mobile-first peer-to-peer (P2P) platform designed to simplify local community trading.</p>
-              <ul class="about-bullet-list">
-                <li>✨ <strong>Zero Middleman Fees:</strong> Sell your items for 100% profit with zero platform charges.</li>
-                <li>🤝 <strong>Direct Communication:</strong> Chat directly with buyers/sellers via WhatsApp, Instagram, or Phone calls.</li>
-                <li>🛡️ <strong>Local Safety:</strong> Deal in-person safely within your campus library, student center, or neighborhood.</li>
-              </ul>
+              <p>A peer-to-peer marketplace for buying and selling locally. No fees, no middleman —
+                 you arrange the meetup and the payment directly with the other person.</p>
+
               <div class="app-version-info">
-                <span>App Version: <strong id="appVersionLabel">3.0.0</strong></span>
-                <span>Build: <strong id="appBuildLabel">2026.08</strong></span>
+                <span>Version <strong id="appVersionLabel">3.0.0</strong></span>
+                <span>Build <strong id="appBuildLabel">2026.08</strong></span>
               </div>
-              <button type="button" class="btn btn-primary" id="btnHowItWorks" style="width:100%; margin-top:12px; font-size:0.85rem; font-weight:800; background:linear-gradient(135deg, var(--primary), var(--secondary)); border:none; padding:10px; border-radius:10px; cursor:pointer;">
-                💡 How PR Marketplace Works (Click to View Guide)
+
+              <button type="button" class="btn btn-secondary" id="btnHowItWorks" style="width:100%; margin-top:12px;">
+                How it works
               </button>
             </div>
           </div>
@@ -995,10 +959,6 @@
             <span>Log Out</span>
           </button>
 
-          <button class="btn btn-logout" id="btnExitApp" style="background-color:var(--danger); color:#ffffff; border:none; font-weight:800;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
-            <span>Exit</span>
-          </button>
         </div>
 
       </div>
@@ -1010,18 +970,32 @@
     <div class="modal-card modal-full-screen">
       <div class="modal-header-nav">
         <div style="display:flex; align-items:center; gap:8px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <h2>Notifications</h2>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <h2>Messages</h2>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <button type="button" class="btn btn-secondary" id="btnMarkAllNotifsRead" style="font-size:0.75rem; padding:6px 10px; border-radius:8px;">Mark all read</button>
-          <button class="modal-close-btn" id="closeNotificationsModalBtn" aria-label="Close Notifications">&times;</button>
+          <button class="modal-close-btn" id="closeNotificationsModalBtn" aria-label="Close messages">&times;</button>
         </div>
       </div>
 
       <div class="modal-body" style="padding:16px;">
+        <!-- The community room used to be a button in the app header, where it
+             shouted louder than the logo. It belongs with the other
+             conversations. -->
+        <button type="button" class="community-room-row" id="btnOpenAllChat">
+          <div class="community-room-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="community-room-text">
+            <strong>Community chat</strong>
+            <span>Ask the whole marketplace what you're looking for</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+
         <div class="notifications-list" id="notificationsList">
-          <!-- Dynamic notifications will render here -->
+          <!-- Conversations render here -->
         </div>
       </div>
     </div>
