@@ -4518,6 +4518,17 @@ html, body {
   .pull-indicator svg { transform: none; }
 }
 
+.chat-subtitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: block;
+  max-width: 62vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ==========================================================================
    DARK THEME - opt in only
    Deliberately NOT wired to prefers-color-scheme. Shoppers expect a white

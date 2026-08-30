@@ -23,7 +23,7 @@ let unsubscribeCommunity = null;
 let unsubscribePrivate = null;
 let unsubscribeInbox = null;
 
-let activePeer = null;          // { id, name }
+let activeThread = null;        // { channelType, channelId, peerName, subtitle }
 let openedPrivateFromCommunity = false;
 let inboxThreads = [];
 
@@ -42,6 +42,7 @@ export function initMessaging(injected) {
     privateInput: document.getElementById('privateChatMessageInput'),
     privateName: document.getElementById('privateChatRecipientName'),
     privateAvatar: document.getElementById('privateChatRecipientAvatar'),
+    privateSubtitle: document.getElementById('privateChatSubtitle'),
 
     inboxModal: document.getElementById('notificationsModal'),
     inboxList: document.getElementById('notificationsList'),
@@ -164,16 +165,15 @@ function wirePrivate() {
   els.privateForm?.addEventListener('submit', async event => {
     event.preventDefault();
     const body = els.privateInput.value.trim();
-    if (!body || !activePeer) return;
+    if (!body || !activeThread) return;
 
     const user = window.api.getCurrentUser();
     if (!user) return;
 
     els.privateInput.value = '';
-    const channelId = window.api.directChannelId(user.id, activePeer.id);
 
     try {
-      await window.api.sendMessage('direct', channelId, body);
+      await window.api.sendMessage(activeThread.channelType, activeThread.channelId, body);
     } catch (err) {
       els.privateInput.value = body;
       showToast(describeError(err));
@@ -181,6 +181,73 @@ function wirePrivate() {
   });
 }
 
+/**
+ * Open one conversation, whichever kind it is.
+ *
+ * A listing thread and a private chat are the same thing on screen, and the
+ * seller has no other way to read one: the chat box on a listing is drawn for
+ * buyers, so an owner opening their own listing sees the manage controls and
+ * nothing else. Tapping a message used to land there, which meant a seller
+ * could not answer a buyer at all.
+ */
+export async function openThread({ channelType, channelId, peerName, subtitle, fromCommunity = false }) {
+  const user = window.api.getCurrentUser();
+  if (!user) {
+    hooks.requireLogin?.('Log in to read your messages.');
+    return;
+  }
+
+  activeThread = { channelType, channelId, peerName: peerName || 'Conversation', subtitle };
+  openedPrivateFromCommunity = fromCommunity;
+
+  if (els.privateName) els.privateName.textContent = activeThread.peerName;
+  if (els.privateAvatar) els.privateAvatar.textContent = initials(activeThread.peerName);
+  if (els.privateSubtitle) {
+    els.privateSubtitle.textContent = subtitle || 'Private conversation';
+  }
+
+  if (fromCommunity) closeModal(els.communityModal);
+  openModal(els.privateModal);
+  els.privateThread.innerHTML = '<div class="chat-loading">Loading conversation…</div>';
+
+  let messages = [];
+  try {
+    messages = await window.api.fetchMessages(channelType, channelId);
+  } catch (err) {
+    els.privateThread.innerHTML = `<div class="chat-loading">${escapeHtml(describeError(err))}</div>`;
+    return;
+  }
+
+  // The inbox only knows who sent the newest message, which may be this user.
+  // The other party's name comes from the thread itself.
+  const fromOther = messages.find(m => m.senderId !== user.id);
+  if (fromOther && els.privateName) {
+    activeThread.peerName = fromOther.senderName;
+    els.privateName.textContent = fromOther.senderName;
+    els.privateAvatar.textContent = initials(fromOther.senderName);
+  }
+
+  renderPrivate(messages, user, { name: activeThread.peerName });
+
+  if (channelType === 'item') {
+    // channelId is "<itemId>:<buyerId>", so the listing is recoverable and
+    // worth naming - "About a listing" tells the seller nothing when they
+    // have several.
+    const itemId = channelId.split(':')[0];
+    window.api.fetchItemById(itemId).then(item => {
+      if (item && els.privateSubtitle && activeThread?.channelId === channelId) {
+        els.privateSubtitle.textContent = `About “${item.title}”`;
+      }
+    }).catch(() => {});
+  }
+
+  unsubscribePrivate?.();
+  unsubscribePrivate = window.api.subscribeToMessages(channelType, channelId, message => {
+    appendPrivate(message, user);
+  });
+}
+
+/** A one-to-one chat, opened from an avatar in the community room. */
 export async function openPrivateChat(peer, { fromCommunity = false } = {}) {
   const user = window.api.getCurrentUser();
   if (!user) {
@@ -192,36 +259,19 @@ export async function openPrivateChat(peer, { fromCommunity = false } = {}) {
     return;
   }
 
-  activePeer = peer;
-  openedPrivateFromCommunity = fromCommunity;
-
-  if (els.privateName) els.privateName.textContent = peer.name;
-  if (els.privateAvatar) els.privateAvatar.textContent = initials(peer.name);
-
-  if (fromCommunity) closeModal(els.communityModal);
-  openModal(els.privateModal);
-  els.privateThread.innerHTML = '<div class="chat-loading">Loading conversation…</div>';
-
-  const channelId = window.api.directChannelId(user.id, peer.id);
-
-  try {
-    const messages = await window.api.fetchMessages('direct', channelId);
-    renderPrivate(messages, user, peer);
-  } catch (err) {
-    els.privateThread.innerHTML = `<div class="chat-loading">${escapeHtml(describeError(err))}</div>`;
-    return;
-  }
-
-  unsubscribePrivate?.();
-  unsubscribePrivate = window.api.subscribeToMessages('direct', channelId, message => {
-    appendPrivate(message, user);
+  await openThread({
+    channelType: 'direct',
+    channelId: window.api.directChannelId(user.id, peer.id),
+    peerName: peer.name,
+    subtitle: 'Private conversation',
+    fromCommunity
   });
 }
 
 export function closePrivateChat({ back = false } = {}) {
   unsubscribePrivate?.();
   unsubscribePrivate = null;
-  activePeer = null;
+  activeThread = null;
   closeModal(els.privateModal);
 
   if (back && openedPrivateFromCommunity) {
@@ -291,10 +341,12 @@ function wireInbox() {
 
     if (channelType === 'direct') {
       closeInbox();
-      openPrivateChat({ id: peerId, name: peerName });
-    } else if (channelType === 'item' && itemId) {
+      openThread({ channelType: 'direct', channelId, peerName, subtitle: 'Private conversation' });
+    } else if (channelType === 'item') {
+      // Opening the listing instead of the thread left a seller looking at
+      // their own manage controls with the message nowhere in sight.
       closeInbox();
-      hooks.onOpenItem?.(itemId);
+      openThread({ channelType: 'item', channelId, peerName, subtitle: 'About a listing' });
     } else if (channelType === 'community') {
       closeInbox();
       openCommunityChat();

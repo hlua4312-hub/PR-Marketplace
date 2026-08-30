@@ -127,33 +127,13 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                Uri uri = request.getUrl();
-                String url = (uri != null) ? uri.toString() : "";
-                if (url.startsWith("tel:") || url.startsWith("mailto:") || url.startsWith("whatsapp:") || url.startsWith("intent:")) {
-                    try {
-                        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                        startActivity(intent);
-                        return true;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                return false;
+                return launchExternally(request.getUrl());
             }
 
             @SuppressWarnings("deprecation")
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url != null && (url.startsWith("tel:") || url.startsWith("mailto:") || url.startsWith("whatsapp:") || url.startsWith("intent:"))) {
-                    try {
-                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                        startActivity(intent);
-                        return true;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                return false;
+                return url != null && launchExternally(Uri.parse(url));
             }
         });
 
@@ -195,6 +175,66 @@ public class MainActivity extends AppCompatActivity {
 
         // Load local Android assets via HTTPS origin for Service Worker and modern Web API support
         webView.loadUrl("https://appassets.androidplatform.net/assets/www/index.html");
+    }
+
+    /**
+     * Hand any non-web link to Android rather than trying to load it here.
+     *
+     * This used to be an allowlist of tel, mailto, whatsapp and intent, which
+     * meant every new scheme the page started using broke silently: adding
+     * upi:// payment links produced ERR_UNKNOWN_URL_SCHEME and a blank error
+     * page, because the WebView tried to fetch a URL it cannot fetch. Asking
+     * what the WebView can render, rather than listing what it cannot, does
+     * not need editing the next time.
+     *
+     * @return true when the link has been dealt with and the WebView should
+     *         not attempt it.
+     */
+    private boolean launchExternally(Uri uri) {
+        if (uri == null) return false;
+
+        String scheme = uri.getScheme();
+        if (scheme == null) return false;
+
+        // Pages stay in the WebView; everything else belongs to another app.
+        if (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https")) {
+            return false;
+        }
+
+        try {
+            Intent intent;
+            if (scheme.equalsIgnoreCase("intent")) {
+                // intent:// carries its own target and fallback.
+                intent = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME);
+            } else {
+                intent = new Intent(Intent.ACTION_VIEW, uri);
+            }
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            return true;
+        } catch (android.content.ActivityNotFoundException e) {
+            // Nothing installed can open it. Say so: the alternative is the
+            // WebView showing a browser error page for a link that was never
+            // a web page, which explains nothing.
+            Toast.makeText(this, messageForMissingApp(scheme), Toast.LENGTH_LONG).show();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return true;
+        }
+    }
+
+    private String messageForMissingApp(String scheme) {
+        if (scheme.equalsIgnoreCase("upi")) {
+            return "No UPI app found. Install GPay, PhonePe or Paytm, or scan the QR code with another phone.";
+        }
+        if (scheme.equalsIgnoreCase("tel")) {
+            return "No phone app available on this device.";
+        }
+        if (scheme.equalsIgnoreCase("mailto")) {
+            return "No email app set up on this device.";
+        }
+        return "No app on this phone can open that link.";
     }
 
     /**
