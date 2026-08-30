@@ -5141,6 +5141,224 @@ html, body {
   color: var(--text-muted);
 }
 
+
+/* ------------------------------------------------------- the wanted board --- */
+
+/* The board replaces the feed rather than sitting under it. Everything else
+   inside .main-content goes, which keeps the switch to one class instead of
+   a hidden toggle on each of six elements. */
+.main-content.board-mode > *:not(#requestsBoard) {
+  display: none;
+}
+
+.mode-tab.is-board {
+  margin-left: 6px;
+  border-style: dashed;
+}
+
+.mode-tab.is-board.active {
+  border-style: solid;
+}
+
+.board-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0 14px;
+}
+
+.board-header h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.board-header p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.board-header .btn {
+  flex-shrink: 0;
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-card {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-xs);
+}
+
+.request-card.is-mine {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.request-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.request-category {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.request-due {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.request-due.is-urgent {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--warning);
+}
+
+.request-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+
+.request-desc {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: var(--text-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.request-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.request-budget {
+  font-weight: 700;
+  color: var(--text-body);
+}
+
+.request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.board-empty {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.board-empty h3 {
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.board-empty p {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ------------------------------------------------------------- reviews --- */
+
+.rating-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-body);
+}
+
+.rating-inline .stars { color: var(--accent); letter-spacing: -1px; }
+.rating-inline .count { font-weight: 600; color: var(--text-muted); }
+
+.review-block {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.review-block h4 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.review-row {
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.review-row:last-child { border-bottom: none; }
+
+.review-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.review-author { font-size: 0.8rem; font-weight: 700; }
+.review-when { font-size: 0.7rem; color: var(--text-muted); }
+.review-body { font-size: 0.82rem; color: var(--text-body); margin-top: 3px; }
+
+.star-picker {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.star-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--border-strong);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.star-btn.lit { color: var(--accent); }
+
+.review-form { margin-top: 12px; }
+.review-form .modal-actions-row { margin-top: 8px; }
+.review-form textarea { width: 100%; }
+
 /* ==========================================================================
    REDUCED MOTION
    ========================================================================== */

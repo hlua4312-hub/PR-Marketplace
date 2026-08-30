@@ -335,6 +335,7 @@
         <button class="mode-tab" data-listing-type="sell">For sale</button>
         <button class="mode-tab" data-listing-type="free">Free</button>
         <button class="mode-tab" data-listing-type="barter">Swap</button>
+        <button class="mode-tab is-board" data-board="requests">Wanted</button>
       </nav>
     </header>
 
@@ -381,6 +382,20 @@
       <!-- Empty State -->
       <!-- Contents are rendered by feed.js, which tailors the message to the tab -->
       <div class="empty-state hidden" id="emptyState"></div>
+
+
+      <!-- The wanted board. Shown instead of the feed when the Wanted tab is
+           active; .board-mode on .main-content hides everything else. -->
+      <section class="requests-board hidden" id="requestsBoard" aria-label="Wanted on campus">
+        <div class="board-header">
+          <div>
+            <h2>Wanted on campus</h2>
+            <p>What students are looking for. If you have it, say so.</p>
+          </div>
+          <button type="button" class="btn btn-primary btn-small" id="btnPostRequest">Post what you need</button>
+        </div>
+        <div class="requests-list" id="requestsList"></div>
+      </section>
 
     </main>
 
@@ -647,6 +662,60 @@
   </div>
 
   <!-- MODAL 3: FILTER DRAWER -->
+
+  <!-- POST A REQUEST -->
+  <div class="modal-overlay hidden" id="requestModal">
+    <div class="modal-card modal-bottom-sheet">
+      <div class="modal-header-nav">
+        <div class="modal-title-wrap">
+          <h2 id="requestModalTitle">Post what you need</h2>
+          <p class="modal-subtitle">Someone on campus probably has it already</p>
+        </div>
+        <button class="modal-close-btn" id="closeRequestModalBtn" aria-label="Close">&times;</button>
+      </div>
+
+      <form id="requestForm" class="modal-body">
+        <div class="form-group">
+          <label for="requestTitle" class="form-label">What are you looking for? <span class="required">*</span></label>
+          <input type="text" id="requestTitle" required maxlength="120"
+                 placeholder="e.g. Scientific calculator (FX-991)">
+        </div>
+
+        <div class="form-group">
+          <label for="requestCategory" class="form-label">Category <span class="required">*</span></label>
+          <!-- Options come from PRConfig.CAMPUS.categories via js/campus.js -->
+          <select id="requestCategory" required></select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="requestBudget" class="form-label">Budget (&#8377;)</label>
+            <div class="price-input-wrapper">
+              <span class="currency-prefix">&#8377;</span>
+              <input type="number" id="requestBudget" min="0" step="1" placeholder="Up to">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="requestNeededBy" class="form-label">Needed by</label>
+            <input type="date" id="requestNeededBy">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="requestDescription" class="form-label">Any details</label>
+          <textarea id="requestDescription" rows="3" maxlength="1000"
+                    placeholder="Edition, size, colour, how long you need it for..."></textarea>
+        </div>
+
+        <div class="modal-actions-row">
+          <button type="button" class="btn btn-secondary" id="cancelRequestBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitRequestBtn">Post request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="modal-overlay hidden" id="filterModal">
     <div class="modal-card modal-bottom-sheet">
       <div class="modal-header-nav">

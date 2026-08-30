@@ -76,6 +76,14 @@ describe('the modal stack and the page scroll lock', () => {
       'a stale entry must not keep the page locked');
   });
 
+  test('repairs an orphaned page lock before the feed renders', () => {
+    // Covers a browser restore after an earlier version left only the body
+    // class behind. No visible sheet should mean the page may scroll again.
+    body.classList.add('modal-open');
+    syncBodyLock();
+    assert.equal(body.classList.contains('modal-open'), false);
+  });
+
   test('reopening a sheet does not stack it twice', () => {
     const sheet = makeElement();
     openModal(sheet); openModal(sheet);

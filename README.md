@@ -1,8 +1,16 @@
-# PR Marketplace
+# Campus Cart
 
-A mobile-first peer-to-peer marketplace for local community trading — textbooks, furniture, bikes, whatever your block or campus has going spare. Buyers and sellers deal with each other directly; the app takes no cut and handles no money.
+A student marketplace for one campus. Buy, sell, **give away** and **swap**
+secondhand things — textbooks, notes, calculators, cycles, room furniture —
+with other students at your own college. Buyers and sellers deal with each
+other directly; the app takes no cut and handles no money.
 
-Runs as an installable web app (PWA) and as an Android app that wraps the same code in a WebView.
+Runs as an installable web app (PWA) and as an Android app that wraps the same
+code in a WebView.
+
+> Built on the PR Marketplace codebase. If you are upgrading from that, read
+> **[Upgrading from PR Marketplace](#upgrading-from-pr-marketplace)** before
+> running the schema.
 
 ---
 
@@ -12,27 +20,75 @@ Runs as an installable web app (PWA) and as an Android app that wraps the same c
 - Anyone can open the app and browse the whole marketplace. An account is only
   asked for at the point it starts to matter: posting, messaging, or seeing a
   seller's contact details.
-- 11 categories, instant search across title, description and location
-- Filter by condition and maximum price, sort by newest, oldest or price
-- Filter by area in Aizawl, or use GPS to snap to the nearest one
+- Campus categories — books and notes, electronics, stationery, room and
+  furniture, clothing and uniforms, cycles, sports, lab kit, instruments
+- Four tabs across the top: **All**, **For sale**, **Free**, **Swap**
+- Instant search across title, description, area and what a swap is asking for
+- Filter by condition, maximum price, area, and *only people leaving campus*
+- Sort by newest, oldest, price, or leaving-campus-first
 - Save listings to a device-local favourites list
 - Pull down at the top of the feed to refresh; keep scrolling at the bottom
   and the next 24 load themselves
 
-**Sell**
-- Post with a photo, price, condition, location and description
-- Optional WhatsApp number and Instagram handle for buyers who prefer those
-- Optional UPI ID, which turns into a scannable QR with the amount filled in
-- Crop and rotate photos before they upload
-- Edit or delete anything you posted, from the listing or from **Account → My Listings**
-- Mark an item sold; it comes off the marketplace 5 hours later, or put it back on sale
+**Post** — three modes, asked first
+- **Sell it** — the ordinary case, with a price
+- **Give free** — a giveaway. Its own mode rather than a price of zero, so it
+  gets its own tab and reads correctly everywhere
+- **Swap** — say what you want in exchange, with an optional cash difference
+- Up to **6 photos** per listing, croppable and rotatable, first one is the
+  cover and any photo can be promoted to it with a tap
+- Category, condition, area and a **campus pickup spot** — main gate, library
+  steps, canteen — chosen from a list rather than typed
+- A **leaving campus** flag for the end-of-semester clear-out
+- Optional WhatsApp number, Instagram handle, and UPI ID
+- Edit or delete anything you posted, from the listing or from
+  **Account → My Listings**
+- Mark an item sold; it comes off the marketplace 5 hours later
+
+**Prove you're a student**
+- Sign up with your college email address and the account is verified the
+  moment it is created
+- **Only verified accounts can post.** Browsing and messaging stay open — a
+  marketplace where the buyers are locked out is not safer, just empty
+- The rule lives in the database, in `campus_settings.email_domains`, not in
+  the browser. See [Verification](#verification)
+
+**Ask for what you need**
+- A **Wanted** tab beside the listing modes: the board of what students are
+  looking for, rather than what they have
+- Post a request with a category, a budget and a "needed by" date, which shows
+  as *Needed tomorrow* rather than a date the reader has to do sums on
+- "I have this" opens a private message to whoever asked, with the first line
+  already written
+- Mark a request **Got it** when someone comes through, or delete it
+- There is deliberately **no matching engine.** Pairing requests to listings
+  automatically sounds obvious and behaves badly at campus scale — a few
+  hundred listings produce almost no matches, and a notification that never
+  fires reads as broken rather than empty. People read the board.
+
+**Judge who you're dealing with**
+- One to five stars and a line of text, on the seller's card
+- **One review per person, per person**, and you can rewrite it. Not one per
+  deal: letting the same pair stack up five reviews turns the number into a
+  measure of how often two friends traded, not how reliable anyone is
+- You can only review someone you have actually exchanged messages with — a
+  policy on the table, not a check in the browser
+- A new account shows no stars at all rather than a zero, because "not rated
+  yet" and "rated badly" are different things
+
+**Show who you are**
+- Profile photo, display name, department, year and a one-line bio
+- Buyers see that card, and a **Verified student** badge, on every listing you
+  post
 
 **Talk** — all under the Messages tab
 - A private thread per listing between the buyer and the seller
+- Tap-to-fill openers that change with the mode — "Is this still available?" on
+  a sale, "I have X — interested?" on a swap
 - A community room everyone can read and post in
 - One-to-one private chats, opened by tapping someone's avatar in the room
-- All of it live over Supabase Realtime — messages arrive without reopening anything
-- A Messages tab collecting every conversation you're part of
+- All of it live over Supabase Realtime — messages arrive without reopening
+  anything
 
 **Get paid** — direct UPI, no gateway, no fee
 - Sellers add a UPI ID; buyers get a QR and a `upi://` link with the amount
@@ -46,6 +102,8 @@ Runs as an installable web app (PWA) and as an Android app that wraps the same c
   UPI link is only a suggestion, since most apps let the payer edit it before
   sending; and a reference number of the right shape is accepted whether or not
   it corresponds to a real transaction.
+- Giveaways never show a pay button, and a swap only shows one when the seller
+  named a cash difference.
 
 **Stay safe**
 - Report a listing; the seller is never told who reported it
@@ -90,11 +148,76 @@ It is safe to run more than once. It creates the tables, the row-level security 
 
 Edit `URL` and `ANON_KEY` in [`js/config.js`](js/config.js). Both come from your Supabase dashboard under **Project Settings → API**.
 
+### 2b. Tell it which campus it is for
+
+The same file holds a `CAMPUS` block: the college name, the category chips,
+the areas in the header filter, the pickup spots on the sell form, and the
+department and year lists on the profile editor. Edit that one object and the
+whole app follows — the lists used to be typed into `index.html` three times
+over and drifted apart.
+
+```js
+CAMPUS: {
+  name: 'Mizoram University',
+  shortName: 'MZU',
+  emailDomain: '',          // see Verification, below
+  categories: [ ... ],
+  pickupSpots: [ ... ],
+  areas: [ ... ],
+  departments: [ ... ],
+  years: [ ... ]
+}
+```
+
+Everything in there is presentation. The one rule that decides who may post
+lives in the database — see below.
+
 That file is the only place the backend is configured. There is deliberately no in-app setting for it: which database the app talks to is a deployment decision, not a user preference, and putting it in the Account panel let anyone break the app for themselves with no way back — the screen that fixes it being the same screen they had just broken.
 
 The anon key is designed to be public. It ships in every browser that loads the app and identifies the project rather than the user. What protects your data is the row-level security policies, not the key.
 
-### 3. Configure email
+### 3. Turn on student verification
+
+Out of the box, **every account is verified** and can post. That is deliberate:
+a half-configured deployment should be usable rather than a wall nobody can get
+past.
+
+To restrict posting to your college, set the domain in the database:
+
+```sql
+update public.campus_settings
+set campus_name  = 'Mizoram University',
+    email_domains = array['mzu.edu.in']
+where id;
+```
+
+and set the matching `emailDomain` in `js/config.js` so the sign-up form can
+say so before someone fills in the whole form.
+
+**Both halves matter, and they are not the same check.** The one in
+`js/config.js` is a message. The one in `campus_settings` is the rule: the
+sign-up trigger reads it to decide `profiles.is_verified`, and the insert
+policy on `items` refuses a listing from an account where that is false. A
+domain check written in the browser is decoration — anyone holding the anon key
+can call the API directly and skip it.
+
+Accounts that already exist are re-judged by the same rule when you run the
+schema, so switching verification on does not lock out the people already
+using it — anyone whose address matches stays verified.
+
+To verify someone by hand — an address the domain rule misses, a student on
+exchange:
+
+```sql
+update public.profiles
+set is_verified = true, verified_at = now()
+where id = '<their uuid>';
+```
+
+A trigger stops an account changing its own `is_verified`, so this only works
+from the SQL editor. Reading and messaging are never gated; only posting is.
+
+### 4. Configure email
 
 Under **Authentication → Providers → Email**, decide whether new accounts must confirm their address. Leaving confirmation on is the safer default; the app shows a "check your inbox" screen and waits.
 
@@ -111,7 +234,7 @@ Or open this link instead: {{ .ConfirmationURL }}
 
 The app accepts either route — typing the code and clicking the link both land on the same "choose a new password" screen. The code is verified by Supabase with `verifyOtp`, server-side; the browser only relays what was typed.
 
-### 4. Run it
+### 5. Run it
 
 ```bash
 npm start
@@ -130,6 +253,32 @@ npm run start:python
 That works, but after editing a file you may need Ctrl+F5 to see the change.
 
 > Opening `index.html` straight off disk will not work properly. Service workers and PWA install require a real `http://` origin, and the browser refuses both over `file://`.
+
+---
+
+## Upgrading from PR Marketplace
+
+Running [`supabase_schema.sql`](supabase_schema.sql) again is enough. It is
+additive: it adds the columns Campus Cart needs (`profiles.avatar_url`,
+`department`, `year_of_study`, `bio`, `is_verified`; `items.listing_type`,
+`barter_want`, `pickup_spot`, `image_urls`, `is_urgent`), creates the
+`campus_settings` table, backfills every existing listing's gallery from its
+single photo, and marks every existing account verified. No row is deleted and
+no column is dropped.
+
+Two things it deliberately does **not** do, because they are judgement calls
+about your data rather than facts:
+
+- **Old categories are left alone.** "Fashion & Clothing" and "Real Estate" are
+  not on the campus list any more, so those listings keep their old label and
+  stop matching any chip. [`docs/migrate-to-campus-categories.sql`](docs/migrate-to-campus-categories.sql)
+  maps them across; read the mapping before running it.
+- **Old areas are left alone** for the same reason. There is no sensible
+  automatic route from "Zarkawt" to "Boys Hostel". The same file has a
+  commented-out statement that puts everything in "Off campus" to start from.
+
+The Android package id is unchanged (`com.prmarketplace.app`), so an existing
+install updates in place rather than appearing twice. Only the label changes.
 
 ---
 
@@ -222,20 +371,22 @@ CI runs the same tests and an Android debug build on every push — see [`.githu
 ## How it fits together
 
 ```
-index.html ──┬── js/config.js          backend URL and key, with a device override
+index.html ──┬── js/config.js          backend URL, key, and the CAMPUS block
              ├── js/supabase-client.js everything that talks to Supabase
              ├── js/api.js             the surface the UI calls; favourites and offline cache
              └── js/app.js  (module)   bootstrap, navigation, back button, GPS, zoom
                      │
+                     ├── campus.js     paints the campus lists into the DOM
                      ├── ui.js         escaping, toasts, modals, image preparation
                      ├── store.js      filters and view state
-                     ├── feed.js       cards, search, filters, carousel, pagination
-                     ├── detail.js     one listing: contact, chat, owner actions, report
-                     ├── sell.js       post and edit, photo upload
+                     ├── feed.js       cards, search, filters, mode tabs, pagination
+                     ├── detail.js     one listing: gallery, contact, chat, owner actions
+                     ├── sell.js       post and edit, listing modes, multi-photo upload
+                     ├── requests.js   the wanted board: post, answer, close
                      ├── cropper.js    crop and rotate
                      ├── messaging.js  community room, private chats, inbox
                      ├── auth.js       register, log in, password reset
-                     └── account.js    profile, My Listings, settings, install
+                     └── account.js    profile card and editor, My Listings, settings
 ```
 
 More detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and the data model in [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md).
@@ -251,6 +402,18 @@ Worth stating plainly, because an earlier version of this project got it wrong.
 - **The anon key is public on purpose.** It identifies the project, not the user. Security comes from the policies.
 - **Uploads are scoped.** Storage policy only lets you write into a folder named after your own user id.
 - **Reports are write-only.** You can file one; you cannot read anyone else's.
+- **Verification is not self-service.** `profiles.is_verified` is set by the
+  sign-up trigger from `campus_settings.email_domains`, and a trigger refuses
+  any attempt by an account to change its own. The insert policy on `items` is
+  what actually stops an unverified account posting.
+- **A review needs a conversation.** The insert policy calls
+  `has_conversed()`, which asks whether both people have posted in the same
+  non-community channel. Someone can leave a review only where the other party
+  took part, so review-bombing needs the target's cooperation.
+- **A phone number is not part of a profile card.** Profile rows are readable
+  by anyone — a seller's name, photo and course are part of deciding whether to
+  meet a stranger — but `phone` is held back by a column grant rather than a
+  policy, because it is a column-shaped rule and RLS works on rows.
 
 Sold listings are deleted by `purge_expired_sold_items()`, a `SECURITY DEFINER` function, 5 hours after being marked sold. The app calls it on startup. To run it on a schedule instead, enable `pg_cron` and uncomment the `cron.schedule` line at the end of the schema.
 
@@ -262,7 +425,20 @@ Sold listings are deleted by `purge_expired_sold_items()`, a `SECURITY DEFINER` 
 - **Reports have no admin screen yet.** They land in the `reports` table; someone has to look at it in the Supabase dashboard.
 - **Community chat is unmoderated.** Anyone signed in can post to the room.
 - **Phone numbers are not verified.** Only email is, via the confirmation link.
-- **Areas are Aizawl-specific**, hardcoded in `js/app.js`.
+- **Verification proves an address, not a person.** Anyone who can receive mail
+  at the college domain is treated as a student. It stops strangers off the
+  internet; it does not stop a graduate whose account still works.
+- **A swap is not tracked.** Barter is a listing mode and a conversation, not a
+  transaction with a state — nothing records that the exchange happened.
+- **A review means "we talked", not "we traded".** Nothing in the app can
+  witness a handshake behind the library, so the bar for leaving one is an
+  exchange of messages. It cannot be met without the other person taking part,
+  which is what makes it worth anything, but it is not proof of a deal.
+- **Requests are not matched to listings.** Deliberate — see above.
+- **Nobody can block another user yet.** Reporting a listing works; reporting a
+  person does not.
+- **There are no notifications outside the app.** Realtime keeps an open app up
+  to date; nothing reaches a closed one.
 - **Guests can see everything that is listed.** Browsing is deliberately open,
   so treat any column on `items` as public. Contact details are hidden in the
   UI for guests, but that is a product decision, not a security boundary — the

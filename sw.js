@@ -6,7 +6,7 @@
  * anything going to Supabase always goes to the network.
  */
 
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SHELL_CACHE = `campuscart-shell-${VERSION}`;
 const IMAGE_CACHE = `campuscart-images-${VERSION}`;
 const MAX_CACHED_IMAGES = 60;
@@ -32,6 +32,7 @@ const SHELL_ASSETS = [
   './js/feed.js',
   './js/detail.js',
   './js/sell.js',
+  './js/requests.js',
   './js/messaging.js',
   './js/auth.js',
   './js/account.js',

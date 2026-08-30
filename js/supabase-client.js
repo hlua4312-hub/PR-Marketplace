@@ -253,7 +253,8 @@ class SupabaseMarketplaceClient {
      ====================================================================== */
 
   static get PROFILE_COLUMNS() {
-    return 'id, full_name, avatar_url, department, year_of_study, bio, is_verified, verified_at, created_at';
+    return 'id, full_name, avatar_url, department, year_of_study, bio, ' +
+           'is_verified, verified_at, rating_avg, rating_count, created_at';
   }
 
   /** One person's public card: name, photo, course, verified badge. */
@@ -334,7 +335,229 @@ class SupabaseMarketplaceClient {
       bio: row.bio,
       isVerified: Boolean(row.is_verified),
       verifiedAt: row.verified_at,
+      // Kept on the profile row by a trigger on reviews, so a seller card is
+      // one request rather than one plus an aggregate.
+      ratingAvg: row.rating_avg === null || row.rating_avg === undefined ? null : Number(row.rating_avg),
+      ratingCount: Number(row.rating_count) || 0,
       createdAt: row.created_at
+    };
+  }
+
+  /* ======================================================================
+     REQUESTS - THE WANTED BOARD
+
+     The mirror of a listing: "I need this" rather than "I have this".
+     Same posting rule - reading is open, posting needs a verified account.
+     ====================================================================== */
+
+  async fetchRequests(filters = {}) {
+    const db = this._require();
+    const pageSize = filters.pageSize || window.PRConfig.PAGE_SIZE;
+    const page = filters.page || 0;
+
+    let query = db.from('requests').select('*');
+
+    // The board defaults to what is still open. Someone's own requests are
+    // shown whatever their status, because closing one is not the same as
+    // wanting it gone from your own list.
+    if (filters.mine) {
+      query = query.eq('user_id', filters.mine);
+    } else {
+      query = query.eq('status', filters.status || 'open');
+    }
+    if (filters.category && filters.category !== 'all') {
+      query = query.eq('category', filters.category);
+    }
+    if (filters.search) {
+      const q = filters.search.replace(/[%,()]/g, ' ').trim();
+      if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+    }
+
+    query = query
+      .order('created_at', { ascending: false })
+      .range(page * pageSize, page * pageSize + pageSize - 1);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(row => this._toRequest(row));
+  }
+
+  async fetchRequestById(id) {
+    const db = this._require();
+    const { data, error } = await db.from('requests').select('*').eq('id', id).maybeSingle();
+    if (error) throw error;
+    return data ? this._toRequest(data) : null;
+  }
+
+  async createRequest(input) {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) throw new Error('NOT_SIGNED_IN');
+
+    const { data, error } = await db
+      .from('requests')
+      .insert([{
+        user_id: user.id,
+        title: input.title,
+        description: input.description || null,
+        category: input.category,
+        budget_max: input.budgetMax === '' || input.budgetMax === null || input.budgetMax === undefined
+          ? null
+          : Number(input.budgetMax),
+        needed_by: input.neededBy || null,
+        requester_name: input.requesterName || user.fullName
+      }])
+      .select()
+      .single();
+
+    if (error) throw this._postingError(error);
+    return this._toRequest(data);
+  }
+
+  async updateRequest(id, patch) {
+    const db = this._require();
+    const row = {};
+    if (patch.title !== undefined)       row.title = patch.title;
+    if (patch.description !== undefined) row.description = patch.description || null;
+    if (patch.category !== undefined)    row.category = patch.category;
+    if (patch.neededBy !== undefined)    row.needed_by = patch.neededBy || null;
+    if (patch.status !== undefined)      row.status = patch.status;
+    if (patch.budgetMax !== undefined) {
+      row.budget_max = patch.budgetMax === '' || patch.budgetMax === null
+        ? null
+        : Number(patch.budgetMax);
+    }
+
+    const { data, error } = await db.from('requests').update(row).eq('id', id).select().single();
+    if (error) throw this._ownershipError(error);
+    return this._toRequest(data);
+  }
+
+  async deleteRequest(id) {
+    const db = this._require();
+    const { data, error } = await db.from('requests').delete().eq('id', id).select();
+    if (error) throw this._ownershipError(error);
+    if (!data || data.length === 0) throw new Error('NOT_YOUR_LISTING');
+    return true;
+  }
+
+  _toRequest(row) {
+    return {
+      id: row.id,
+      userId: row.user_id,
+      title: row.title,
+      description: row.description,
+      category: row.category,
+      budgetMax: row.budget_max === null ? null : Number(row.budget_max),
+      neededBy: row.needed_by,
+      requesterName: row.requester_name,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  /* ======================================================================
+     REVIEWS
+
+     Public, one per person per person, and only for someone you have
+     actually exchanged messages with. The last part is a policy on the
+     table - this file only decides what to ask for.
+     ====================================================================== */
+
+  async fetchReviews(subjectId) {
+    const db = this._require();
+    const { data, error } = await db
+      .from('reviews')
+      .select('*')
+      .eq('subject_id', subjectId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+    return (data || []).map(row => this._toReview(row));
+  }
+
+  /** What the signed-in user has already said about someone, if anything. */
+  async fetchMyReviewOf(subjectId) {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) return null;
+
+    const { data, error } = await db
+      .from('reviews')
+      .select('*')
+      .eq('subject_id', subjectId)
+      .eq('author_id', user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? this._toReview(data) : null;
+  }
+
+  /**
+   * Leave or rewrite a review. Upsert rather than insert-or-catch: the unique
+   * constraint on (author, subject) is what makes one review per pair true,
+   * and going through it deliberately is clearer than handling 23505.
+   */
+  async submitReview({ subjectId, rating, body }) {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) throw new Error('NOT_SIGNED_IN');
+    if (user.id === subjectId) throw new Error('CANNOT_REVIEW_YOURSELF');
+
+    const score = Number(rating);
+    if (!Number.isInteger(score) || score < 1 || score > 5) throw new Error('BAD_RATING');
+
+    const { data, error } = await db
+      .from('reviews')
+      .upsert(
+        {
+          subject_id: subjectId,
+          author_id: user.id,
+          author_name: user.fullName,
+          rating: score,
+          body: (body || '').trim() || null
+        },
+        { onConflict: 'author_id,subject_id' }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '42501' || /row-level security/i.test(error.message || '')) {
+        throw new Error('NOT_MET_YET');
+      }
+      throw error;
+    }
+    return this._toReview(data);
+  }
+
+  async deleteMyReview(subjectId) {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) throw new Error('NOT_SIGNED_IN');
+
+    const { error } = await db
+      .from('reviews')
+      .delete()
+      .eq('subject_id', subjectId)
+      .eq('author_id', user.id);
+
+    if (error) throw error;
+    return true;
+  }
+
+  _toReview(row) {
+    return {
+      id: row.id,
+      subjectId: row.subject_id,
+      authorId: row.author_id,
+      authorName: row.author_name,
+      rating: Number(row.rating),
+      body: row.body,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
     };
   }
 

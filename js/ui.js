@@ -99,6 +99,17 @@ export function closeModal(el) {
 }
 
 /**
+ * Reconcile the page lock with the modal stack without closing anything.
+ *
+ * Feed navigation can happen after a sheet was dismissed by a browser restore
+ * or an older handler. Calling this when Explore renders prevents an orphaned
+ * `modal-open` class from turning the page into an apparently frozen feed.
+ */
+export function syncModalState() {
+  syncBodyLock();
+}
+
+/**
  * The lock follows what is actually on screen rather than a running tally.
  *
  * body.modal-open sets overflow:hidden, so a stack entry that never gets
@@ -215,6 +226,9 @@ export function describeError(err) {
     OTP_REJECTED: 'That code was not accepted — it may be wrong, already used, or over an hour old. Ask for a new one.',
     NOT_SIGNED_IN: 'Log in to do that.',
     NOT_VERIFIED: verificationMessage(),
+    CANNOT_REVIEW_YOURSELF: 'You cannot review your own account.',
+    BAD_RATING: 'Pick between one and five stars.',
+    NOT_MET_YET: 'You can only review someone you have messaged. Start a conversation first.',
     INVALID_VPA: 'That UPI ID does not look right. It should read something like name@bank.',
     INVALID_UTR: 'Enter the reference number your UPI app showed — letters and digits, at least 6.',
     UTR_ALREADY_SUBMITTED: 'You have already submitted that reference number.',

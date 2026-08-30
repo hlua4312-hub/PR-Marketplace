@@ -247,8 +247,15 @@ export async function openThread({ channelType, channelId, peerName, subtitle, f
   });
 }
 
-/** A one-to-one chat, opened from an avatar in the community room. */
-export async function openPrivateChat(peer, { fromCommunity = false } = {}) {
+/**
+ * A one-to-one chat, opened from an avatar in the community room or from an
+ * answer to a request on the wanted board.
+ *
+ * `draft` fills the box without sending. Nobody should fire off a message they
+ * have not read, and an opener people can edit gets sent far more often than
+ * an empty box does.
+ */
+export async function openPrivateChat(peer, { fromCommunity = false, draft = '' } = {}) {
   const user = window.api.getCurrentUser();
   if (!user) {
     hooks.requireLogin?.('Log in to send a private message.');
@@ -266,6 +273,14 @@ export async function openPrivateChat(peer, { fromCommunity = false } = {}) {
     subtitle: 'Private conversation',
     fromCommunity
   });
+
+  if (draft) {
+    const input = document.getElementById('privateChatMessageInput');
+    if (input && !input.value) {
+      input.value = draft;
+      input.focus();
+    }
+  }
 }
 
 export function closePrivateChat({ back = false } = {}) {

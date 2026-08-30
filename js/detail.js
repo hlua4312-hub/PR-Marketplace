@@ -113,9 +113,126 @@ async function hydrateSellerCard(item) {
       profile.isVerified
         ? '<span class="verified-badge" title="Registered with a college address">✓ Verified student</span>'
         : '<span class="unverified-badge">Not verified</span>',
+      ratingMarkup(profile),
       course ? `<span class="seller-course">${escapeHtml(course)}</span>` : ''
-    ].join('');
+    ].filter(Boolean).join('');
   }
+
+  renderReviews(item, profile);
+}
+
+/* ============================================================== reviews === */
+
+/**
+ * The score, or nothing.
+ *
+ * A brand new account shows no stars rather than a zero or an empty row of
+ * five - both of which read as "rated badly" when the truth is "not rated
+ * yet", and the difference matters most to exactly the people it would be
+ * unfair to.
+ */
+function ratingMarkup(profile) {
+  if (!profile || !profile.ratingCount) return '';
+  const avg = Number(profile.ratingAvg) || 0;
+  const people = profile.ratingCount === 1 ? 'person' : 'people';
+  return `
+    <span class="rating-inline" title="${avg.toFixed(1)} out of 5 from ${profile.ratingCount} ${people}">
+      <span class="stars" aria-hidden="true">${stars(Math.round(avg))}</span>
+      <span>${avg.toFixed(1)}</span>
+      <span class="count">(${profile.ratingCount})</span>
+    </span>`;
+}
+
+function stars(n) {
+  const filled = Math.max(0, Math.min(5, n));
+  return '★'.repeat(filled) + '☆'.repeat(5 - filled);
+}
+
+async function renderReviews(item, profile) {
+  const box = document.getElementById('sellerReviews');
+  if (!box) return;
+
+  const user = window.api.getCurrentUser();
+  const isOwner = window.api.isItemOwnedByCurrentUser(item);
+
+  let reviews = [];
+  let mine = null;
+  try {
+    reviews = await window.api.fetchReviews(item.userId);
+    if (user && !isOwner) mine = await window.api.fetchMyReviewOf(item.userId);
+  } catch (err) {
+    return;                              // a missing score is better than an error box
+  }
+  if (currentItem !== item) return;
+
+  // Nothing to show and nothing to offer: stay out of the way.
+  if (!reviews.length && (!user || isOwner)) return;
+
+  const name = profile.fullName || item.sellerName;
+
+  box.hidden = false;
+  box.innerHTML = `
+    <h4>${reviews.length ? `What people say about ${escapeHtml(name)}` : 'No reviews yet'}</h4>
+    ${reviews.map(reviewRow).join('')}
+    ${user && !isOwner ? reviewForm(mine, name) : ''}
+  `;
+
+  wireStarPicker(box, mine ? mine.rating : 0);
+}
+
+function reviewRow(review) {
+  return `
+    <div class="review-row">
+      <div class="review-row-top">
+        <span class="review-author">${escapeHtml(review.authorName)}</span>
+        <span class="stars" aria-label="${review.rating} out of 5">${stars(review.rating)}</span>
+      </div>
+      ${review.body ? `<p class="review-body">${escapeHtml(review.body)}</p>` : ''}
+      <span class="review-when">${escapeHtml(timeAgo(review.createdAt))}</span>
+    </div>`;
+}
+
+function reviewForm(mine, name) {
+  return `
+    <form id="reviewForm" class="review-form">
+      <label class="form-label">${mine ? 'Your review' : `Dealt with ${escapeHtml(name)}?`}</label>
+      <div class="star-picker" id="starPicker" role="radiogroup" aria-label="Rating">
+        ${[1, 2, 3, 4, 5].map(n => `
+          <button type="button" class="star-btn" data-star="${n}" role="radio"
+                  aria-checked="false" aria-label="${n} star${n === 1 ? '' : 's'}">★</button>`).join('')}
+      </div>
+      <input type="hidden" id="reviewRating" value="${mine ? mine.rating : ''}">
+      <textarea id="reviewBody" rows="2" maxlength="500"
+                placeholder="Turned up on time? Was it as described?">${escapeHtml(mine ? mine.body || '' : '')}</textarea>
+      <div class="modal-actions-row">
+        ${mine ? '<button type="button" class="btn btn-secondary" data-action="delete-review">Remove</button>' : ''}
+        <button type="submit" class="btn btn-primary" id="submitReviewBtn">${mine ? 'Update review' : 'Post review'}</button>
+      </div>
+      <p class="upload-hint">You can review someone you have messaged. One review each, and you can rewrite it.</p>
+    </form>`;
+}
+
+function wireStarPicker(box, initial) {
+  const picker = box.querySelector('#starPicker');
+  const value = box.querySelector('#reviewRating');
+  if (!picker || !value) return;
+
+  const paint = n => {
+    picker.querySelectorAll('.star-btn').forEach(btn => {
+      const star = Number(btn.dataset.star);
+      btn.classList.toggle('lit', star <= n);
+      btn.setAttribute('aria-checked', String(star === n));
+    });
+  };
+
+  picker.addEventListener('click', event => {
+    const btn = event.target.closest('[data-star]');
+    if (!btn) return;
+    value.value = btn.dataset.star;
+    paint(Number(btn.dataset.star));
+  });
+
+  paint(Number(initial) || 0);
 }
 
 function detailMarkup(item) {
@@ -222,6 +339,8 @@ function detailMarkup(item) {
       </div>
 
       ${isOwner ? ownerPanel(item, isSold) : buyerPanel(item, { user, isSold, phone, whatsapp, instagram, waMessage })}
+
+      <div class="review-block" id="sellerReviews" hidden></div>
     </div>
   `;
 }
@@ -466,6 +585,11 @@ function messageMarkup(message, user) {
 }
 
 async function onContentSubmit(event) {
+  if (event.target.id === 'reviewForm') {
+    event.preventDefault();
+    await postReview();
+    return;
+  }
   if (event.target.id !== 'chatInputForm') return;
   event.preventDefault();
 
@@ -486,6 +610,32 @@ async function onContentSubmit(event) {
   } catch (err) {
     input.value = body;
     showToast(describeError(err));
+  }
+}
+
+async function postReview() {
+  const rating = Number(document.getElementById('reviewRating')?.value);
+  const body = document.getElementById('reviewBody')?.value || '';
+  const button = document.getElementById('submitReviewBtn');
+
+  if (!rating) {
+    showToast('Pick a star rating first.');
+    return;
+  }
+  if (!currentItem) return;
+
+  const item = currentItem;
+  if (button) button.disabled = true;
+
+  try {
+    await window.api.submitReview({ subjectId: item.userId, rating, body });
+    showToast('Thanks — your review is up.');
+    // Re-read the seller card: the trigger has just moved their average.
+    hydrateSellerCard(item);
+  } catch (err) {
+    showToast(describeError(err), 5000);
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
@@ -518,6 +668,17 @@ async function onContentClick(event) {
     trigger.querySelector('span').textContent = isFav ? 'Saved' : 'Save';
     showToast(isFav ? 'Saved' : 'Removed from saved');
     hooks.onFeedChanged?.({ soft: true });
+    return;
+  }
+
+  if (action === 'delete-review') {
+    try {
+      await window.api.deleteMyReview(currentItem.userId);
+      showToast('Review removed.');
+      hydrateSellerCard(currentItem);
+    } catch (err) {
+      showToast(describeError(err));
+    }
     return;
   }
 

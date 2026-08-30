@@ -601,6 +601,257 @@ create policy "messages: send as yourself"
 
 
 -- --------------------------------------------------------------------------
+-- 5b. REQUESTS - THE WANTED BOARD
+--
+--    The other half of a marketplace. A listing says "I have this"; a request
+--    says "I need this", and someone holding it can answer.
+--
+--    There is deliberately no matching engine. Pairing requests to listings
+--    automatically sounds obvious and behaves badly at campus scale: a few
+--    hundred listings produce almost no matches, and an empty notification
+--    feed reads as a broken feature. People browse the board instead.
+-- --------------------------------------------------------------------------
+create table if not exists public.requests (
+    id             uuid primary key default gen_random_uuid(),
+    user_id        uuid not null references auth.users(id) on delete cascade,
+    title          text not null check (char_length(title) between 3 and 120),
+    description    text check (char_length(description) <= 1000),
+    category       text not null,
+    budget_max     numeric(12,2) check (budget_max is null or budget_max >= 0),
+    needed_by      date,
+    requester_name text not null,
+    -- 'fulfilled' means someone came through; 'closed' means it stopped
+    -- mattering. Both take it off the open board, and the difference is worth
+    -- keeping because only one of them says the board worked.
+    status         text not null default 'open'
+                   check (status in ('open', 'fulfilled', 'closed')),
+    created_at     timestamptz not null default now(),
+    updated_at     timestamptz not null default now()
+);
+
+create index if not exists requests_status_idx   on public.requests (status, created_at desc);
+create index if not exists requests_category_idx on public.requests (category);
+create index if not exists requests_user_idx     on public.requests (user_id);
+
+alter table public.requests enable row level security;
+
+drop policy if exists "requests: anyone may read"        on public.requests;
+drop policy if exists "requests: verified students post" on public.requests;
+drop policy if exists "requests: owner edits own"        on public.requests;
+drop policy if exists "requests: owner deletes own"      on public.requests;
+
+create policy "requests: anyone may read"
+    on public.requests for select
+    using (true);
+
+-- Same rule as listings: posting needs a verified account, reading does not.
+create policy "requests: verified students post"
+    on public.requests for insert
+    to authenticated
+    with check (
+        auth.uid() = user_id
+        and public.is_verified_student(auth.uid())
+    );
+
+create policy "requests: owner edits own"
+    on public.requests for update
+    to authenticated
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "requests: owner deletes own"
+    on public.requests for delete
+    to authenticated
+    using (auth.uid() = user_id);
+
+drop trigger if exists requests_touch_updated_at on public.requests;
+create trigger requests_touch_updated_at
+    before update on public.requests
+    for each row execute function public.touch_updated_at();
+
+
+-- --------------------------------------------------------------------------
+-- 5c. REVIEWS - THE TRUST LAYER
+--
+--    One review per person, per person. Not per deal: a running score with a
+--    count under it is what a buyer actually reads, and letting the same pair
+--    stack up five reviews turns that number into a measure of how often two
+--    friends traded rather than how reliable anyone is. A review can be
+--    rewritten instead, which is also the honest thing when someone makes good
+--    on a bad first exchange.
+-- --------------------------------------------------------------------------
+
+-- You may review someone you have actually spoken to.
+--
+-- "Spoken to" is: both of you have posted in the same conversation, and it was
+-- not the community room. That is deliberately weaker than "completed a deal"
+-- - nothing here records a handshake behind the library - but it is real
+-- evidence of contact, it cannot be faked without the other person taking
+-- part, and it survives the listing being purged five hours after it sells.
+--
+-- It answers only about the caller. Taking two user ids would have made this
+-- an oracle: the function reads messages with the definer's rights, user ids
+-- are public on every listing, and anyone could then ask whether any two
+-- people had ever spoken privately. Nothing needs that, and the policy below
+-- only ever asks about auth.uid().
+drop function if exists public.has_conversed(uuid, uuid);
+
+create or replace function public.has_conversed(p_other uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select exists (
+        select 1
+        from public.messages a
+        join public.messages b
+          on b.channel_type = a.channel_type
+         and b.channel_id   = a.channel_id
+        where a.channel_type <> 'community'
+          and a.sender_id = auth.uid()
+          and b.sender_id = p_other
+    );
+$$;
+
+revoke all on function public.has_conversed(uuid) from public;
+-- Signed out there is no caller to ask about, so anon is not granted.
+grant execute on function public.has_conversed(uuid) to authenticated;
+
+create table if not exists public.reviews (
+    id          uuid primary key default gen_random_uuid(),
+    subject_id  uuid not null references auth.users(id) on delete cascade,
+    author_id   uuid not null references auth.users(id) on delete cascade,
+    rating      smallint not null check (rating between 1 and 5),
+    body        text check (char_length(body) <= 500),
+    author_name text not null,
+    created_at  timestamptz not null default now(),
+    updated_at  timestamptz not null default now(),
+
+    constraint reviews_not_yourself check (author_id <> subject_id),
+    unique (author_id, subject_id)
+);
+
+create index if not exists reviews_subject_idx on public.reviews (subject_id, created_at desc);
+
+alter table public.reviews enable row level security;
+
+drop policy if exists "reviews: anyone may read"      on public.reviews;
+drop policy if exists "reviews: rate someone you met" on public.reviews;
+drop policy if exists "reviews: rewrite your own"     on public.reviews;
+drop policy if exists "reviews: delete your own"      on public.reviews;
+
+-- Public by design. A score nobody can see protects nobody.
+create policy "reviews: anyone may read"
+    on public.reviews for select
+    using (true);
+
+create policy "reviews: rate someone you met"
+    on public.reviews for insert
+    to authenticated
+    with check (
+        auth.uid() = author_id
+        and auth.uid() <> subject_id
+        and public.has_conversed(subject_id)
+    );
+
+-- You can rewrite what you said, but not who it is about or who wrote it.
+create policy "reviews: rewrite your own"
+    on public.reviews for update
+    to authenticated
+    using (auth.uid() = author_id)
+    with check (auth.uid() = author_id);
+
+create policy "reviews: delete your own"
+    on public.reviews for delete
+    to authenticated
+    using (auth.uid() = author_id);
+
+-- The subject and the author are fixed at insert. Without this the update
+-- policy would let someone rewrite a 5-star review of a friend into a 1-star
+-- review of a stranger, skipping the has_conversed() check entirely.
+create or replace function public.reviews_freeze_parties()
+returns trigger
+language plpgsql
+as $$
+begin
+    if new.subject_id is distinct from old.subject_id
+    or new.author_id  is distinct from old.author_id
+    or new.created_at is distinct from old.created_at then
+        raise exception 'A review cannot change who it is about or who wrote it.';
+    end if;
+    new.updated_at = now();
+    return new;
+end;
+$$;
+
+drop trigger if exists reviews_freeze_parties on public.reviews;
+create trigger reviews_freeze_parties
+    before update on public.reviews
+    for each row execute function public.reviews_freeze_parties();
+
+-- Keep the running score on the profile, so drawing a seller's card is one
+-- request rather than one plus an aggregate.
+alter table public.profiles add column if not exists rating_avg   numeric(3,2);
+alter table public.profiles add column if not exists rating_count integer not null default 0;
+
+create or replace function public.refresh_rating(p_subject uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    update public.profiles p
+       set rating_avg   = sub.avg_rating,
+           rating_count = sub.n
+      from (
+        select round(avg(rating)::numeric, 2) as avg_rating, count(*)::int as n
+        from public.reviews where subject_id = p_subject
+      ) sub
+     where p.id = p_subject;
+end;
+$$;
+
+-- Only the trigger calls this. Left executable by everyone it would let any
+-- caller write to profiles with the definer's rights; it recomputes from the
+-- real reviews so it cannot forge a score, but nothing outside needs it.
+revoke all on function public.refresh_rating(uuid) from public;
+
+create or replace function public.reviews_sync_rating()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    perform public.refresh_rating(coalesce(new.subject_id, old.subject_id));
+    return null;
+end;
+$$;
+
+drop trigger if exists reviews_sync_rating on public.reviews;
+create trigger reviews_sync_rating
+    after insert or update or delete on public.reviews
+    for each row execute function public.reviews_sync_rating();
+
+-- Bring existing rows into line, in case reviews arrived before this trigger.
+update public.profiles p
+   set rating_avg   = sub.avg_rating,
+       rating_count = sub.n
+  from (
+    select subject_id, round(avg(rating)::numeric, 2) as avg_rating, count(*)::int as n
+    from public.reviews group by subject_id
+  ) sub
+ where p.id = sub.subject_id;
+
+-- The two new columns have to join the profile card's column grant, or the
+-- API can read the name and photo but not the score beside them.
+grant select (rating_avg, rating_count) on public.profiles to anon, authenticated;
+
+
+-- --------------------------------------------------------------------------
 -- 6. REPORTS
 --    Lets a buyer flag a listing. Reports are write-only from the client:
 --    you can file one, you cannot read anyone else's.

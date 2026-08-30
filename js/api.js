@@ -185,6 +185,29 @@ class MarketplaceAPI {
   fetchProfiles(userIds) { return window.supabaseAPI.fetchProfiles(userIds); }
   fetchCampusSettings()  { return window.supabaseAPI.fetchCampusSettings(); }
 
+  /* ======================================================================
+     THE WANTED BOARD
+
+     No offline cache here, unlike the feed. A request is a live ask - "I need
+     a calculator by Friday" - and serving a stale one would send someone to
+     answer a request that closed yesterday.
+     ====================================================================== */
+
+  fetchRequests(filters)     { return window.supabaseAPI.fetchRequests(filters); }
+  fetchRequestById(id)       { return window.supabaseAPI.fetchRequestById(id); }
+  createRequest(input)       { return window.supabaseAPI.createRequest(input); }
+  updateRequest(id, patch)   { return window.supabaseAPI.updateRequest(id, patch); }
+  deleteRequest(id)          { return window.supabaseAPI.deleteRequest(id); }
+
+  /* ======================================================================
+     REVIEWS
+     ====================================================================== */
+
+  fetchReviews(subjectId)    { return window.supabaseAPI.fetchReviews(subjectId); }
+  fetchMyReviewOf(subjectId) { return window.supabaseAPI.fetchMyReviewOf(subjectId); }
+  submitReview(review)       { return window.supabaseAPI.submitReview(review); }
+  deleteMyReview(subjectId)  { return window.supabaseAPI.deleteMyReview(subjectId); }
+
   /** Save your own card, then re-merge it into the cached session. */
   async updateMyProfile(patch) {
     const card = await window.supabaseAPI.updateMyProfile(patch);

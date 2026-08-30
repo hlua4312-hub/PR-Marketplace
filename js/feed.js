@@ -5,7 +5,7 @@
 
 import {
   escapeHtml, highlight, formatPrice, hoursUntilPurge,
-  showToast, closeModal, PLACEHOLDER_IMAGE
+  showToast, closeModal, syncModalState, PLACEHOLDER_IMAGE
 } from './ui.js';
 import { filters, view, queryFilters, setFilter, setTab, resetFilters, activeFilterCount, PRICE_SLIDER_MAX } from './store.js';
 import { initPullToRefresh, initInfiniteScroll } from './gestures.js';
@@ -13,10 +13,12 @@ import { initPullToRefresh, initInfiniteScroll } from './gestures.js';
 let els = {};
 let loadedItems = [];
 let openDetail = null;      // injected by app.js to avoid a circular import
+let leaveBoard = null;      // ditto - the wanted board owns its own module
 let loadToken = 0;
 
-export function initFeed({ onOpenItem }) {
+export function initFeed({ onOpenItem, onLeaveBoard }) {
   openDetail = onOpenItem;
+  leaveBoard = onLeaveBoard;
 
   els = {
     grid: document.getElementById('itemsGrid'),
@@ -76,6 +78,10 @@ function wireGestures() {
 /* ============================================================== loading === */
 
 export async function loadFeed({ append = false } = {}) {
+  // A hidden sheet from a previous route must never keep Explore locked.
+  // This is deliberately safe while a real sheet is open: syncModalState
+  // preserves the lock for every still-visible entry in the modal stack.
+  syncModalState();
   if (!els.grid) return;
 
   const token = ++loadToken;
@@ -380,6 +386,7 @@ function wireSearch() {
 
     clearTimeout(timer);
     timer = setTimeout(() => {
+      leaveBoard?.();
       setFilter({ search: value });
       loadFeed();
     }, 250);
@@ -401,8 +408,11 @@ function wireSearch() {
 function wireModeTabs() {
   els.modeTabs?.addEventListener('click', event => {
     const tab = event.target.closest('.mode-tab');
-    if (!tab) return;
+    // The Wanted tab lives in the same row but shows a different thing
+    // entirely; requests.js listens for it.
+    if (!tab || !tab.dataset.listingType) return;
 
+    leaveBoard?.();
     setFilter({ listingType: tab.dataset.listingType });
     syncModeTabs();
 
@@ -428,6 +438,7 @@ function wireCategories() {
     els.categories.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
 
+    leaveBoard?.();
     setFilter({ category: chip.dataset.category });
     if (view.tab !== 'explore') {
       setTab('explore');

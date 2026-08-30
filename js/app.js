@@ -13,7 +13,7 @@ import { initDetail, openItemDetail, isDetailOpen, close as closeDetail } from '
 import { initSell, openSellModal, openEditModal, closeSellModal, isSellOpen } from './sell.js';
 import {
   initMessaging, openCommunityChat, closeCommunityChat, isCommunityOpen,
-  closePrivateChat, isPrivateOpen, closeInbox, isInboxOpen,
+  openPrivateChat, closePrivateChat, isPrivateOpen, closeInbox, isInboxOpen,
   watchForNewMessages, stopWatching, refreshInbox
 } from './messaging.js';
 import {
@@ -26,6 +26,7 @@ import { cancelCropper } from './cropper.js';
 import { initWebUpdates } from './updates.js';
 import { initPayments, openPaySheet, isPayOpen, close as closePaySheet } from './payments.js';
 import { initCampus } from './campus.js';
+import { initRequests, closeBoard, isBoardOpen } from './requests.js';
 
 /* ================================================================= start === */
 
@@ -40,8 +41,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // so it goes first.
   initCampus();
 
-  initFeed({ onOpenItem: openItemDetail });
+  initFeed({ onOpenItem: openItemDetail, onLeaveBoard: closeBoard });
   wireGridDelegation();
+
+  initRequests({
+    requireLogin,
+    // Answering a request is a private message with the first line already
+    // written, because "I have this" with nothing after it is the message
+    // people fail to send.
+    onOpenPeerChat: (peer, draft) => openPrivateChat(peer, { draft })
+  });
 
   initDetail({
     onEdit: openEditModal,
@@ -92,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   wireBottomNav();
   wireBackButton();
+  wireBrowserBackNavigation();
   initWebUpdates();
   wireGps();
   wireZoomViewer();
@@ -197,7 +207,10 @@ async function boot(splash) {
  * the history, or in whatever the user pastes next.
  */
 function clearAuthFragment() {
-  history.replaceState(null, '', window.location.pathname + window.location.search);
+  // Keep the browser-back guard intact when an auth link has finished doing
+  // its job. Replacing it with null would make the next Back press leave the
+  // app instead of closing the in-app layer first.
+  history.replaceState(history.state, '', window.location.pathname + window.location.search);
 }
 
 /**
@@ -220,7 +233,7 @@ function applyLaunchIntent() {
     return;
   }
 
-  history.replaceState(null, '', window.location.pathname);
+  history.replaceState(history.state, '', window.location.pathname);
 }
 
 function hideSplash(splash) {
@@ -235,12 +248,13 @@ function hideSplash(splash) {
 
 async function onSignedIn() {
   clearAuthForms();
-  history.replaceState(null, '', window.location.pathname + window.location.search);
+  history.replaceState(history.state, '', window.location.pathname + window.location.search);
   await enterApp();
 }
 
 async function enterApp() {
   showApp();
+  closeBoard();
   setTab('explore');
   syncNavButtons('explore');
   syncFilterControls();
@@ -292,12 +306,14 @@ function wireBottomNav() {
 
     switch (button.id) {
       case 'navExplore':
+        closeBoard();
         setTab('explore');
         syncNavButtons('explore');
         loadFeed();
         break;
 
       case 'navFavorites':
+        closeBoard();
         setTab('favorites');
         syncNavButtons('favorites');
         loadFeed();
@@ -318,53 +334,92 @@ function wireBottomNav() {
 
 /* =========================================================== back button === */
 
+const BROWSER_BACK_GUARD = '__prMarketplaceBackGuard';
+
+// The Android shell evaluates this function directly. Assign it before
+// DOMContentLoaded so a Back press during the first moments of startup does
+// not fall through to the WebView or browser history.
+window.handleAndroidBackButton = handleAndroidBackButton;
+
 /**
  * Android's hardware back walks the app backwards one layer at a time instead
  * of leaving immediately. MainActivity calls this and only exits when it
  * returns false.
  */
+function handleAndroidBackButton() {
+  if (isRecoveryOtpOpen()) { closeRecoveryOtp(); showAuth({ tab: 'login' }); return true; }
+  if (isPayOpen()) { closePaySheet(); return true; }
+  if (isAuthOpen() && window.api?.getCurrentUser?.()) { hideAuth(); return true; }
+  if (isAuthOpen()) { hideAuth(); loadFeed(); return true; }
+  if (cancelCropper()) return true;
+  if (isZoomOpen()) { closeZoomViewer(); return true; }
+  if (isPrivateOpen()) { closePrivateChat({ back: true }); return true; }
+  if (isCommunityOpen()) { closeCommunityChat(); return true; }
+  if (isSellOpen()) { closeSellModal(); return true; }
+  if (isDetailOpen()) { closeDetail(); return true; }
+  if (isInboxOpen()) { closeInbox(); return true; }
+  if (isAccountOpen()) { closeAccount(); return true; }
+  if (closeTopModal()) return true;
+
+  if (isBoardOpen()) {
+    closeBoard();
+    setFilter({ listingType: 'all' });
+    syncFilterControls();
+    loadFeed();
+    return true;
+  }
+
+  if (view.tab !== 'explore') {
+    setTab('explore');
+    syncNavButtons('explore');
+    loadFeed();
+    return true;
+  }
+
+  if (filters.search || filters.category !== 'all') {
+    resetFilters();
+    syncFilterControls();
+    const search = document.getElementById('searchInput');
+    if (search) search.value = '';
+    document.getElementById('clearSearchBtn')?.classList.add('hidden');
+    document.querySelectorAll('.cat-chip').forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.category === 'all');
+    });
+    loadFeed();
+    return true;
+  }
+
+  return false;
+}
+
 function wireBackButton() {
-  window.handleAndroidBackButton = function handleBack() {
-    if (isRecoveryOtpOpen()) { closeRecoveryOtp(); showAuth({ tab: 'login' }); return true; }
-    if (isPayOpen()) { closePaySheet(); return true; }
-    if (isAuthOpen() && window.api.getCurrentUser()) { hideAuth(); return true; }
-    if (isAuthOpen()) { hideAuth(); loadFeed(); return true; }
-    if (cancelCropper()) return true;
-    if (isZoomOpen()) { closeZoomViewer(); return true; }
-    if (isPrivateOpen()) { closePrivateChat({ back: true }); return true; }
-    if (isCommunityOpen()) { closeCommunityChat(); return true; }
-    if (isSellOpen()) { closeSellModal(); return true; }
-    if (isDetailOpen()) { closeDetail(); return true; }
-    if (isInboxOpen()) { closeInbox(); return true; }
-    if (isAccountOpen()) { closeAccount(); return true; }
-    if (closeTopModal()) return true;
-
-    if (view.tab !== 'explore') {
-      setTab('explore');
-      syncNavButtons('explore');
-      loadFeed();
-      return true;
-    }
-
-    if (filters.search || filters.category !== 'all') {
-      resetFilters();
-      syncFilterControls();
-      const search = document.getElementById('searchInput');
-      if (search) search.value = '';
-      document.getElementById('clearSearchBtn')?.classList.add('hidden');
-      document.querySelectorAll('.cat-chip').forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.category === 'all');
-      });
-      loadFeed();
-      return true;
-    }
-
-    return false;
-  };
-
   // Escape mirrors the back button on desktop.
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') window.handleAndroidBackButton();
+    if (event.key === 'Escape') handleAndroidBackButton();
+  });
+}
+
+/**
+ * Chrome and an installed PWA do not call MainActivity's Java bridge. Keep a
+ * single same-document history entry there, so their Back button closes an
+ * app layer (or returns a non-Explore tab to Explore) rather than closing the
+ * browser. The native Android shell retains its normal two-press exit flow.
+ */
+function wireBrowserBackNavigation() {
+  if (typeof window.AndroidBridge?.moveToBackground === 'function') return;
+
+  if (!history.state?.[BROWSER_BACK_GUARD]) {
+    const baseState = { ...(history.state || {}), [BROWSER_BACK_GUARD]: 'base' };
+    history.replaceState(baseState, '', window.location.href);
+    history.pushState({ ...baseState, [BROWSER_BACK_GUARD]: 'armed' }, '', window.location.href);
+  }
+
+  window.addEventListener('popstate', () => {
+    const handled = handleAndroidBackButton();
+    if (!handled) showToast('You are already on Explore.');
+
+    // Re-arm the same entry instead of letting the browser navigate away.
+    history.pushState({ ...(history.state || {}), [BROWSER_BACK_GUARD]: 'armed' }, '', window.location.href);
   });
 }
 
