@@ -1,6 +1,6 @@
 {
   "name": "pr-marketplace",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Mobile-first peer-to-peer marketplace for local community trading in Aizawl, with a Supabase backend and an Android WebView shell.",
   "private": true,
   "license": "MIT",

@@ -21,8 +21,8 @@ android {
         minSdk 24
         targetSdk 34
         // Keep these in step with the version shown in the app's About panel.
-        versionCode 3
-        versionName '3.0.0'
+        versionCode 4
+        versionName '3.0.1'
     }
 
     signingConfigs {

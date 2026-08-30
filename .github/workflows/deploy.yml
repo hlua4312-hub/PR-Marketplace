@@ -59,7 +59,7 @@ jobs:
             "version": "$VERSION",
             "commit": "${GITHUB_SHA::7}",
             "released": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "apkUrl": "https://github.com/${GITHUB_REPOSITORY}/releases/latest",
+            "apkUrl": "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/PR-Marketplace.apk",
             "notes": "See the release notes for what changed."
           }
           JSON

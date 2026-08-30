@@ -1,0 +1,90 @@
+name: Release
+
+# Publishing is driven by a tag, so the version that ships is the version
+# recorded in git rather than whatever happened to be on someone's laptop.
+#
+#   npm version patch && git push --follow-tags
+#
+# The APK is signed with the upload key held in repository secrets. Without
+# those secrets the build still runs and still produces an APK, but an
+# unsigned one, and unsigned APKs cannot be installed - so this fails loudly
+# instead of publishing something nobody can use.
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish the APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Check the tag matches package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json ($PKG)."
+            exit 1
+          fi
+          echo "Releasing $PKG"
+
+      - name: Restore the signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::KEYSTORE_BASE64 is not set. An unsigned APK cannot be installed."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android_app/upload-keystore.jks
+          cat > android_app/keystore.properties <<PROPS
+          storeFile=../upload-keystore.jks
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          PROPS
+
+      - name: Build
+        run: |
+          chmod +x android_app/gradlew
+          cd android_app && ./gradlew assembleRelease --no-daemon
+
+      - name: Refuse to publish an unsigned APK
+        run: |
+          APK=$(find android_app/app/build/outputs/apk/release -name '*.apk' | head -1)
+          echo "Built $APK"
+          if [ -z "$APK" ] || [ "${APK##*/}" = "app-release-unsigned.apk" ]; then
+            echo "::error::The build produced an unsigned APK."
+            exit 1
+          fi
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
+          # A fixed asset name keeps the /releases/latest/download/ URL stable,
+          # which is what the in-app updater points at.
+          cp "$APK" PR-Marketplace.apk
+
+      - name: Remove the signing key from the runner
+        if: always()
+        run: rm -f android_app/upload-keystore.jks android_app/keystore.properties
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: PR-Marketplace.apk
+          generate_release_notes: true

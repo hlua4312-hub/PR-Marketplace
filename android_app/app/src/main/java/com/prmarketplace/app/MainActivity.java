@@ -166,6 +166,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // A WebView cannot download a file by itself, so a link to the update
+        // APK would simply do nothing. Hand downloads to the browser, which
+        // fetches the file and lets Android's installer take it from there -
+        // no install permission needed on our side.
+        webView.setDownloadListener((url, userAgent, disposition, mimeType, size) -> openInBrowser(url));
+
         // Lets the page ask the app to step aside. A web page cannot close a
         // window it did not open, so the Exit button used to blank the document
         // and pretend the app had quit.
@@ -190,6 +196,21 @@ public class MainActivity extends AppCompatActivity {
      * @return true when the link has been dealt with and the WebView should
      *         not attempt it.
      */
+    /**
+     * Send a link to the browser rather than the WebView. Used for downloads:
+     * launchExternally deliberately keeps http and https inside the app, which
+     * is right for pages and wrong for a file the WebView cannot save.
+     */
+    private void openInBrowser(String url) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, "No app can open that download.", Toast.LENGTH_LONG).show();
+        }
+    }
+
     private boolean launchExternally(Uri uri) {
         if (uri == null) return false;
 

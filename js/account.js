@@ -65,7 +65,12 @@ async function lookForNewerBuild() {
   }
   row.classList.remove('hidden');
   row.addEventListener('click', () => {
-    if (update.url) window.open(update.url, '_blank', 'noopener');
+    if (!update.url) return;
+    // An Android WebView returns null from window.open, and so does a popup
+    // blocker. Falling back to a navigation means the tap is never a no-op;
+    // the APK link answers with an attachment, so the page stays put either way.
+    const opened = window.open(update.url, '_blank', 'noopener');
+    if (!opened) window.location.href = update.url;
   }, { once: true });
 }
 
