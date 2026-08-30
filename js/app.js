@@ -26,6 +26,11 @@ import { cancelCropper } from './cropper.js';
 
 /* ================================================================= start === */
 
+// The watchdog in index.html reveals an error screen unless this is set.
+// It has to happen at module scope: if an import above had failed, we would
+// never get here, which is exactly the case the watchdog exists to report.
+window.__prBooted = true;
+
 document.addEventListener('DOMContentLoaded', () => {
   initFeed({ onOpenItem: openItemDetail });
   wireGridDelegation();
@@ -81,9 +86,35 @@ document.addEventListener('DOMContentLoaded', () => {
   start();
 });
 
+/** Resolve with a fallback rather than hanging if a call never settles. */
+function withTimeout(promise, ms, fallback) {
+  return Promise.race([
+    promise.catch(() => fallback),
+    new Promise(resolve => setTimeout(() => resolve(fallback), ms))
+  ]);
+}
+
 async function start() {
   const splash = document.getElementById('splashScreen');
 
+  // Whatever happens below - a stalled request, a thrown error - the splash
+  // comes down. A loading screen with no exit is worse than a broken app,
+  // because there is nothing the user can even report.
+  const splashFailsafe = setTimeout(() => hideSplash(splash), 5000);
+
+  try {
+    await boot(splash);
+  } catch (err) {
+    console.error('Startup failed:', err);
+    showApp();
+    showToast('Something went wrong starting up. Pull down to retry.', 6000);
+  } finally {
+    clearTimeout(splashFailsafe);
+    hideSplash(splash);
+  }
+}
+
+async function boot(splash) {
   if (!window.api.isReady()) {
     // Show the shell rather than a sign-in wall: the thing that fixes this
     // lives in Account, and the user has to be able to reach it.
@@ -119,7 +150,9 @@ async function start() {
     }
   });
 
-  const user = await window.api.refreshUser();
+  // Confirming the session needs the network. If it stalls, carry on as a
+  // guest rather than holding the whole app behind it.
+  const user = await withTimeout(window.api.refreshUser(), 6000, null);
   hideSplash(splash);
 
   if (arrivingFromReset) {
@@ -175,7 +208,9 @@ function applyLaunchIntent() {
 }
 
 function hideSplash(splash) {
-  if (!splash) return;
+  // Called from the happy path, the failsafe timer and the finally block.
+  if (!splash || splash.dataset.dismissed) return;
+  splash.dataset.dismissed = '1';
   splash.classList.add('fade-out');
   setTimeout(() => { splash.style.display = 'none'; }, 200);
 }

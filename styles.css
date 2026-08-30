@@ -4322,6 +4322,60 @@ input[type="range"] {
 }
 .auth-card a:hover { text-decoration: underline; }
 
+/* ---------------------------------------------------------- boot failure -- */
+
+/* Shown by the watchdog in index.html when the app cannot start - most often
+   because index.html was opened from disk, where browsers refuse to load ES
+   modules. It replaces the splash, which would otherwise sit there forever. */
+
+.splash-screen.boot-failed {
+  background: var(--bg-main);
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  opacity: 1;
+  animation: none;
+}
+
+.boot-error {
+  max-width: 30rem;
+  text-align: left;
+  color: var(--text-main);
+}
+
+.boot-error h1 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.boot-error p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.boot-error pre {
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-surface);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-main);
+  overflow-x: auto;
+  white-space: pre;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.boot-error-hint { font-size: 0.85rem; }
+.boot-error strong { color: var(--text-main); }
+
 /* ==========================================================================
    DARK THEME - opt in only
    Deliberately NOT wired to prefers-color-scheme. Shoppers expect a white

@@ -1234,20 +1234,70 @@
   <script src="js/api.js"></script>
   <script type="module" src="js/app.js"></script>
   <script>
-    // Register the service worker. It needs a secure context, so this is a
-    // no-op when the page is opened straight off disk over file:// - run
-    // Start_Local_Server.bat (or npm start) instead of double-clicking the file.
-    if ('serviceWorker' in navigator && window.isSecureContext) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .catch(err => console.warn('Service worker did not register:', err));
+    /*
+     * BOOT WATCHDOG - deliberately a classic script, not a module.
+     *
+     * js/app.js is an ES module, and browsers refuse to load modules over
+     * file:// (an opaque origin fails the CORS check). Double-clicking this
+     * file therefore leaves the module never running, so nothing ever hides
+     * the splash and the app appears to hang on the loading screen with no
+     * explanation. A module cannot report that, because the module is the
+     * thing that failed - so this check has to live in a classic script.
+     *
+     * It also covers the general case: any startup failure at all, including
+     * a network call that never settles, reveals a message instead of a
+     * splash screen that sits there forever.
+     */
+    (function () {
+      var BOOT_TIMEOUT_MS = 7000;
+
+      function reveal(title, detail, showCommand) {
+        var splash = document.getElementById('splashScreen');
+        if (!splash) return;
+        splash.innerHTML =
+          '<div class="boot-error">' +
+            '<h1>' + title + '</h1>' +
+            '<p>' + detail + '</p>' +
+            (showCommand
+              ? '<pre>npm start</pre>' +
+                '<p class="boot-error-hint">Run that in the PR_Marketplace_App folder, then open ' +
+                  '<strong>http://localhost:8080</strong>. Or double-click ' +
+                  '<strong>Launch_Web_App.bat</strong>, which does both for you.</p>'
+              : '') +
+          '</div>';
+        splash.classList.add('boot-failed');
+      }
+
+      // Opened straight off disk: say so immediately rather than waiting.
+      if (location.protocol === 'file:') {
+        reveal(
+          'Open this through a server',
+          'The app is built from JavaScript modules, and browsers block those when a page ' +
+          'is opened directly from disk. Offline support and install need a real address too.',
+          true
+        );
+        return;
+      }
+
+      window.addEventListener('load', function () {
+        if ('serviceWorker' in navigator && window.isSecureContext) {
+          navigator.serviceWorker.register('./sw.js').catch(function (err) {
+            console.warn('Service worker did not register:', err);
+          });
+        }
       });
-    } else if (!window.isSecureContext) {
-      console.warn(
-        'PR Marketplace is running without a secure context, so offline support and install are unavailable. ' +
-        'Serve the folder over http://localhost instead of opening index.html directly.'
-      );
-    }
+
+      // If the app has not signalled that it started, something broke.
+      setTimeout(function () {
+        if (window.__prBooted) return;
+        reveal(
+          'PR Marketplace could not start',
+          'The app loaded but did not finish starting up. Check the browser console for ' +
+          'the underlying error, and confirm the database settings in js/config.js.',
+          false
+        );
+      }, BOOT_TIMEOUT_MS);
+    })();
   </script>
 </body>
 </html>
