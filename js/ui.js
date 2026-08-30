@@ -1,5 +1,5 @@
 /**
- * PR MARKETPLACE - SHARED UI HELPERS
+ * CAMPUS CART - SHARED UI HELPERS
  * Escaping, toasts, modals, dialogs, dates and image preparation.
  */
 
@@ -95,11 +95,27 @@ export function closeModal(el) {
   el.classList.add('hidden');
   const idx = modalStack.indexOf(el);
   if (idx !== -1) modalStack.splice(idx, 1);
-  if (!modalStack.length) document.body.classList.remove('modal-open');
+  syncBodyLock();
+}
+
+/**
+ * The lock follows what is actually on screen rather than a running tally.
+ *
+ * body.modal-open sets overflow:hidden, so a stack entry that never gets
+ * popped does not just leak - it leaves the whole page unable to scroll, with
+ * nothing on screen to explain why. Anything already hidden is dropped here,
+ * so a sheet closed by some other route cannot hold the page hostage.
+ */
+function syncBodyLock() {
+  for (let i = modalStack.length - 1; i >= 0; i--) {
+    if (modalStack[i].classList.contains('hidden')) modalStack.splice(i, 1);
+  }
+  document.body.classList.toggle('modal-open', modalStack.length > 0);
 }
 
 /** Closes the topmost open modal. Returns true when one was closed. */
 export function closeTopModal() {
+  syncBodyLock();
   const top = modalStack[modalStack.length - 1];
   if (!top) return false;
   closeModal(top);
@@ -167,6 +183,19 @@ export function confirmAction({ title = 'Are you sure?', message = '', confirmLa
 /* ------------------------------------------------------- error messages --- */
 
 /**
+ * What to say when the database refuses a listing from an unverified account.
+ * The wording depends on whether a college domain has actually been set -
+ * telling someone to "use your college address" when the deployment has not
+ * configured one would send them looking for a problem that is not theirs.
+ */
+export function verificationMessage() {
+  const domain = (window.PRConfig.CAMPUS?.emailDomain || '').replace(/^@/, '');
+  return domain
+    ? `Only verified students can post. Register with your college address (@${domain}) and confirm it, then try again.`
+    : 'Your account is not verified as a student yet, so it cannot post listings. Ask whoever runs this app to check your account.';
+}
+
+/**
  * Turn an error into something a person can act on. Anything unrecognised
  * keeps its original message rather than being flattened to "try again".
  */
@@ -185,6 +214,7 @@ export function describeError(err) {
     OTP_INCOMPLETE: 'Enter all six digits.',
     OTP_REJECTED: 'That code was not accepted — it may be wrong, already used, or over an hour old. Ask for a new one.',
     NOT_SIGNED_IN: 'Log in to do that.',
+    NOT_VERIFIED: verificationMessage(),
     INVALID_VPA: 'That UPI ID does not look right. It should read something like name@bank.',
     INVALID_UTR: 'Enter the reference number your UPI app showed — letters and digits, at least 6.',
     UTR_ALREADY_SUBMITTED: 'You have already submitted that reference number.',

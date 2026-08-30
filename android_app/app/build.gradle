@@ -21,8 +21,8 @@ android {
         minSdk 24
         targetSdk 34
         // Keep these in step with the version shown in the app's About panel.
-        versionCode 4
-        versionName '3.0.1'
+        versionCode 5
+        versionName '4.0.0'
     }
 
     signingConfigs {
@@ -52,7 +52,7 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            resValue 'string', 'app_name', 'PR Marketplace'
+            resValue 'string', 'app_name', 'Campus Cart'
             if (hasReleaseKeystore) {
                 signingConfig signingConfigs.release
             }
@@ -63,7 +63,7 @@ android {
             // The label differs too, or you cannot tell the two icons apart.
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
-            resValue 'string', 'app_name', 'PR Marketplace (Debug)'
+            resValue 'string', 'app_name', 'Campus Cart (Debug)'
         }
     }
 

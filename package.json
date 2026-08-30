@@ -1,7 +1,7 @@
 {
-  "name": "pr-marketplace",
-  "version": "3.0.1",
-  "description": "Mobile-first peer-to-peer marketplace for local community trading in Aizawl, with a Supabase backend and an Android WebView shell.",
+  "name": "campus-cart",
+  "version": "4.0.0",
+  "description": "Mobile-first student marketplace for one campus - buy, sell, give away and swap - with a Supabase backend and an Android WebView shell.",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -18,6 +18,9 @@
   },
   "keywords": [
     "marketplace",
+    "campus",
+    "student",
+    "barter",
     "peer-to-peer",
     "supabase",
     "pwa",

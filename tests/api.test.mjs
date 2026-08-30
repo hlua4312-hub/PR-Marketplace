@@ -132,12 +132,44 @@ describe('the cached profile', () => {
   test('holds display details only, never a credential', () => {
     const api = globalThis.window.api;
     api._cacheProfile({
-      id: 'uuid-1', fullName: 'Rina', email: 'rina@gmail.com',
-      phone: '9876543210', password: 'should-not-be-here', token: 'nope'
+      id: 'uuid-1', fullName: 'Rina', email: 'rina@college.edu.in',
+      phone: '9876543210', department: 'Computer Science', yearOfStudy: '2nd Year',
+      avatarUrl: 'https://example.test/a.jpg', bio: 'Selling my notes',
+      password: 'should-not-be-here', token: 'nope'
     });
 
     const stored = JSON.parse(env.storage.getItem('pr_active_profile_v2'));
-    assert.deepEqual(Object.keys(stored).sort(), ['email', 'fullName', 'id', 'phone']);
+    assert.deepEqual(Object.keys(stored).sort(), [
+      'avatarUrl', 'bio', 'department', 'email', 'fullName', 'id', 'phone', 'yearOfStudy'
+    ]);
+  });
+
+  test('leaves verification unset until the profile row has been read', () => {
+    const api = globalThis.window.api;
+    // A bare session profile knows nothing about verification. Writing false
+    // here would read back as "definitely not a student" and hide the sell
+    // form from someone who is one.
+    api._cacheProfile({ id: 'uuid-1', fullName: 'Rina' });
+
+    const stored = JSON.parse(env.storage.getItem('pr_active_profile_v2'));
+    assert.ok(!('isVerified' in stored));
+    assert.equal(api.isVerifiedStudent(), true);
+  });
+
+  test('records verification once the profile row says so', () => {
+    const api = globalThis.window.api;
+
+    api._cacheProfile({ id: 'uuid-1', fullName: 'Rina', isVerified: false });
+    assert.equal(api.isVerifiedStudent(), false);
+
+    api._cacheProfile({ id: 'uuid-1', fullName: 'Rina', isVerified: true });
+    assert.equal(api.isVerifiedStudent(), true);
+  });
+
+  test('nobody signed in is nobody verified', () => {
+    const api = globalThis.window.api;
+    api._cacheProfile(null);
+    assert.equal(api.isVerifiedStudent(), false);
   });
 
   test('signing out clears it', () => {

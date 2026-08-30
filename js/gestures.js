@@ -1,5 +1,5 @@
 /**
- * PR MARKETPLACE - FEED GESTURES
+ * CAMPUS CART - FEED GESTURES
  *
  * Pull down from the top of the feed to refresh, and keep scrolling at the
  * bottom to pull in the next page.

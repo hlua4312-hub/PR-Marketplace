@@ -1,5 +1,5 @@
 /**
- * PR MARKETPLACE - SUPABASE DATA LAYER
+ * CAMPUS CART - SUPABASE DATA LAYER
  *
  * Everything that talks to the backend lives here: authentication, listings,
  * image uploads, messaging and reports.
@@ -244,6 +244,123 @@ class SupabaseMarketplaceClient {
   }
 
   /* ======================================================================
+     PROFILE CARDS
+
+     The columns below are the whole of what the API is allowed to read from
+     public.profiles - the phone number is held back by a column grant in the
+     schema, not by anything written here. Asking for `*` would be refused,
+     which is why every query in this section names its columns.
+     ====================================================================== */
+
+  static get PROFILE_COLUMNS() {
+    return 'id, full_name, avatar_url, department, year_of_study, bio, is_verified, verified_at, created_at';
+  }
+
+  /** One person's public card: name, photo, course, verified badge. */
+  async fetchProfile(userId) {
+    const db = this._require();
+    if (!userId) return null;
+
+    const { data, error } = await db
+      .from('profiles')
+      .select(SupabaseMarketplaceClient.PROFILE_COLUMNS)
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? this._toProfileCard(data) : null;
+  }
+
+  /** Several at once, for a list. Returns a Map keyed by user id. */
+  async fetchProfiles(userIds) {
+    const ids = Array.from(new Set((userIds || []).filter(Boolean)));
+    if (!ids.length) return new Map();
+
+    const db = this._require();
+    const { data, error } = await db
+      .from('profiles')
+      .select(SupabaseMarketplaceClient.PROFILE_COLUMNS)
+      .in('id', ids);
+
+    if (error) throw error;
+    return new Map((data || []).map(row => [row.id, this._toProfileCard(row)]));
+  }
+
+  /**
+   * Edit your own card. `is_verified` is deliberately not settable: the
+   * update policy would allow the column through, so a trigger in the schema
+   * refuses the change instead. Leaving it out here as well means the app
+   * never even asks.
+   */
+  async updateMyProfile(patch) {
+    const db = this._require();
+    const user = await this.getCurrentUser();
+    if (!user) throw new Error('NOT_SIGNED_IN');
+
+    const row = {};
+    if (patch.fullName !== undefined)     row.full_name = (patch.fullName || '').trim();
+    if (patch.avatarUrl !== undefined)    row.avatar_url = patch.avatarUrl || null;
+    if (patch.department !== undefined)   row.department = patch.department || null;
+    if (patch.yearOfStudy !== undefined)  row.year_of_study = patch.yearOfStudy || null;
+    if (patch.bio !== undefined)          row.bio = (patch.bio || '').trim() || null;
+
+    if (!Object.keys(row).length) return this.fetchProfile(user.id);
+
+    const { data, error } = await db
+      .from('profiles')
+      .update(row)
+      .eq('id', user.id)
+      .select(SupabaseMarketplaceClient.PROFILE_COLUMNS)
+      .single();
+
+    if (error) throw error;
+
+    // The display name is read straight off the session in most of the app,
+    // so it has to move in both places or the header and the profile card
+    // disagree until the next sign-in.
+    if (row.full_name) {
+      await db.auth.updateUser({ data: { full_name: row.full_name } }).catch(() => {});
+    }
+    return this._toProfileCard(data);
+  }
+
+  _toProfileCard(row) {
+    return {
+      id: row.id,
+      fullName: row.full_name,
+      avatarUrl: row.avatar_url,
+      department: row.department,
+      yearOfStudy: row.year_of_study,
+      bio: row.bio,
+      isVerified: Boolean(row.is_verified),
+      verifiedAt: row.verified_at,
+      createdAt: row.created_at
+    };
+  }
+
+  /* ======================================================================
+     CAMPUS SETTINGS
+     Read-only from the app. Which domains count as student addresses is set
+     from the SQL editor, and the rule is applied by the sign-up trigger.
+     ====================================================================== */
+
+  async fetchCampusSettings() {
+    if (!this.client) return null;
+    const { data, error } = await this.client
+      .from('campus_settings')
+      .select('campus_name, email_domains')
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Could not read campus settings:', error.message);
+      return null;
+    }
+    return data
+      ? { campusName: data.campus_name, emailDomains: data.email_domains || [] }
+      : null;
+  }
+
+  /* ======================================================================
      IMAGES
      ====================================================================== */
 
@@ -297,6 +414,12 @@ class SupabaseMarketplaceClient {
     if (filters.category && filters.category !== 'all') {
       query = query.eq('category', filters.category);
     }
+    if (filters.listingType && filters.listingType !== 'all') {
+      query = query.eq('listing_type', filters.listingType);
+    }
+    if (filters.urgentOnly) {
+      query = query.eq('is_urgent', true);
+    }
     if (filters.conditions && filters.conditions.length) {
       query = query.in('condition', filters.conditions);
     }
@@ -315,7 +438,11 @@ class SupabaseMarketplaceClient {
     if (filters.search) {
       const q = filters.search.replace(/[%,()]/g, ' ').trim();
       if (q) {
-        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%`);
+        // barter_want is searched too: on a swap listing it is the half that
+        // says what the deal actually is.
+        query = query.or(
+          `title.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%,barter_want.ilike.%${q}%`
+        );
       }
     }
 
@@ -323,6 +450,10 @@ class SupabaseMarketplaceClient {
       case 'price_asc':  query = query.order('price', { ascending: true }); break;
       case 'price_desc': query = query.order('price', { ascending: false }); break;
       case 'oldest':     query = query.order('created_at', { ascending: true }); break;
+      case 'urgent':
+        query = query.order('is_urgent', { ascending: false })
+                     .order('created_at', { ascending: false });
+        break;
       default:           query = query.order('created_at', { ascending: false });
     }
 
@@ -349,15 +480,26 @@ class SupabaseMarketplaceClient {
     const user = await this.getCurrentUser();
     if (!user) throw new Error('NOT_SIGNED_IN');
 
+    const listingType = ['sell', 'free', 'barter'].includes(itemData.listingType)
+      ? itemData.listingType
+      : 'sell';
+
     const row = {
       user_id: user.id,
       title: itemData.title,
       category: itemData.category,
-      price: Number.parseFloat(itemData.price) || 0,
+      listing_type: listingType,
+      // A giveaway is priced at zero whatever the form last held, because the
+      // database rejects the row otherwise and the check is easy to miss here.
+      price: listingType === 'free' ? 0 : (Number.parseFloat(itemData.price) || 0),
       condition: itemData.condition,
       location: itemData.location,
+      pickup_spot: itemData.pickupSpot || null,
+      barter_want: listingType === 'barter' ? (itemData.barterWant || null) : null,
+      is_urgent: Boolean(itemData.isUrgent),
       description: itemData.description || null,
       image_url: itemData.imageUrl || null,
+      image_urls: itemData.imageUrls || (itemData.imageUrl ? [itemData.imageUrl] : []),
       payment_qr_url: itemData.paymentQrUrl || null,
       seller_name: itemData.sellerName,
       seller_phone: itemData.sellerPhone || null,
@@ -368,7 +510,7 @@ class SupabaseMarketplaceClient {
     };
 
     const { data, error } = await db.from('items').insert([row]).select().single();
-    if (error) throw error;
+    if (error) throw this._postingError(error);
     return this._toItem(data);
   }
 
@@ -378,12 +520,25 @@ class SupabaseMarketplaceClient {
     const row = {};
     if (patch.title !== undefined)          row.title = patch.title;
     if (patch.category !== undefined)       row.category = patch.category;
-    if (patch.price !== undefined)          row.price = Number.parseFloat(patch.price) || 0;
     if (patch.condition !== undefined)      row.condition = patch.condition;
     if (patch.location !== undefined)       row.location = patch.location;
+    if (patch.pickupSpot !== undefined)     row.pickup_spot = patch.pickupSpot || null;
+    if (patch.isUrgent !== undefined)       row.is_urgent = Boolean(patch.isUrgent);
     if (patch.description !== undefined)    row.description = patch.description || null;
     if (patch.imageUrl !== undefined)       row.image_url = patch.imageUrl;
+    if (patch.imageUrls !== undefined)      row.image_urls = patch.imageUrls || [];
     if (patch.paymentQrUrl !== undefined)   row.payment_qr_url = patch.paymentQrUrl;
+
+    // Mode, price and the exchange line move together: switching to a
+    // giveaway has to zero the price in the same statement, or the row fails
+    // its own check constraint half way through the change.
+    if (patch.listingType !== undefined) {
+      row.listing_type = ['sell', 'free', 'barter'].includes(patch.listingType) ? patch.listingType : 'sell';
+      row.barter_want = row.listing_type === 'barter' ? (patch.barterWant || null) : null;
+      row.price = row.listing_type === 'free' ? 0 : (Number.parseFloat(patch.price) || 0);
+    } else if (patch.price !== undefined) {
+      row.price = Number.parseFloat(patch.price) || 0;
+    }
     if (patch.sellerName !== undefined)     row.seller_name = patch.sellerName;
     if (patch.sellerPhone !== undefined)    row.seller_phone = patch.sellerPhone || null;
     if (patch.sellerWhatsapp !== undefined) row.seller_whatsapp = patch.sellerWhatsapp || null;
@@ -432,7 +587,11 @@ class SupabaseMarketplaceClient {
     if (!data || data.length === 0) throw new Error('NOT_YOUR_LISTING');
 
     if (existing) {
-      await this.removeImage(existing.imageUrl);
+      // The whole gallery, not just the cover - otherwise every deleted
+      // listing leaves its other photos behind in the bucket forever.
+      for (const url of existing.imageUrls || []) {
+        await this.removeImage(url);
+      }
       await this.removeImage(existing.paymentQrUrl);
     }
     return true;
@@ -456,17 +615,39 @@ class SupabaseMarketplaceClient {
     return error;
   }
 
+  /**
+   * An insert refused by policy is nearly always the verification rule, and
+   * "new row violates row-level security policy" tells a student nothing they
+   * can act on. Name it, so the app can explain what to do about it.
+   */
+  _postingError(error) {
+    if (error && (error.code === '42501' || /row-level security/i.test(error.message || ''))) {
+      return new Error('NOT_VERIFIED');
+    }
+    return error;
+  }
+
   _toItem(row) {
+    // Older rows predate the gallery column and only carry a cover.
+    const gallery = (row.image_urls && row.image_urls.length)
+      ? row.image_urls
+      : (row.image_url ? [row.image_url] : []);
+
     return {
       id: row.id,
       userId: row.user_id,
       title: row.title,
       category: row.category,
+      listingType: row.listing_type || 'sell',
       price: Number(row.price),
       condition: row.condition,
       location: row.location,
+      pickupSpot: row.pickup_spot || '',
+      barterWant: row.barter_want || '',
+      isUrgent: Boolean(row.is_urgent),
       description: row.description,
-      imageUrl: row.image_url,
+      imageUrl: row.image_url || gallery[0] || null,
+      imageUrls: gallery,
       paymentQrUrl: row.payment_qr_url,
       sellerName: row.seller_name,
       sellerPhone: row.seller_phone,

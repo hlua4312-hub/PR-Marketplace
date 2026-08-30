@@ -1,5 +1,5 @@
 /**
- * PR MARKETPLACE - SHARED UI STATE
+ * CAMPUS CART - SHARED UI STATE
  *
  * A small observable object so modules can react to each other without
  * importing one another in a circle. Filters live here; identity does not -
@@ -10,9 +10,12 @@ const listeners = new Set();
 
 export const filters = {
   category: 'all',
+  /** all | sell | free | barter - the mode tabs under the category chips. */
+  listingType: 'all',
   location: 'all',
   search: '',
   conditions: [],
+  urgentOnly: false,
   /** null means no maximum, which is what the top of the slider maps to. */
   maxPrice: null,
   sort: 'newest',
@@ -37,9 +40,11 @@ export function setFilter(patch, { resetPage = true } = {}) {
 
 export function resetFilters() {
   filters.category = 'all';
+  filters.listingType = 'all';
   filters.location = 'all';
   filters.search = '';
   filters.conditions = [];
+  filters.urgentOnly = false;
   filters.maxPrice = null;
   filters.sort = 'newest';
   filters.page = 0;
@@ -58,6 +63,7 @@ export function activeFilterCount() {
   if (filters.maxPrice !== null) n += 1;
   if (filters.sort !== 'newest') n += 1;
   if (filters.location !== 'all') n += 1;
+  if (filters.urgentOnly) n += 1;
   return n;
 }
 
@@ -65,9 +71,11 @@ export function activeFilterCount() {
 export function queryFilters() {
   const query = {
     category: filters.category,
+    listingType: filters.listingType,
     location: filters.location,
     search: filters.search,
     conditions: filters.conditions,
+    urgentOnly: filters.urgentOnly,
     sort: filters.sort,
     page: filters.page
   };

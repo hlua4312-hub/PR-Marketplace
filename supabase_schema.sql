@@ -120,6 +120,72 @@ $$;
 
 
 -- --------------------------------------------------------------------------
+-- 0c. CAMPUS SETTINGS
+--
+--    Which college this deployment belongs to, and which email domains count
+--    as proof of being a student there.
+--
+--    This lives in the database rather than in js/config.js on purpose. A
+--    domain check written in the browser is decoration: anyone holding the
+--    anon key can call the API directly and skip it. The trigger below reads
+--    this table, so the rule is applied where it cannot be edited out.
+--
+--    >>> SET YOUR COLLEGE DOMAIN HERE <<<
+--    Leave email_domains empty and every account is verified on sign-up,
+--    which is what you want while testing. Add a domain and only addresses
+--    ending in it can post:
+--
+--        update public.campus_settings
+--        set campus_name = 'Mizoram University',
+--            email_domains = array['mzu.edu.in']
+--        where id;
+-- --------------------------------------------------------------------------
+create table if not exists public.campus_settings (
+    id            boolean primary key default true check (id),
+    campus_name   text   not null default 'Campus Cart',
+    email_domains text[] not null default '{}',
+    updated_at    timestamptz not null default now()
+);
+
+insert into public.campus_settings (id) values (true) on conflict (id) do nothing;
+
+alter table public.campus_settings enable row level security;
+
+drop policy if exists "campus settings are public" on public.campus_settings;
+
+-- Readable by anyone so the sign-up form can say which address to use.
+-- There is deliberately no insert/update/delete policy: with RLS on, that
+-- denies all three. Change it from the SQL editor.
+create policy "campus settings are public"
+    on public.campus_settings for select
+    using (true);
+
+-- Does this address belong to the campus?
+-- Fails open - if the settings row is missing, or no domain has been set,
+-- everyone is a student. A half-configured deployment should be usable, not
+-- a wall nobody can get past.
+create or replace function public.email_is_campus(p_email text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select coalesce((
+        select cardinality(s.email_domains) = 0
+            or lower(split_part(p_email, '@', 2)) = any (
+                   array(select lower(d) from unnest(s.email_domains) d)
+               )
+        from public.campus_settings s
+        where s.id
+    ), true);
+$$;
+
+revoke all on function public.email_is_campus(text) from public;
+grant execute on function public.email_is_campus(text) to anon, authenticated;
+
+
+-- --------------------------------------------------------------------------
 -- 1. PROFILES
 --    One row per registered user. Passwords are NOT here - Supabase Auth
 --    owns auth.users and stores a bcrypt hash we never see or handle.
@@ -131,38 +197,92 @@ create table if not exists public.profiles (
     created_at  timestamptz not null default now()
 );
 
+-- Campus Cart additions. Separate statements so an existing project picks
+-- them up without losing its rows.
+alter table public.profiles add column if not exists avatar_url     text;
+alter table public.profiles add column if not exists department     text;
+alter table public.profiles add column if not exists year_of_study  text;
+alter table public.profiles add column if not exists bio            text;
+alter table public.profiles add column if not exists is_verified    boolean not null default false;
+alter table public.profiles add column if not exists verified_at    timestamptz;
+
+alter table public.profiles drop constraint if exists profiles_bio_length;
+alter table public.profiles add  constraint profiles_bio_length
+    check (bio is null or char_length(bio) <= 300);
+
 alter table public.profiles enable row level security;
 
 drop policy if exists "profiles: owner reads own row"     on public.profiles;
 drop policy if exists "profiles: owner updates own row"   on public.profiles;
 drop policy if exists "profiles: public display names"    on public.profiles;
+drop policy if exists "profiles: cards are public"        on public.profiles;
 
--- A signed-in user may read their own full row.
-create policy "profiles: owner reads own row"
+-- Anyone may read a profile card. A seller's name, photo, course and verified
+-- badge are part of deciding whether to meet a stranger behind the library,
+-- so they are public the same way the listing is.
+--
+-- The phone number is not part of that card. It is kept out by column
+-- privileges rather than by a policy, because RLS works on rows and this is a
+-- column-shaped rule: the grant below lists every column the API may read,
+-- and phone is not one of them. The app never needs it from here - it reads
+-- the signed-in user's own number from their session, and the two functions
+-- in section 2 resolve a phone to an email without exposing the table.
+create policy "profiles: cards are public"
     on public.profiles for select
-    using (auth.uid() = id);
+    using (true);
 
--- A signed-in user may correct their own name / phone.
+revoke select on public.profiles from anon, authenticated;
+grant  select (id, full_name, avatar_url, department, year_of_study, bio,
+               is_verified, verified_at, created_at)
+    on public.profiles to anon, authenticated;
+
+-- A signed-in user may correct their own details.
 create policy "profiles: owner updates own row"
     on public.profiles for update
     using (auth.uid() = id)
     with check (auth.uid() = id);
 
+-- ...but not their own verification. Without this, the update policy above
+-- would let any account mark itself a verified student in one request.
+create or replace function public.profiles_freeze_verification()
+returns trigger
+language plpgsql
+as $$
+begin
+    if auth.uid() = old.id
+       and (new.is_verified is distinct from old.is_verified
+            or new.verified_at is distinct from old.verified_at) then
+        raise exception 'Verification is set by the system, not by the account holder.';
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists profiles_freeze_verification on public.profiles;
+create trigger profiles_freeze_verification
+    before update on public.profiles
+    for each row execute function public.profiles_freeze_verification();
+
 -- Rows are created by the trigger below, never by the client.
 
--- Copy the sign-up metadata into a profile row the moment the account exists.
+-- Copy the sign-up metadata into a profile row the moment the account exists,
+-- and decide there and then whether the address is a campus one.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+    student boolean := public.email_is_campus(new.email);
 begin
-    insert into public.profiles (id, full_name, phone)
+    insert into public.profiles (id, full_name, phone, is_verified, verified_at)
     values (
         new.id,
         coalesce(new.raw_user_meta_data ->> 'full_name', split_part(new.email, '@', 1)),
-        nullif(new.raw_user_meta_data ->> 'phone', '')
+        nullif(new.raw_user_meta_data ->> 'phone', ''),
+        student,
+        case when student then now() end
     )
     on conflict (id) do nothing;
     return new;
@@ -173,6 +293,32 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
     after insert on auth.users
     for each row execute function public.handle_new_user();
+
+-- Everyone who registered before verification existed gets judged by the same
+-- rule, so an upgrade does not silently lock the current users out of posting.
+update public.profiles p
+   set is_verified = true,
+       verified_at = coalesce(p.verified_at, now())
+  from auth.users u
+ where u.id = p.id
+   and p.is_verified = false
+   and public.email_is_campus(u.email);
+
+-- Is this account allowed to post? Used by the items policy, which cannot
+-- read profiles directly - RLS on one table does not see through to another
+-- without a definer function.
+create or replace function public.is_verified_student(p_user uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select coalesce((select is_verified from public.profiles where id = p_user), false);
+$$;
+
+revoke all on function public.is_verified_student(uuid) from public;
+grant execute on function public.is_verified_student(uuid) to anon, authenticated;
 
 
 -- --------------------------------------------------------------------------
@@ -247,9 +393,47 @@ create table if not exists public.items (
 -- Added after the table existed for some projects, so do it separately too.
 alter table public.items add column if not exists seller_upi_vpa text;
 
-create index if not exists items_created_at_idx on public.items (created_at desc);
-create index if not exists items_category_idx   on public.items (category);
-create index if not exists items_user_id_idx    on public.items (user_id);
+-- Campus Cart additions.
+--   listing_type   what the seller wants out of it. 'free' is its own mode
+--                  rather than a price of zero, because a giveaway and a
+--                  ₹0 sale read differently and get filtered differently.
+--   barter_want    only meaningful when listing_type = 'barter'.
+--   pickup_spot    a campus landmark, chosen from a list, not a street address.
+--   image_urls     the whole gallery. image_url is kept as the first of these
+--                  so anything reading the old column still works.
+--   is_urgent      "leaving campus" - the end-of-semester clear-out.
+alter table public.items add column if not exists listing_type text not null default 'sell';
+alter table public.items add column if not exists barter_want  text;
+alter table public.items add column if not exists pickup_spot  text;
+alter table public.items add column if not exists image_urls   text[] not null default '{}';
+alter table public.items add column if not exists is_urgent    boolean not null default false;
+
+alter table public.items drop constraint if exists items_listing_type_valid;
+alter table public.items add  constraint items_listing_type_valid
+    check (listing_type in ('sell', 'free', 'barter'));
+
+alter table public.items drop constraint if exists items_free_costs_nothing;
+alter table public.items add  constraint items_free_costs_nothing
+    check (listing_type <> 'free' or price = 0);
+
+alter table public.items drop constraint if exists items_barter_want_length;
+alter table public.items add  constraint items_barter_want_length
+    check (barter_want is null or char_length(barter_want) <= 200);
+
+alter table public.items drop constraint if exists items_gallery_size;
+alter table public.items add  constraint items_gallery_size
+    check (cardinality(image_urls) <= 6);
+
+-- Backfill the gallery for listings posted before it existed.
+update public.items
+   set image_urls = array[image_url]
+ where image_url is not null
+   and cardinality(image_urls) = 0;
+
+create index if not exists items_created_at_idx   on public.items (created_at desc);
+create index if not exists items_category_idx     on public.items (category);
+create index if not exists items_user_id_idx      on public.items (user_id);
+create index if not exists items_listing_type_idx on public.items (listing_type);
 
 alter table public.items enable row level security;
 
@@ -261,6 +445,7 @@ drop policy if exists "Allow update only to mark items as sold"  on public.items
 drop policy if exists "Allow public delete access to items"      on public.items;
 drop policy if exists "items: anyone may browse"                 on public.items;
 drop policy if exists "items: post as yourself"                  on public.items;
+drop policy if exists "items: verified students post"            on public.items;
 drop policy if exists "items: owner edits own listing"           on public.items;
 drop policy if exists "items: owner deletes own listing"         on public.items;
 
@@ -269,11 +454,21 @@ create policy "items: anyone may browse"
     on public.items for select
     using (true);
 
--- You may only create a listing that belongs to you.
-create policy "items: post as yourself"
+-- You may only create a listing that belongs to you, and only once your
+-- address has been recognised as a campus one. This is the whole of the
+-- verification rule - the sign-up form's version of it is a courtesy that
+-- explains the requirement early, not the thing that enforces it.
+--
+-- Reading and messaging are deliberately left open. Gating those as well
+-- would mean nobody could ask a question until they were verified, and a
+-- marketplace where the buyers are locked out is not safer, just empty.
+create policy "items: verified students post"
     on public.items for insert
     to authenticated
-    with check (auth.uid() = user_id);
+    with check (
+        auth.uid() = user_id
+        and public.is_verified_student(auth.uid())
+    );
 
 -- Only the seller may edit their listing, and they cannot hand it to someone else.
 create policy "items: owner edits own listing"

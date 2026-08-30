@@ -1,5 +1,5 @@
 /**
- * PR MARKETPLACE - AUTHENTICATION SCREENS
+ * CAMPUS CART - AUTHENTICATION SCREENS
  *
  * Register, log in, password reset, and the email-confirmation notice.
  * No password is ever stored, compared or cached here - every check happens
@@ -7,6 +7,7 @@
  */
 
 import { escapeHtml, showToast, describeError } from './ui.js';
+import { looksLikeCampusEmail, campusDomain } from './campus.js';
 
 let els = {};
 let hooks = {};
@@ -211,7 +212,7 @@ function wireRegister() {
         showConfirmEmail(email);
         showToast('Check your inbox for the confirmation link.', 4500);
       } else {
-        showToast(`Welcome to PR Marketplace, ${user.fullName}.`);
+        showToast(`Welcome to Campus Cart, ${user.fullName}.`);
         hooks.onSignedIn?.(user);
       }
     } catch (err) {
@@ -245,6 +246,13 @@ function validateRegistration({ fullName, email, phone, password }) {
   if (!fullName || !email || !phone || !password) return 'Fill in every field to continue.';
   if (fullName.length < 2) return 'Enter your full name.';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'That email address does not look right.';
+
+  // Said here so it is said early. The account is still created either way -
+  // what the address decides is whether it comes out verified, and that is
+  // settled by a trigger in the database, not by this line.
+  if (!looksLikeCampusEmail(email)) {
+    return `Register with your college address (@${campusDomain()}). Only those accounts can post listings.`;
+  }
 
   const digits = phone.replace(/[^\d]/g, '');
   if (digits.length !== 10) return 'Enter a 10-digit phone number, for example 9876543210.';

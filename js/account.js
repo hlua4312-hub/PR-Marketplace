@@ -1,13 +1,14 @@
 /**
- * PR MARKETPLACE - ACCOUNT PANEL
+ * CAMPUS CART - ACCOUNT PANEL
  *
- * Profile summary, My Listings, the database connection card, install prompt
- * and password change.
+ * Profile card and editor, My Listings, payments, install prompt and password
+ * change.
  */
 
 import {
   escapeHtml, formatPrice, timeAgo, showToast, openModal, closeModal,
-  confirmAction, describeError, initials, PLACEHOLDER_IMAGE
+  confirmAction, describeError, initials, PLACEHOLDER_IMAGE, prepareImage,
+  verificationMessage
 } from './ui.js';
 import { checkAndroidUpdate } from './updates.js';
 import { renderPaymentsList } from './payments.js';
@@ -25,10 +26,22 @@ export function initAccount(injected) {
     name: document.getElementById('accountUserName'),
     email: document.getElementById('accountUserEmail'),
     listings: document.getElementById('myListingsList'),
-    installHint: document.getElementById('installHintText')
+    installHint: document.getElementById('installHintText'),
+
+    profileSection: document.getElementById('profileSection'),
+    profileForm: document.getElementById('profileForm'),
+    profilePhoto: document.getElementById('profilePhotoPreview'),
+    profilePhotoInput: document.getElementById('profilePhotoInput'),
+    profileName: document.getElementById('profileFullName'),
+    profileDepartment: document.getElementById('profileDepartment'),
+    profileYear: document.getElementById('profileYear'),
+    profileBio: document.getElementById('profileBio'),
+    verificationBadge: document.getElementById('verificationBadge'),
+    profileCourse: document.getElementById('profileCourse')
   };
 
   wireSections();
+  wireProfileEditor();
   wireOpenClose();
   wireInstall();
   wireSecurity();
@@ -105,20 +118,159 @@ function renderProfile() {
   document.getElementById('profileBadges')?.classList.toggle('hidden', guest);
 
   // Controls that need an identity are hidden rather than shown broken.
-  ['btnLogoutUser', 'btnChangePassword', 'listingsSection', 'paymentsSection'].forEach(id => {
+  ['btnLogoutUser', 'btnChangePassword', 'listingsSection', 'paymentsSection', 'profileSection'].forEach(id => {
     document.getElementById(id)?.classList.toggle('hidden', guest);
   });
 
   if (guest) {
-    if (els.avatar) els.avatar.textContent = '?';
+    if (els.avatar) {
+      els.avatar.textContent = '?';
+      els.avatar.classList.remove('has-photo');
+    }
     if (els.name) els.name.textContent = 'Browsing as a guest';
     if (els.email) els.email.textContent = 'Log in to sell, message and save across devices';
     return;
   }
 
-  if (els.avatar) els.avatar.textContent = initials(user.fullName, 'P');
-  if (els.name) els.name.textContent = user.fullName || 'PR Marketplace member';
+  paintAvatar(els.avatar, user, 'C');
+  if (els.name) els.name.textContent = user.fullName || 'Campus Cart member';
   if (els.email) els.email.textContent = user.email || '';
+
+  // The badge is the honest answer to "can I post?", so it says which of the
+  // two states the account is in rather than always reading as a tick.
+  if (els.verificationBadge) {
+    const verified = window.api.isVerifiedStudent();
+    els.verificationBadge.textContent = verified ? 'Verified student' : 'Not verified';
+    els.verificationBadge.classList.toggle('is-unverified', !verified);
+    els.verificationBadge.title = verified
+      ? 'Registered with a college address, so you can post listings.'
+      : verificationMessage();
+  }
+
+  const course = [user.department, user.yearOfStudy].filter(Boolean).join(' \u00b7 ');
+  if (els.profileCourse) {
+    els.profileCourse.textContent = course;
+    els.profileCourse.classList.toggle('hidden', !course);
+  }
+
+  fillProfileForm(user);
+}
+
+/** Show the uploaded photo if there is one, initials if there is not. */
+function paintAvatar(node, user, fallback) {
+  if (!node) return;
+  if (user && user.avatarUrl) {
+    node.innerHTML = `<img src="${escapeHtml(user.avatarUrl)}" alt="">`;
+    node.classList.add('has-photo');
+  } else {
+    node.textContent = initials(user && user.fullName, fallback);
+    node.classList.remove('has-photo');
+  }
+}
+
+/* ======================================================== profile editor === */
+
+/** A photo picked but not yet saved. Null once it has been uploaded. */
+let pendingAvatarBlob = null;
+let removeAvatarOnSave = false;
+
+function fillProfileForm(user) {
+  if (!els.profileForm || !user) return;
+  pendingAvatarBlob = null;
+  removeAvatarOnSave = false;
+
+  if (els.profileName) els.profileName.value = user.fullName || '';
+  if (els.profileDepartment) els.profileDepartment.value = user.department || '';
+  if (els.profileYear) els.profileYear.value = user.yearOfStudy || '';
+  if (els.profileBio) els.profileBio.value = user.bio || '';
+
+  paintAvatar(els.profilePhoto, user, 'C');
+  document.getElementById('btnRemoveProfilePhoto')?.classList.toggle('hidden', !user.avatarUrl);
+}
+
+function wireProfileEditor() {
+  document.getElementById('btnPickProfilePhoto')?.addEventListener('click', () => {
+    els.profilePhotoInput?.click();
+  });
+
+  els.profilePhotoInput?.addEventListener('change', async event => {
+    const file = event.target.files && event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      // Square-ish and small: this is shown at 44px in a chat row, and a 3MB
+      // photo to draw a thumbnail is a waste of everyone's data.
+      const { blob, previewUrl } = await prepareImage(file, 512);
+      pendingAvatarBlob = blob;
+      removeAvatarOnSave = false;
+      if (els.profilePhoto) {
+        els.profilePhoto.innerHTML = `<img src="${escapeHtml(previewUrl)}" alt="">`;
+        els.profilePhoto.classList.add('has-photo');
+      }
+      document.getElementById('btnRemoveProfilePhoto')?.classList.remove('hidden');
+      showToast('Photo ready. Save your profile to keep it.');
+    } catch (err) {
+      showToast(describeError(err));
+    }
+  });
+
+  document.getElementById('btnRemoveProfilePhoto')?.addEventListener('click', () => {
+    pendingAvatarBlob = null;
+    removeAvatarOnSave = true;
+    const user = window.api.getCurrentUser();
+    if (els.profilePhoto) {
+      els.profilePhoto.textContent = initials(user && user.fullName, 'C');
+      els.profilePhoto.classList.remove('has-photo');
+    }
+    document.getElementById('btnRemoveProfilePhoto')?.classList.add('hidden');
+  });
+
+  els.profileForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+
+    const name = (els.profileName?.value || '').trim();
+    if (name.length < 2) {
+      showToast('Your display name needs at least 2 characters.');
+      return;
+    }
+
+    const btn = document.getElementById('btnSaveProfile');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+    }
+
+    try {
+      const patch = {
+        fullName: name,
+        department: els.profileDepartment?.value || '',
+        yearOfStudy: els.profileYear?.value || '',
+        bio: els.profileBio?.value || ''
+      };
+
+      if (pendingAvatarBlob) {
+        if (btn) btn.textContent = 'Uploading photo…';
+        patch.avatarUrl = await window.api.uploadImage(pendingAvatarBlob, 'avatar');
+      } else if (removeAvatarOnSave) {
+        patch.avatarUrl = null;
+      }
+
+      await window.api.updateMyProfile(patch);
+      pendingAvatarBlob = null;
+      removeAvatarOnSave = false;
+
+      renderProfile();
+      showToast('Profile saved.');
+    } catch (err) {
+      showToast(describeError(err));
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Save profile';
+      }
+    }
+  });
 }
 
 /* ========================================================== my listings === */
@@ -254,7 +406,7 @@ function wireInstall() {
   window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
     if (els.installHint) els.installHint.textContent = 'Installed';
-    showToast('PR Marketplace installed.');
+    showToast('Campus Cart installed.');
   });
 
   document.getElementById('btnInstallApp')?.addEventListener('click', async () => {
@@ -412,6 +564,7 @@ function wireSecurity() {
 
 function wireSections() {
   const pairs = [
+    ['btnToggleProfileSection', 'profileSectionBody'],
     ['btnToggleContactSection', 'contactSectionBody'],
     ['btnToggleAboutSection', 'aboutSectionBody'],
     ['btnToggleListingsSection', 'listingsSectionBody'],
@@ -481,7 +634,7 @@ function openGuide() {
       <li><strong>Sold something?</strong> Mark it sold and it comes off the marketplace ${window.PRConfig.SOLD_ITEM_LIFETIME_HOURS} hours later.</li>
       <li><strong>Something wrong?</strong> Use Report on any listing. Reports are anonymous to the seller.</li>
     </ol>
-    <p class="guide-note">PR Marketplace does not handle payments or delivery. You arrange both directly with the other person.</p>
+    <p class="guide-note">Campus Cart does not handle payments or delivery. You arrange both directly with the other person.</p>
   `;
   openModal(modal);
 }

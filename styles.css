@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PR MARKETPLACE - LOCAL P2P COMMUNITY MARKETPLACE DESIGN SYSTEM
+   CAMPUS CART - STUDENT MARKETPLACE DESIGN SYSTEM
    Modern Mobile-First CSS Architecture
    ========================================================================== */
 
@@ -4606,9 +4606,525 @@ html, body {
   /* Listing photos come straight from phone cameras; take the glare off
      pure-white product shots so they do not blow out a dark screen. */
   :root[data-theme="dark"] .card-image,
-  :root[data-theme="dark"] .detail-image-box img {
+  :root[data-theme="dark"] .detail-image-box img,
+  :root[data-theme="dark"] .detail-gallery-slide {
     filter: brightness(0.94);
   }
+
+
+/* ==========================================================================
+   CAMPUS CART
+   Listing modes (sell / free / swap), the photo gallery, campus pickup,
+   student verification badges and the profile editor.
+
+   Every colour here resolves through the tokens defined at the top of this
+   file, so the dark theme at the bottom needs no rule of its own.
+   ========================================================================== */
+
+/* -------------------------------------------------- listing mode tabs --- */
+
+.mode-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 0 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mode-tabs::-webkit-scrollbar { display: none; }
+
+.mode-tab {
+  flex: 0 0 auto;
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.mode-tab:hover { border-color: var(--border-strong); }
+
+.mode-tab.active {
+  background: var(--text-main);
+  border-color: var(--text-main);
+  color: var(--bg-card);
+}
+
+/* ------------------------------------------------------- segmented pick --- */
+
+.segmented {
+  display: flex;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+
+.segment {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.segment-icon { font-size: 0.95rem; line-height: 1; }
+
+.segment.active {
+  background: var(--bg-card);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.optional {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ------------------------------------------------------- the photo strip --- */
+
+.photo-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scrollbar-width: none;
+}
+
+.photo-strip::-webkit-scrollbar { display: none; }
+
+.photo-tile,
+.photo-add-tile {
+  flex: 0 0 auto;
+  width: 92px;
+  height: 92px;
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.photo-tile {
+  border: 1.5px solid var(--border);
+  background: var(--img-ghost);
+  cursor: pointer;
+}
+
+.photo-tile.is-cover {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+  cursor: default;
+}
+
+.photo-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-cover-tag {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+}
+
+.photo-tile-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.photo-tile-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  backdrop-filter: blur(3px);
+}
+
+.photo-tile-btn.photo-remove { background: rgba(220, 38, 38, 0.86); }
+
+.photo-add-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1.5px dashed var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.photo-add-tile:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ------------------------------------------------------ leaving campus --- */
+
+.urgent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 13px;
+  margin-bottom: 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.urgent-row:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.urgent-row input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.urgent-row strong {
+  display: block;
+  font-size: 0.84rem;
+  color: var(--text-main);
+}
+
+.urgent-row em {
+  display: block;
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.checkbox-chip.wide { grid-column: 1 / -1; }
+
+/* ---------------------------------------------------------- feed cards --- */
+
+.card-price.is-free { color: var(--success); }
+.card-price.is-swap {
+  color: var(--secondary);
+  font-size: 0.92rem;
+}
+
+.card-swap-want {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.urgent-badge {
+  position: absolute;
+  top: 8px;
+  right: 40px;
+  z-index: 2;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 7px;
+  border-radius: var(--radius-full);
+}
+
+.photo-count-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 2;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 0.63rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(3px);
+}
+
+/* ------------------------------------------------------ detail gallery --- */
+
+.detail-gallery {
+  position: relative;
+  width: 100%;
+  background-color: var(--bg-main);
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-gallery-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detail-gallery-track::-webkit-scrollbar { display: none; }
+
+.detail-gallery-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 320px;
+  object-fit: contain;
+  scroll-snap-align: center;
+  cursor: zoom-in;
+  background-color: var(--bg-main);
+}
+
+.detail-gallery-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.gallery-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.25);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.gallery-dot.active {
+  width: 18px;
+  border-radius: var(--radius-full);
+  background: #fff;
+}
+
+/* --------------------------------------------------- detail mode & tags --- */
+
+.detail-price.is-free { color: var(--success); }
+.detail-price.is-swap { color: var(--secondary); }
+
+.detail-swap-want {
+  margin-top: 4px;
+  font-size: 0.84rem;
+  color: var(--text-body);
+}
+
+.detail-swap-want strong { color: var(--text-main); }
+
+.tag-free {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.tag-swap {
+  background: color-mix(in srgb, var(--secondary) 14%, transparent);
+  color: var(--secondary);
+}
+
+.tag-urgent {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--warning);
+}
+
+.detail-pickup strong { color: var(--text-main); }
+
+/* -------------------------------------------------------- seller card --- */
+
+.seller-avatar.has-photo,
+.profile-avatar.has-photo,
+.profile-photo-preview.has-photo {
+  padding: 0;
+  overflow: hidden;
+  background: var(--img-ghost);
+}
+
+.seller-avatar.has-photo img,
+.profile-avatar.has-photo img,
+.profile-photo-preview.has-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.seller-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 3px;
+}
+
+.verified-badge,
+.unverified-badge,
+.badge-course {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.verified-badge {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.unverified-badge,
+.badge-status.is-unverified {
+  background: var(--bg-surface);
+  color: var(--text-muted);
+}
+
+.badge-course,
+.seller-course {
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+/* ------------------------------------------------------- quick replies --- */
+
+.quick-replies {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 10px 0;
+  scrollbar-width: none;
+}
+
+.quick-replies::-webkit-scrollbar { display: none; }
+
+.quick-reply-chip {
+  flex: 0 0 auto;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  color: var(--text-body);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.quick-reply-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ------------------------------------------------------ profile editor --- */
+
+.profile-form { padding-top: 4px; }
+
+.profile-photo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.profile-photo-preview {
+  width: 66px;
+  height: 66px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-photo-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.btn-small {
+  padding: 7px 14px;
+  font-size: 0.78rem;
+}
+
+.btn-text-danger {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--danger);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.auth-field-hint {
+  margin-top: 5px;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
 
 /* ==========================================================================
    REDUCED MOTION

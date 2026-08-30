@@ -1,14 +1,14 @@
 /**
- * PR MARKETPLACE - SERVICE WORKER
+ * CAMPUS CART - SERVICE WORKER
  *
  * Caches the app shell so the interface loads offline. Data requests are never
  * cached: a stale listing or a stale chat message is worse than none, so
  * anything going to Supabase always goes to the network.
  */
 
-const VERSION = 'v5';
-const SHELL_CACHE = `pr-shell-${VERSION}`;
-const IMAGE_CACHE = `pr-images-${VERSION}`;
+const VERSION = 'v6';
+const SHELL_CACHE = `campuscart-shell-${VERSION}`;
+const IMAGE_CACHE = `campuscart-images-${VERSION}`;
 const MAX_CACHED_IMAGES = 60;
 
 const SHELL_ASSETS = [
@@ -23,6 +23,7 @@ const SHELL_ASSETS = [
   './icons/apple-touch-icon.png',
   './js/vendor/supabase.js',
   './js/config.js',
+  './js/campus.js',
   './js/supabase-client.js',
   './js/api.js',
   './js/ui.js',

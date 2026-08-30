@@ -1,5 +1,5 @@
 /**
- * PR MARKETPLACE - APPLICATION API
+ * CAMPUS CART - APPLICATION API
  *
  * The single surface the UI talks to. It delegates anything that needs a
  * server to js/supabase-client.js and keeps only genuinely device-local
@@ -106,7 +106,15 @@ class MarketplaceAPI {
         id: profile.id,
         fullName: profile.fullName,
         email: profile.email,
-        phone: profile.phone
+        phone: profile.phone,
+        avatarUrl: profile.avatarUrl || null,
+        department: profile.department || null,
+        yearOfStudy: profile.yearOfStudy || null,
+        bio: profile.bio || null,
+        // Left undefined when the profile row has not been read yet.
+        // JSON drops the key, and isVerifiedStudent() reads that back as
+        // "unknown" rather than "no" - see the note there.
+        isVerified: profile.isVerified === undefined ? undefined : Boolean(profile.isVerified)
       });
     } else {
       try { localStorage.removeItem(this.profileKey); } catch (e) { /* ignore */ }
@@ -118,21 +126,95 @@ class MarketplaceAPI {
     return this._profile;
   }
 
-  /** Ask Supabase who is signed in, and update the cache. */
+  /**
+   * Is this account allowed to post?
+   *
+   * A cached answer, and only ever used to decide what to say - the real
+   * check is the insert policy on items, which runs on the server against a
+   * value the browser cannot edit. Unknown is treated as allowed, so a failed
+   * profile fetch shows the sell form and lets the database refuse it with a
+   * message, rather than hiding the button for a student who is verified.
+   */
+  isVerifiedStudent() {
+    const user = this._profile;
+    if (!user) return false;
+    return user.isVerified !== false;
+  }
+
+  /**
+   * Ask Supabase who is signed in, and update the cache.
+   *
+   * Two round trips: the session says who you are, the profile row says what
+   * the marketplace knows about you. They are merged into one object because
+   * every screen wants both and none of them should care that the name comes
+   * from one place and the verified badge from another.
+   */
   async refreshUser() {
     try {
       const user = await window.supabaseAPI.getCurrentUser();
-      this._cacheProfile(user);
-      return user;
+      if (!user) {
+        this._cacheProfile(null);
+        return null;
+      }
+
+      const card = await window.supabaseAPI.fetchProfile(user.id).catch(() => null);
+      const merged = card
+        ? {
+            ...user,
+            fullName: card.fullName || user.fullName,
+            avatarUrl: card.avatarUrl,
+            department: card.department,
+            yearOfStudy: card.yearOfStudy,
+            bio: card.bio,
+            isVerified: card.isVerified
+          }
+        : user;
+
+      this._cacheProfile(merged);
+      return merged;
     } catch (err) {
       return this._profile;
     }
   }
 
+  /* ======================================================================
+     PROFILE CARDS
+     ====================================================================== */
+
+  fetchProfile(userId)   { return window.supabaseAPI.fetchProfile(userId); }
+  fetchProfiles(userIds) { return window.supabaseAPI.fetchProfiles(userIds); }
+  fetchCampusSettings()  { return window.supabaseAPI.fetchCampusSettings(); }
+
+  /** Save your own card, then re-merge it into the cached session. */
+  async updateMyProfile(patch) {
+    const card = await window.supabaseAPI.updateMyProfile(patch);
+    if (card && this._profile) {
+      this._cacheProfile({
+        ...this._profile,
+        fullName: card.fullName || this._profile.fullName,
+        avatarUrl: card.avatarUrl,
+        department: card.department,
+        yearOfStudy: card.yearOfStudy,
+        bio: card.bio,
+        isVerified: card.isVerified
+      });
+    }
+    return card;
+  }
+
   onAuthStateChange(callback) {
-    return window.supabaseAPI.onAuthStateChange((event, profile) => {
+    return window.supabaseAPI.onAuthStateChange(async (event, profile) => {
+      if (!profile) {
+        this._cacheProfile(null);
+        callback(event, null);
+        return;
+      }
+
+      // Cache the session first so anything rendering immediately has a name
+      // to show, then fill in the card behind it.
       this._cacheProfile(profile);
-      callback(event, profile);
+      const merged = await this.refreshUser().catch(() => profile);
+      callback(event, merged || profile);
     });
   }
 
@@ -147,7 +229,10 @@ class MarketplaceAPI {
   async signIn(emailOrPhone, password) {
     const user = await window.supabaseAPI.signIn(emailOrPhone, password);
     this._cacheProfile(user);
-    return user;
+    // The session alone does not carry the card - the photo, the course, the
+    // verified flag all live in the profile row. Merge it in before anyone
+    // renders, or the account panel greets a verified student as unverified.
+    return (await this.refreshUser()) || user;
   }
 
   async signOut() {
@@ -229,6 +314,12 @@ class MarketplaceAPI {
     if (filters.category && filters.category !== 'all') {
       items = items.filter(i => i.category === filters.category);
     }
+    if (filters.listingType && filters.listingType !== 'all') {
+      items = items.filter(i => (i.listingType || 'sell') === filters.listingType);
+    }
+    if (filters.urgentOnly) {
+      items = items.filter(i => i.isUrgent);
+    }
     if (filters.conditions && filters.conditions.length) {
       items = items.filter(i => filters.conditions.includes(i.condition));
     }
@@ -247,13 +338,19 @@ class MarketplaceAPI {
       items = items.filter(i =>
         i.title.toLowerCase().includes(q) ||
         (i.description || '').toLowerCase().includes(q) ||
-        (i.location || '').toLowerCase().includes(q));
+        (i.location || '').toLowerCase().includes(q) ||
+        (i.barterWant || '').toLowerCase().includes(q));
     }
 
     switch (filters.sort) {
       case 'price_asc':  items.sort((a, b) => a.price - b.price); break;
       case 'price_desc': items.sort((a, b) => b.price - a.price); break;
       case 'oldest':     items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); break;
+      case 'urgent':
+        items.sort((a, b) =>
+          (b.isUrgent === true) - (a.isUrgent === true) ||
+          new Date(b.createdAt) - new Date(a.createdAt));
+        break;
       default:           items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
     return items;

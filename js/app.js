@@ -1,5 +1,5 @@
 /**
- * PR MARKETPLACE - APPLICATION BOOTSTRAP
+ * CAMPUS CART - APPLICATION BOOTSTRAP
  *
  * Starts the app, wires the modules to each other, and owns the pieces that
  * do not belong to any one feature: the splash screen, bottom navigation,
@@ -25,6 +25,7 @@ import { initAccount, openAccount, closeAccount, isAccountOpen } from './account
 import { cancelCropper } from './cropper.js';
 import { initWebUpdates } from './updates.js';
 import { initPayments, openPaySheet, isPayOpen, close as closePaySheet } from './payments.js';
+import { initCampus } from './campus.js';
 
 /* ================================================================= start === */
 
@@ -34,6 +35,11 @@ import { initPayments, openPaySheet, isPayOpen, close as closePaySheet } from '.
 window.__prBooted = true;
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Categories, areas, pickup spots and the course dropdowns are painted from
+  // PRConfig.CAMPUS. This has to run before anything reads a select's value,
+  // so it goes first.
+  initCampus();
+
   initFeed({ onOpenItem: openItemDetail });
   wireGridDelegation();
 
@@ -130,7 +136,7 @@ async function boot(splash) {
     hideSplash(splash);
     showApp();
     showToast('This build has no database configured. Set URL and ANON_KEY in js/config.js.', 8000);
-    console.error('PR Marketplace: js/config.js is missing a valid Supabase URL or anon key.');
+    console.error('Campus Cart: js/config.js is missing a valid Supabase URL or anon key.');
     return;
   }
 

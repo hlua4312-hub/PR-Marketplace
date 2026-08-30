@@ -1,8 +1,8 @@
 {
-  "name": "PR Marketplace - Local P2P Community App",
-  "short_name": "PR Market",
-  "description": "Buy and sell textbooks, notes, furniture, clothing and more directly with people nearby. No fees, no middleman.",
-  "id": "/pr-marketplace/",
+  "name": "Campus Cart - Student Marketplace",
+  "short_name": "Campus Cart",
+  "description": "Buy, sell, give away and swap secondhand things with verified students on your own campus. No fees, no middleman.",
+  "id": "/campus-cart/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -10,7 +10,7 @@
   "background_color": "#f8fafc",
   "theme_color": "#4f46e5",
   "orientation": "portrait",
-  "categories": ["shopping", "social"],
+  "categories": ["shopping", "social", "education"],
   "lang": "en",
   "dir": "ltr",
   "icons": [

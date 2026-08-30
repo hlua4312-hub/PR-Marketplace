@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <!-- Pinch zoom stays enabled: blocking it locks out anyone who needs to magnify text. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>PR - Direct Mobile Marketplace</title>
+  <title>Campus Cart — Buy, Sell and Swap on Campus</title>
   <!-- Search Engine & Mobile App SEO Meta Tags -->
-  <meta name="description" content="PR - Download and use the local P2P mobile community application to buy and sell study materials, textbooks, notes, clothing, furniture, and more directly.">
-  <meta name="keywords" content="PR, local marketplace, campus trading, buy textbooks, sell notes, P2P app, mobile marketplace app">
-  
+  <meta name="description" content="Campus Cart — the student marketplace for your college. Buy, sell, give away and swap textbooks, notes, gadgets, cycles and room furniture with verified students on your own campus.">
+  <meta name="keywords" content="Campus Cart, campus marketplace, student marketplace, buy textbooks, sell notes, barter, college classifieds, secondhand campus">
+
   <!-- Open Graph / Search Engine App Metadata -->
-  <meta property="og:title" content="PR - Direct Community App">
-  <meta property="og:description" content="Download PR application on your mobile phone to buy & sell items directly in your community with zero fees.">
+  <meta property="og:title" content="Campus Cart — the student marketplace">
+  <meta property="og:description" content="Buy, sell, give away and swap secondhand things with verified students on your own campus. No fees, no middleman.">
   <meta property="og:type" content="website">
   <meta property="og:image" content="./icons/icon-512.png">
 
@@ -22,7 +22,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="PR">
+  <meta name="apple-mobile-web-app-title" content="Campus Cart">
   <meta name="theme-color" content="#ffffff" id="themeColorMeta">
 
   <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
@@ -47,8 +47,8 @@
   <!-- 1. 2-SECOND STARTUP LOADING SPLASH SCREEN -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
-      <img src="icons/logo-256.png" alt="PR Logo" class="splash-logo">
-      <span class="splash-subtitle">Direct Community Marketplace</span>
+      <img src="icons/logo-256.png" alt="Campus Cart logo" class="splash-logo">
+      <span class="splash-subtitle">The student marketplace</span>
       <div class="splash-loader-bar">
         <div class="splash-loader-progress"></div>
       </div>
@@ -61,9 +61,9 @@
       <button type="button" class="auth-dismiss-btn" id="btnDismissAuth" aria-label="Close and keep browsing">&times;</button>
 
       <div class="auth-brand-header">
-        <img src="icons/logo-256.png" alt="PR Logo" class="auth-brand-logo">
-        <h2>Welcome to PR Marketplace</h2>
-        <p>Buy and sell with people nearby</p>
+        <img src="icons/logo-256.png" alt="Campus Cart logo" class="auth-brand-logo">
+        <h2>Welcome to Campus Cart</h2>
+        <p>Buy, sell and swap with students on <span data-campus-name>your campus</span></p>
       </div>
 
       <!-- Filled in when something specific prompted the sign-in -->
@@ -83,8 +83,10 @@
         </div>
 
         <div class="auth-form-group">
-          <label for="regEmail">Email Address (@gmail.com) <span class="required">*</span></label>
-          <input type="email" id="regEmail" placeholder="e.g. user@gmail.com" required>
+          <label for="regEmail">Email Address <span class="required">*</span></label>
+          <input type="email" id="regEmail" placeholder="e.g. you@college.edu.in" required>
+          <!-- Filled in by js/campus.js, and hidden when no domain is configured -->
+          <p class="auth-field-hint hidden" data-campus-email-hint></p>
         </div>
 
         <div class="auth-form-group">
@@ -190,7 +192,7 @@
       <button type="button" class="auth-dismiss-btn" id="btnDismissRecovery" aria-label="Cancel recovery">&times;</button>
 
       <div class="auth-brand-header">
-        <img src="icons/logo-256.png" alt="PR Logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="Campus Cart logo" class="auth-brand-logo">
         <h2>Enter Your Recovery Code</h2>
         <p style="font-size:0.82rem; color:var(--text-muted);">We emailed a 6-digit code. It expires in an hour.</p>
       </div>
@@ -229,7 +231,7 @@
   <div id="newPasswordOverlay" class="auth-overlay hidden">
     <div class="auth-card">
       <div class="auth-brand-header">
-        <img src="icons/logo-256.png" alt="PR Logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="Campus Cart logo" class="auth-brand-logo">
         <h2>Choose a New Password</h2>
         <p>Pick something with both letters and numbers.</p>
       </div>
@@ -265,7 +267,7 @@
   <div id="confirmEmailOverlay" class="auth-overlay hidden">
     <div class="auth-card" style="text-align:center;">
       <div class="auth-brand-header">
-        <img src="icons/logo-256.png" alt="PR Logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="Campus Cart logo" class="auth-brand-logo">
         <h2>Confirm Your Email</h2>
         <p style="font-size:0.82rem; color:var(--text-muted);">We sent a confirmation link to your inbox. Open it to activate your account.</p>
       </div>
@@ -276,7 +278,7 @@
       </div>
 
       <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 18px; line-height:1.55;">
-        Not there yet? Give it a minute, then check your spam folder. The link opens PR Marketplace and signs you straight in.
+        Not there yet? Give it a minute, then check your spam folder. The link opens Campus Cart and signs you straight in.
       </p>
 
       <button type="button" class="btn btn-secondary auth-submit-btn" id="btnResendConfirmation">
@@ -296,28 +298,16 @@
     <header class="app-header">
       <div class="header-top">
         <div class="brand">
-          <img src="icons/logo-256.png" alt="PR Logo" class="header-logo">
+          <img src="icons/logo-256.png" alt="Campus Cart logo" class="header-logo">
         </div>
 
         <div class="header-actions">
           <!-- The separate GPS button is gone: the dropdown's own
                "Use my location" option already triggers detection, so the
                header carried two controls for one job. -->
+          <!-- Options are painted in by js/campus.js from PRConfig.CAMPUS.areas -->
           <div class="location-selector">
-            <select id="locationSelect" aria-label="Filter by area">
-              <option value="all">All Aizawl &amp; nearby</option>
-              <option value="detect_gps">Use my location</option>
-              <option value="Aizawl City">Aizawl City Center</option>
-              <option value="MZU Campus">MZU Campus</option>
-              <option value="Zarkawt">Zarkawt &amp; Dawrpui</option>
-              <option value="Chanmari">Chanmari &amp; Ramhlun</option>
-              <option value="Khatla">Khatla &amp; Treasury Sq</option>
-              <option value="Temple Veng">Temple Veng &amp; College Veng</option>
-              <option value="Kulikawn">Kulikawn &amp; Tuikual</option>
-              <option value="Bawngkawn">Bawngkawn &amp; Durtlang</option>
-              <option value="Vaivakawn">Vaivakawn &amp; Edenthar</option>
-              <option value="Luangmual">Luangmual &amp; Tanhril</option>
-            </select>
+            <select id="locationSelect" aria-label="Filter by area"></select>
           </div>
 
           <button class="filter-btn" id="filterModalBtn" aria-label="Filter and sort">
@@ -333,58 +323,18 @@
         <button class="clear-search-btn hidden" id="clearSearchBtn" aria-label="Clear Search">&times;</button>
       </div>
 
-      <!-- Horizontal Scrollable Category Chips (11 Categories) -->
+      <!-- Category chips. Painted in by js/campus.js from PRConfig.CAMPUS.categories,
+           so the list is defined in one place instead of three. -->
       <nav class="categories-wrapper" aria-label="Categories Navigation">
-        <div class="categories-chips" id="categoriesNav">
-          <button class="cat-chip active" data-category="all">
-            <span class="chip-icon">✨</span>
-            <span>All Items</span>
-          </button>
-          <button class="cat-chip" data-category="Books & Study Materials">
-            <span class="chip-icon">📚</span>
-            <span>Books</span>
-          </button>
-          <button class="cat-chip" data-category="Fashion & Clothing">
-            <span class="chip-icon">👕</span>
-            <span>Fashion</span>
-          </button>
-          <button class="cat-chip" data-category="Furniture">
-            <span class="chip-icon">🛋️</span>
-            <span>Furniture</span>
-          </button>
-          <button class="cat-chip" data-category="Sports & Fitness">
-            <span class="chip-icon">⚽</span>
-            <span>Sports</span>
-          </button>
-          <button class="cat-chip" data-category="Beauty & Personal Care">
-            <span class="chip-icon">💄</span>
-            <span>Beauty</span>
-          </button>
-          <button class="cat-chip" data-category="Vehicles & Accessories">
-            <span class="chip-icon">🚲</span>
-            <span>Vehicles</span>
-          </button>
-          <button class="cat-chip" data-category="Toys & Games">
-            <span class="chip-icon">🎮</span>
-            <span>Toys & Games</span>
-          </button>
-          <button class="cat-chip" data-category="Pets & Pet Supplies">
-            <span class="chip-icon">🐾</span>
-            <span>Pets</span>
-          </button>
-          <button class="cat-chip" data-category="Real Estate">
-            <span class="chip-icon">🏡</span>
-            <span>Real Estate</span>
-          </button>
-          <button class="cat-chip" data-category="Musical Instruments">
-            <span class="chip-icon">🎸</span>
-            <span>Music</span>
-          </button>
-          <button class="cat-chip" data-category="Other">
-            <span class="chip-icon">📦</span>
-            <span>Other</span>
-          </button>
-        </div>
+        <div class="categories-chips" id="categoriesNav"></div>
+      </nav>
+
+      <!-- What the seller wants out of it: money, nothing, or a swap. -->
+      <nav class="mode-tabs" id="listingTypeTabs" aria-label="Listing type">
+        <button class="mode-tab active" data-listing-type="all">All</button>
+        <button class="mode-tab" data-listing-type="sell">For sale</button>
+        <button class="mode-tab" data-listing-type="free">Free</button>
+        <button class="mode-tab" data-listing-type="barter">Swap</button>
       </nav>
     </header>
 
@@ -503,32 +453,34 @@
               <div class="section-card-title-group">
                 <div>
                   <h3>Item Details</h3>
-                  <p>Add primary photo, title, pricing and description</p>
+                  <p>Photos, title, what you want for it, and where to meet</p>
                 </div>
               </div>
             </div>
 
-            <!-- Item Cover Photo -->
+            <!-- What the seller wants out of it. Chosen first because it
+                 decides whether the price field below is even relevant. -->
             <div class="form-group">
-              <label class="form-label">Item Cover Photo <span class="required">*</span></label>
-              <div class="image-upload-box" id="imageUploadBox">
-                <input type="file" id="itemImageInput" accept="image/*" class="file-input-hidden">
-                <div class="upload-placeholder" id="uploadPlaceholder">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--primary); margin-bottom:4px;"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                  <p class="upload-title">Tap or drop item photo here</p>
-                  <span class="upload-hint">PNG, JPG, WEBP up to 5MB</span>
-                </div>
-                <div class="image-preview-container hidden" id="imagePreviewContainer">
-                  <img id="imagePreview" src="" alt="Item Preview">
-                  <div class="preview-overlay-actions">
-                    <button type="button" class="btn-crop-overlay" id="cropImageBtn" title="Crop & Adjust Photo">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
-                      <span>Crop Photo</span>
-                    </button>
-                    <button type="button" class="remove-photo-btn" id="removePhotoBtn" title="Remove photo">&times;</button>
-                  </div>
-                </div>
+              <label class="form-label">What do you want for it? <span class="required">*</span></label>
+              <div class="segmented" id="listingTypePicker" role="radiogroup" aria-label="Listing type">
+                <button type="button" class="segment active" data-type="sell" role="radio" aria-checked="true">
+                  <span class="segment-icon">₹</span><span>Sell it</span>
+                </button>
+                <button type="button" class="segment" data-type="free" role="radio" aria-checked="false">
+                  <span class="segment-icon">🎁</span><span>Give away</span>
+                </button>
+                <button type="button" class="segment" data-type="barter" role="radio" aria-checked="false">
+                  <span class="segment-icon">🔁</span><span>Swap</span>
+                </button>
               </div>
+            </div>
+
+            <!-- Photos. The first one is the cover; tapping another promotes it. -->
+            <div class="form-group">
+              <label class="form-label">Photos <span class="required">*</span></label>
+              <input type="file" id="itemImageInput" accept="image/*" multiple class="file-input-hidden">
+              <div class="photo-strip" id="photoStrip"></div>
+              <span class="upload-hint" id="photoHint">The first photo is the cover buyers see. Up to 6, 5MB each.</span>
             </div>
 
             <!-- Title -->
@@ -541,19 +493,8 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="itemCategory" class="form-label">Category <span class="required">*</span></label>
-                <select id="itemCategory" required>
-                  <option value="Books & Study Materials">Books & Study Materials</option>
-                  <option value="Fashion & Clothing">Fashion & Clothing</option>
-                  <option value="Furniture">Furniture</option>
-                  <option value="Sports & Fitness">Sports & Fitness</option>
-                  <option value="Beauty & Personal Care">Beauty & Personal Care</option>
-                  <option value="Vehicles & Accessories">Vehicles & Accessories</option>
-                  <option value="Toys & Games">Toys & Games</option>
-                  <option value="Pets & Pet Supplies">Pets & Pet Supplies</option>
-                  <option value="Real Estate">Real Estate</option>
-                  <option value="Musical Instruments">Musical Instruments</option>
-                  <option value="Other">Other</option>
-                </select>
+                <!-- Options come from PRConfig.CAMPUS.categories via js/campus.js -->
+                <select id="itemCategory" required></select>
               </div>
 
               <div class="form-group">
@@ -567,40 +508,59 @@
               </div>
             </div>
 
+            <!-- What you want in exchange. Only shown for a swap. -->
+            <div class="form-group hidden" id="barterWantGroup">
+              <label for="itemBarterWant" class="form-label">What would you like in exchange? <span class="required">*</span></label>
+              <input type="text" id="itemBarterWant" maxlength="200" placeholder="e.g. A scientific calculator, or 2nd-year physics notes">
+              <span class="upload-hint">Be specific. "Anything useful" gets no offers.</span>
+            </div>
+
             <!-- Price & Quick Presets -->
-            <div class="form-row">
-              <div class="form-group">
-                <label for="itemPrice" class="form-label">Price (₹) <span class="required">*</span></label>
+            <div class="form-row" id="priceRow">
+              <div class="form-group" id="priceGroup">
+                <label for="itemPrice" class="form-label" id="priceLabel">Price (₹) <span class="required">*</span></label>
                 <div class="price-input-wrapper">
                   <span class="currency-prefix">₹</span>
-                  <input type="number" id="itemPrice" required min="0" step="1" placeholder="500">
+                  <input type="number" id="itemPrice" min="0" step="1" placeholder="500">
                 </div>
                 <div class="quick-chips-row price-presets" id="pricePresets">
                   <span class="chip-hint">Quick price:</span>
+                  <button type="button" class="preset-chip" data-price="50">₹50</button>
                   <button type="button" class="preset-chip" data-price="100">₹100</button>
                   <button type="button" class="preset-chip" data-price="250">₹250</button>
                   <button type="button" class="preset-chip" data-price="500">₹500</button>
                   <button type="button" class="preset-chip" data-price="1000">₹1k</button>
-                  <button type="button" class="preset-chip" data-price="2500">₹2.5k</button>
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="itemLocation" class="form-label">Location <span class="required">*</span></label>
-                <input type="text" id="itemLocation" required placeholder="e.g. Zarkawt, Aizawl / Chanmari / Khatla">
-                <div class="quick-chips-row location-presets" id="locationPresets">
-                  <button type="button" class="preset-chip" data-loc="Zarkawt, Aizawl">Zarkawt</button>
-                  <button type="button" class="preset-chip" data-loc="Chanmari, Aizawl">Chanmari</button>
-                  <button type="button" class="preset-chip" data-loc="Khatla, Aizawl">Khatla</button>
-                  <button type="button" class="preset-chip" data-loc="Bawngkawn, Aizawl">Bawngkawn</button>
-                </div>
+                <label for="itemLocation" class="form-label">Where you are <span class="required">*</span></label>
+                <!-- Options come from PRConfig.CAMPUS.areas via js/campus.js -->
+                <select id="itemLocation" required></select>
               </div>
             </div>
+
+            <!-- Pickup spot -->
+            <div class="form-group">
+              <label for="itemPickupSpot" class="form-label">Usual pickup spot</label>
+              <!-- Options come from PRConfig.CAMPUS.pickupSpots via js/campus.js -->
+              <select id="itemPickupSpot"></select>
+              <span class="upload-hint">Somewhere public and busy. Buyers see this before they message you.</span>
+            </div>
+
+            <!-- Leaving campus -->
+            <label class="urgent-row">
+              <input type="checkbox" id="itemUrgent">
+              <span>
+                <strong>I'm leaving campus soon</strong>
+                <em>Marks it urgent and pushes it up the feed</em>
+              </span>
+            </label>
 
             <!-- Description -->
             <div class="form-group">
               <label for="itemDescription" class="form-label">Description</label>
-              <textarea id="itemDescription" rows="3" placeholder="Mention edition, course code, condition details, or meetup preferences..."></textarea>
+              <textarea id="itemDescription" rows="3" placeholder="Edition, course code, what's worn, why you're selling..."></textarea>
             </div>
           </div>
 
@@ -645,7 +605,7 @@
             <div class="chat-info-banner-box">
               <div>
                 <strong>In-app chat is always on</strong>
-                <p>Buyers can message you inside PR Marketplace. WhatsApp and Instagram are optional extras — fill them in and buyers get one-tap buttons for those too.</p>
+                <p>Buyers can message you inside Campus Cart. WhatsApp and Instagram are optional extras — fill them in and buyers get one-tap buttons for those too.</p>
               </div>
             </div>
           </div>
@@ -667,7 +627,7 @@
                      autocomplete="off" spellcheck="false" inputmode="email">
               <p class="form-hint">
                 Buyers scan or tap to open GPay, PhonePe or any UPI app. The money goes
-                straight to your bank — PR Marketplace never handles it and takes no fee.
+                straight to your bank — Campus Cart never handles it and takes no fee.
               </p>
             </div>
           </div>
@@ -710,7 +670,7 @@
             <label class="filter-title" for="priceRange">Maximum Price</label>
             <span class="range-value" id="priceValueDisplay">Any price</span>
           </div>
-          <!-- Top of the range means "no limit" so vehicles and property stay reachable. -->
+          <!-- Top of the range means "no limit" so a cycle or a fridge stays reachable. -->
           <input type="range" id="priceRange" min="500" max="100000" step="500" value="100000"
                  aria-describedby="priceRangeHint">
           <div class="range-labels">
@@ -720,12 +680,21 @@
         </div>
 
         <div class="filter-group">
+          <label class="filter-title">End of semester</label>
+          <label class="checkbox-chip wide">
+            <input type="checkbox" id="filterUrgentOnly">
+            Only people leaving campus
+          </label>
+        </div>
+
+        <div class="filter-group">
           <label class="filter-title" for="sortSelect">Sort by</label>
           <select id="sortSelect" class="filter-select">
             <option value="newest" selected>Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="price_asc">Price: low to high</option>
             <option value="price_desc">Price: high to low</option>
+            <option value="urgent">Leaving campus first</option>
           </select>
         </div>
 
@@ -760,12 +729,13 @@
         
         <!-- Profile Card Header -->
         <div class="account-profile-card" id="accountProfileCard">
-          <div class="profile-avatar" id="accountUserAvatar">PR</div>
+          <div class="profile-avatar" id="accountUserAvatar">CC</div>
           <div class="profile-info">
-            <h3 id="accountUserName">Local Community Member</h3>
-            <span class="profile-email" id="accountUserEmail">user@gmail.com</span>
+            <h3 id="accountUserName">Campus Cart member</h3>
+            <span class="profile-email" id="accountUserEmail">you@college.edu.in</span>
             <div class="profile-badges" id="profileBadges">
-              <span class="badge-status">Verified email</span>
+              <span class="badge-status" id="verificationBadge">Verified student</span>
+              <span class="badge-course hidden" id="profileCourse"></span>
             </div>
           </div>
         </div>
@@ -774,6 +744,58 @@
         <div class="guest-actions hidden" id="guestActions">
           <p>You can browse everything as a guest. Logging in lets you post items, message sellers and keep your saved list across devices.</p>
           <button type="button" class="btn btn-primary" id="btnGuestLogin">Log in or register</button>
+        </div>
+
+
+        <!-- Section: Your profile -->
+        <div class="account-section hidden" id="profileSection">
+          <button class="account-section-btn" id="btnToggleProfileSection" type="button">
+            <div class="section-title-group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <h3>Your profile</h3>
+            </div>
+            <span class="section-toggle-icon">&#9660;</span>
+          </button>
+
+          <div class="account-section-body hidden" id="profileSectionBody">
+            <p class="section-subtitle">Buyers see this when they open one of your listings. A real photo and a course get more replies than an empty card.</p>
+
+            <form id="profileForm" class="profile-form">
+              <div class="profile-photo-row">
+                <div class="profile-photo-preview" id="profilePhotoPreview">CC</div>
+                <div class="profile-photo-actions">
+                  <input type="file" id="profilePhotoInput" accept="image/*" class="file-input-hidden">
+                  <button type="button" class="btn btn-secondary btn-small" id="btnPickProfilePhoto">Change photo</button>
+                  <button type="button" class="btn-text-danger hidden" id="btnRemoveProfilePhoto">Remove</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="profileFullName" class="form-label">Display name</label>
+                <input type="text" id="profileFullName" maxlength="60" placeholder="The name buyers will see">
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="profileDepartment" class="form-label">Department</label>
+                  <!-- Options come from PRConfig.CAMPUS.departments via js/campus.js -->
+                  <select id="profileDepartment"></select>
+                </div>
+                <div class="form-group">
+                  <label for="profileYear" class="form-label">Year</label>
+                  <!-- Options come from PRConfig.CAMPUS.years via js/campus.js -->
+                  <select id="profileYear"></select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="profileBio" class="form-label">About you</label>
+                <textarea id="profileBio" rows="2" maxlength="300" placeholder="One line. What you usually sell, or when you are around."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary" id="btnSaveProfile">Save profile</button>
+            </form>
+          </div>
         </div>
 
         <!-- Section 1: Contact Us & Feedback Button -->
@@ -811,11 +833,11 @@
               </a>
 
               <!-- Email Support -->
-              <a href="mailto:support@prmarketplace.app?subject=PR%20Marketplace%20feedback" class="account-channel-btn">
+              <a href="mailto:support@campuscart.app?subject=Campus%20Cart%20feedback" class="account-channel-btn">
                 <div class="channel-icon-box">✉️</div>
                 <div class="channel-text">
                   <strong>Email Support</strong>
-                  <span>support@prmarketplace.app</span>
+                  <span>support@campuscart.app</span>
                 </div>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </a>
@@ -823,12 +845,12 @@
           </div>
         </div>
 
-        <!-- Section 2: About PR Marketplace Button -->
+        <!-- Section 2: About Campus Cart Button -->
         <div class="account-section">
           <button class="account-section-btn open" id="btnToggleAboutSection" type="button">
             <div class="section-title-group">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <h3>About PR Marketplace</h3>
+              <h3>About Campus Cart</h3>
             </div>
             <span class="section-toggle-icon">▼</span>
           </button>
@@ -881,7 +903,7 @@
 
           <div class="account-section-body hidden" id="paymentsSectionBody">
             <p class="section-subtitle">
-              UPI transfers you have made or received. PR Marketplace does not process
+              UPI transfers you have made or received. Campus Cart does not process
               these — confirm against your own bank app before marking one received.
             </p>
             <div class="payments-list" id="paymentsList"></div>
@@ -922,7 +944,7 @@
               <button type="button" class="account-channel-btn" id="btnInstallApp">
                 <div class="channel-icon-box">📲</div>
                 <div class="channel-text">
-                  <strong>Install PR Marketplace</strong>
+                  <strong>Install Campus Cart</strong>
                   <span id="installHintText">Add the app to your home screen</span>
                 </div>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -1189,7 +1211,7 @@
         </div>
 
         <p class="pay-disclaimer">
-          PR Marketplace does not process or hold this payment and cannot verify it.
+          Campus Cart does not process or hold this payment and cannot verify it.
           The reference you enter is a record for you and the seller, not a receipt.
         </p>
       </div>
@@ -1252,7 +1274,7 @@
   <div class="update-banner hidden" id="updateBanner" role="status">
     <div class="update-banner-text">
       <strong>Update ready</strong>
-      <span>A newer version of PR Marketplace has downloaded.</span>
+      <span>A newer version of Campus Cart has downloaded.</span>
     </div>
     <div class="update-banner-actions">
       <button type="button" class="update-dismiss" id="btnDismissUpdate">Later</button>
@@ -1329,7 +1351,7 @@
       setTimeout(function () {
         if (window.__prBooted) return;
         reveal(
-          'PR Marketplace could not start',
+          'Campus Cart could not start',
           'The app loaded but did not finish starting up. Check the browser console for ' +
           'the underlying error, and confirm the database settings in js/config.js.',
           false

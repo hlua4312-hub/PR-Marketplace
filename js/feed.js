@@ -1,11 +1,11 @@
 /**
- * PR MARKETPLACE - LISTING FEED
+ * CAMPUS CART - LISTING FEED
  * Cards, filters, search, sorting and pagination.
  */
 
 import {
   escapeHtml, highlight, formatPrice, hoursUntilPurge,
-  showToast, PLACEHOLDER_IMAGE
+  showToast, closeModal, PLACEHOLDER_IMAGE
 } from './ui.js';
 import { filters, view, queryFilters, setFilter, setTab, resetFilters, activeFilterCount, PRICE_SLIDER_MAX } from './store.js';
 import { initPullToRefresh, initInfiniteScroll } from './gestures.js';
@@ -26,6 +26,8 @@ export function initFeed({ onOpenItem }) {
     search: document.getElementById('searchInput'),
     clearSearch: document.getElementById('clearSearchBtn'),
     categories: document.getElementById('categoriesNav'),
+    modeTabs: document.getElementById('listingTypeTabs'),
+    urgentOnly: document.getElementById('filterUrgentOnly'),
     location: document.getElementById('locationSelect'),
     sort: document.getElementById('sortSelect'),
     priceRange: document.getElementById('priceRange'),
@@ -42,6 +44,7 @@ export function initFeed({ onOpenItem }) {
 
   wireSearch();
   wireCategories();
+  wireModeTabs();
   wireFilters();
   wirePagination();
   wireGestures();
@@ -136,6 +139,12 @@ function renderOfflineState(fromCache) {
   }
 }
 
+const MODE_HEADINGS = {
+  free: 'Free on campus',
+  barter: 'Up for swap',
+  sell: 'For sale'
+};
+
 function renderHeading() {
   if (!els.title) return;
   if (view.tab === 'favorites') {
@@ -144,6 +153,8 @@ function renderHeading() {
     els.title.textContent = 'My Listings';
   } else if (filters.category !== 'all') {
     els.title.textContent = filters.category;
+  } else if (filters.listingType !== 'all') {
+    els.title.textContent = MODE_HEADINGS[filters.listingType] || 'Recent Listings';
   } else {
     els.title.textContent = 'Recent Listings';
   }
@@ -170,12 +181,28 @@ function renderItems(items) {
   els.grid.innerHTML = items.map(item => cardMarkup(item, favIds, currentUser)).join('');
 }
 
+/**
+ * A listing tile.
+ *
+ * The price line carries the mode: a giveaway says "Free" rather than "₹0",
+ * and a swap says what it is after instead of a number, because a swap with a
+ * price on it reads as a sale and gets the wrong messages.
+ */
 function cardMarkup(item, favIds, currentUser) {
   const isFav = favIds.includes(String(item.id));
   const isSold = Boolean(item.isSold);
   const isMine = Boolean(currentUser && item.userId === currentUser.id);
   const hrsLeft = isSold && item.soldAt ? hoursUntilPurge(item.soldAt) : null;
   const image = item.imageUrl || PLACEHOLDER_IMAGE;
+  const type = item.listingType || 'sell';
+  const extraPhotos = Math.max(0, (item.imageUrls || []).length - 1);
+
+  const priceLine =
+    type === 'free'
+      ? '<span class="card-price is-free">Free</span>'
+      : type === 'barter'
+        ? `<span class="card-price is-swap">Swap${item.price > 0 ? ` · or ${formatPrice(item.price)}` : ''}</span>`
+        : `<span class="card-price ${isSold ? 'line-through' : ''}">${formatPrice(item.price)}</span>`;
 
   return `
     <article class="product-card ${isSold ? 'is-sold-card' : ''}" data-id="${escapeHtml(item.id)}">
@@ -184,6 +211,8 @@ function cardMarkup(item, favIds, currentUser) {
           ? '<span class="condition-badge sold-badge">SOLD</span>'
           : `<span class="condition-badge">${escapeHtml(item.condition)}</span>`}
         ${isMine ? '<span class="owner-badge">Your listing</span>' : ''}
+        ${!isSold && item.isUrgent ? '<span class="urgent-badge">Leaving campus</span>' : ''}
+        ${extraPhotos > 0 ? `<span class="photo-count-badge">+${extraPhotos}</span>` : ''}
 
         <button class="fav-btn ${isFav ? 'active' : ''}" data-fav="${escapeHtml(item.id)}"
                 aria-label="${isFav ? 'Remove from saved' : 'Save this item'}" aria-pressed="${isFav}">
@@ -198,11 +227,15 @@ function cardMarkup(item, favIds, currentUser) {
         <span class="card-category">${escapeHtml(item.category)}</span>
         <h3 class="card-title">${highlight(item.title, filters.search)}</h3>
 
+        ${type === 'barter' && item.barterWant
+          ? `<span class="card-swap-want">Wants: ${highlight(item.barterWant, filters.search)}</span>`
+          : ''}
+
         <div class="card-price-row">
-          <span class="card-price ${isSold ? 'line-through' : ''}">${formatPrice(item.price)}</span>
+          ${priceLine}
           <span class="card-location">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
-            ${escapeHtml((item.location || '').split('/')[0] || item.location)}
+            ${escapeHtml(item.pickupSpot || item.location || '')}
           </span>
         </div>
 
@@ -235,10 +268,18 @@ function renderEmptyState() {
     },
     explore: {
       icon: '⌕',
-      title: 'No listings match',
+      title: filters.listingType === 'free'
+        ? 'Nothing free right now'
+        : filters.listingType === 'barter'
+          ? 'No swaps on offer'
+          : 'No listings match',
       body: filters.search
         ? `Nothing matches “${filters.search}”. Try a shorter search, or clear your filters.`
-        : 'Try a different category, or clear your filters.',
+        : filters.listingType === 'free'
+          ? 'Giveaways go fast. Check back, or be the first to post one.'
+          : filters.listingType === 'barter'
+            ? 'Nobody is offering a swap yet. Post what you have and what you want for it.'
+            : 'Try a different category, or clear your filters.',
       action: { label: 'Clear filters', clear: true }
     }
   };
@@ -352,6 +393,33 @@ function wireSearch() {
   });
 }
 
+/**
+ * Sell / free / swap. A tab rather than a filter-sheet checkbox because it is
+ * the one distinction people browse by - "what's going free today" is a
+ * different visit from "I need a calculator".
+ */
+function wireModeTabs() {
+  els.modeTabs?.addEventListener('click', event => {
+    const tab = event.target.closest('.mode-tab');
+    if (!tab) return;
+
+    setFilter({ listingType: tab.dataset.listingType });
+    syncModeTabs();
+
+    if (view.tab !== 'explore') {
+      setTab('explore');
+      syncNavButtons('explore');
+    }
+    loadFeed();
+  });
+}
+
+function syncModeTabs() {
+  els.modeTabs?.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.listingType === filters.listingType);
+  });
+}
+
 function wireCategories() {
   els.categories?.addEventListener('click', event => {
     const chip = event.target.closest('.cat-chip');
@@ -386,11 +454,14 @@ function wireFilters() {
     setFilter({
       conditions,
       maxPrice: raw >= PRICE_SLIDER_MAX ? null : raw,
+      urgentOnly: Boolean(els.urgentOnly?.checked),
       sort: els.sort?.value || 'newest'
     });
 
-    document.getElementById('filterModal')?.classList.add('hidden');
-    document.body.classList.remove('modal-open');
+    // Through closeModal, not by hiding it: the stack is what decides whether
+    // the page stays locked, and a sheet dismissed behind its back left
+    // body.modal-open on for good - no scrolling, no pull to refresh.
+    closeModal(document.getElementById('filterModal'));
     loadFeed();
   });
 
@@ -408,6 +479,7 @@ function wireFilters() {
     els.categories?.querySelectorAll('.cat-chip').forEach(c => {
       c.classList.toggle('active', c.dataset.category === 'all');
     });
+    syncModeTabs();
     loadFeed();
   });
 
@@ -427,6 +499,8 @@ export function syncFilterControls() {
   }
   if (els.sort) els.sort.value = filters.sort;
   if (els.location) els.location.value = filters.location;
+  if (els.urgentOnly) els.urgentOnly.checked = filters.urgentOnly;
+  syncModeTabs();
 
   document.querySelectorAll('input[name="condition"]').forEach(input => {
     input.checked = filters.conditions.includes(input.value);
@@ -438,11 +512,18 @@ function renderActiveFilters() {
 
   const tags = [];
   if (filters.category !== 'all') tags.push(filters.category);
+  if (filters.listingType !== 'all') {
+    tags.push({ sell: 'For sale', free: 'Free', barter: 'Swap' }[filters.listingType]);
+  }
   filters.conditions.forEach(c => tags.push(c));
   if (filters.maxPrice !== null) tags.push(`Under ${formatPrice(filters.maxPrice)}`);
   if (filters.location !== 'all') tags.push(filters.location);
+  if (filters.urgentOnly) tags.push('Leaving campus');
   if (filters.sort !== 'newest') {
-    const labels = { price_asc: 'Cheapest first', price_desc: 'Priciest first', oldest: 'Oldest first' };
+    const labels = {
+      price_asc: 'Cheapest first', price_desc: 'Priciest first',
+      oldest: 'Oldest first', urgent: 'Urgent first'
+    };
     tags.push(labels[filters.sort] || filters.sort);
   }
   if (filters.search) tags.push(`“${filters.search}”`);

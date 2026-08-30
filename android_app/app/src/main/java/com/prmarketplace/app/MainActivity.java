@@ -380,36 +380,56 @@ public class MainActivity extends AppCompatActivity {
         android.webkit.CookieManager.getInstance().flush();
     }
 
+    /**
+     * Walk the app back one layer: let the page close whatever it has open,
+     * then WebView history, and only then leave.
+     *
+     * The query into JavaScript is asynchronous, so a second press can arrive
+     * while the first is still in flight. Both would find nothing open, and
+     * the second would see the exit timer the first had only just set - so a
+     * single press appeared to close the app. One query at a time.
+     */
+    private boolean backQueryInFlight = false;
+
     private void handleAppBackNavigation() {
-        if (webView != null) {
-            webView.evaluateJavascript("(function() { return window.handleAndroidBackButton ? window.handleAndroidBackButton() : false; })();", new ValueCallback<String>() {
+        if (webView == null) {
+            moveTaskToBack(true);
+            return;
+        }
+        if (backQueryInFlight) return;
+        backQueryInFlight = true;
+
+        webView.evaluateJavascript(
+            "(function(){try{return window.handleAndroidBackButton?window.handleAndroidBackButton():false}catch(e){return false}})();",
+            new ValueCallback<String>() {
                 @Override
                 public void onReceiveValue(String value) {
+                    backQueryInFlight = false;
+                    // A thrown handler answers "null"; treat anything that is
+                    // not an explicit true as unhandled rather than trapping
+                    // the user in an app whose back button does nothing.
                     boolean handled = "true".equalsIgnoreCase(value) || "\"true\"".equalsIgnoreCase(value);
-                    if (!handled) {
-                        if (webView.canGoBack()) {
-                            webView.goBack();
-                        } else {
-                            if (backPressedTime + 2500 > System.currentTimeMillis()) {
-                                if (exitToast != null) exitToast.cancel();
-                                moveTaskToBack(true);
-                            } else {
-                                if (exitToast != null) exitToast.cancel();
-                                exitToast = Toast.makeText(MainActivity.this, "Press back again to exit PR Marketplace", Toast.LENGTH_SHORT);
-                                exitToast.show();
-                                backPressedTime = System.currentTimeMillis();
-                            }
-                        }
+                    if (handled) return;
+
+                    if (webView.canGoBack()) {
+                        webView.goBack();
+                        return;
                     }
+                    confirmExit();
                 }
             });
-        } else {
-            moveTaskToBack(true);
-        }
     }
 
-    @Override
-    public void onBackPressed() {
-        handleAppBackNavigation();
+    /** Two presses to leave, so a stray swipe does not close the app. */
+    private void confirmExit() {
+        if (exitToast != null) exitToast.cancel();
+        if (backPressedTime + 2500 > System.currentTimeMillis()) {
+            moveTaskToBack(true);
+            return;
+        }
+        exitToast = Toast.makeText(this, "Press back again to exit PR Marketplace", Toast.LENGTH_SHORT);
+        exitToast.show();
+        backPressedTime = System.currentTimeMillis();
     }
+
 }

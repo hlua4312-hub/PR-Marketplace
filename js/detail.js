@@ -1,5 +1,5 @@
 /**
- * PR MARKETPLACE - LISTING DETAIL
+ * CAMPUS CART - LISTING DETAIL
  *
  * Seller contact, the live chat thread for this listing, and the owner
  * controls (edit, mark sold, relist, delete).
@@ -77,8 +77,45 @@ export async function openItemDetail(itemId) {
 
   currentItem = item;
   content.innerHTML = detailMarkup(item);
+  wireGallery();
 
   if (!item.isSold) startChat(item);
+
+  // The seller's card - photo, course, verified badge - is a second request,
+  // so it fills in after the listing rather than holding it up. A listing
+  // that renders in one round trip and gains a badge in two reads better
+  // than one that waits for both.
+  hydrateSellerCard(item);
+}
+
+async function hydrateSellerCard(item) {
+  const slot = document.getElementById('sellerCardSlot');
+  if (!slot || !item.userId) return;
+
+  let profile = null;
+  try {
+    profile = await window.api.fetchProfile(item.userId);
+  } catch (err) {
+    return;                            // the fallback already on screen is fine
+  }
+  if (!profile || currentItem !== item) return;
+
+  const avatar = slot.querySelector('.seller-avatar');
+  if (avatar && profile.avatarUrl) {
+    avatar.innerHTML = `<img src="${escapeHtml(profile.avatarUrl)}" alt="">`;
+    avatar.classList.add('has-photo');
+  }
+
+  const meta = slot.querySelector('.seller-meta');
+  if (meta) {
+    const course = [profile.department, profile.yearOfStudy].filter(Boolean).join(' · ');
+    meta.innerHTML = [
+      profile.isVerified
+        ? '<span class="verified-badge" title="Registered with a college address">✓ Verified student</span>'
+        : '<span class="unverified-badge">Not verified</span>',
+      course ? `<span class="seller-course">${escapeHtml(course)}</span>` : ''
+    ].join('');
+  }
 }
 
 function detailMarkup(item) {
@@ -87,22 +124,52 @@ function detailMarkup(item) {
   const isSold = Boolean(item.isSold);
   const isFav = window.api.isFavorite(item.id);
   const hrsLeft = isSold && item.soldAt ? hoursUntilPurge(item.soldAt) : null;
-  const image = item.imageUrl || PLACEHOLDER_IMAGE;
+  const type = item.listingType || 'sell';
+  const photos = (item.imageUrls && item.imageUrls.length)
+    ? item.imageUrls
+    : [item.imageUrl || PLACEHOLDER_IMAGE];
 
   const phone = item.sellerPhone || '';
   const whatsapp = (item.sellerWhatsapp || '').replace(/[^\d]/g, '');
   const instagram = (item.sellerInstagram || '').replace(/^@/, '').trim();
 
+  // What the seller is actually asking for, in words, so the opening WhatsApp
+  // message makes sense on a giveaway and on a swap as well as on a sale.
+  const askingFor =
+    type === 'free' ? 'free' :
+    type === 'barter' ? `a swap for ${item.barterWant || 'something'}` :
+    formatPrice(item.price);
+
   const waMessage = encodeURIComponent(
-    `Hi ${item.sellerName}, I saw your listing "${item.title}" for ${formatPrice(item.price)} on PR Marketplace. Is it still available?`
+    `Hi ${item.sellerName}, I saw your listing "${item.title}" (${askingFor}) on Campus Cart. Is it still available?`
   );
 
+  const priceLine =
+    type === 'free'
+      ? '<div class="detail-price is-free">Free \u2014 giving it away</div>'
+      : type === 'barter'
+        ? `<div class="detail-price is-swap">Swap${item.price > 0 ? ` \u00b7 or ${formatPrice(item.price)}` : ''}</div>`
+        : `<div class="detail-price ${isSold ? 'line-through' : ''}">${formatPrice(item.price)}</div>`;
+
   return `
-    <div class="detail-image-box">
-      <img id="detailItemImg" src="${escapeHtml(image)}" alt="${escapeHtml(item.title)}">
+    <div class="detail-gallery">
+      <div class="detail-gallery-track" id="detailGalleryTrack">
+        ${photos.map((url, i) => `
+          <img class="detail-gallery-slide" src="${escapeHtml(url || PLACEHOLDER_IMAGE)}"
+               alt="${escapeHtml(item.title)} \u2014 photo ${i + 1} of ${photos.length}"
+               data-slide="${i}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async">`).join('')}
+      </div>
+
       <button type="button" class="detail-expand-btn" data-action="zoom" title="View full size" aria-label="View photo full size">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
       </button>
+
+      ${photos.length > 1 ? `
+        <div class="detail-gallery-dots" id="detailGalleryDots" role="tablist" aria-label="Photos">
+          ${photos.map((_, i) => `
+            <button type="button" class="gallery-dot ${i === 0 ? 'active' : ''}" data-goto="${i}"
+                    role="tab" aria-selected="${i === 0}" aria-label="Photo ${i + 1}"></button>`).join('')}
+        </div>` : ''}
     </div>
 
     ${isSold ? `
@@ -116,6 +183,9 @@ function detailMarkup(item) {
         <div class="detail-tags">
           <span class="tag tag-category">${escapeHtml(item.category)}</span>
           <span class="tag tag-condition">${escapeHtml(item.condition)}</span>
+          ${type === 'free' ? '<span class="tag tag-free">Free</span>' : ''}
+          ${type === 'barter' ? '<span class="tag tag-swap">Swap</span>' : ''}
+          ${item.isUrgent && !isSold ? '<span class="tag tag-urgent">Leaving campus</span>' : ''}
           ${isSold ? '<span class="tag tag-sold">Sold</span>' : ''}
         </div>
         <button type="button" class="fav-toggle-btn ${isFav ? 'is-fav' : ''}" data-action="fav" aria-pressed="${isFav}">
@@ -125,21 +195,28 @@ function detailMarkup(item) {
       </div>
 
       <h2 class="detail-title">${escapeHtml(item.title)}</h2>
-      <div class="detail-price ${isSold ? 'line-through' : ''}">${formatPrice(item.price)}</div>
+      ${priceLine}
+      ${type === 'barter' && item.barterWant
+        ? `<div class="detail-swap-want"><strong>Wants in exchange:</strong> ${escapeHtml(item.barterWant)}</div>`
+        : ''}
       <div class="detail-posted">Posted ${escapeHtml(timeAgo(item.createdAt))}</div>
     </div>
 
     <div class="detail-desc">
       <strong>Description</strong>
       <p>${escapeHtml(item.description || 'The seller did not add a description.')}</p>
-      <p class="detail-meta">Meetup: ${escapeHtml(item.location)}</p>
+      <p class="detail-meta">Area: ${escapeHtml(item.location)}</p>
+      ${item.pickupSpot
+        ? `<p class="detail-meta detail-pickup">Usual pickup: <strong>${escapeHtml(item.pickupSpot)}</strong></p>`
+        : ''}
     </div>
 
-    <div class="seller-contact-card">
+    <div class="seller-contact-card" id="sellerCardSlot">
       <div class="seller-profile-row">
         <div class="seller-avatar">${escapeHtml(initials(item.sellerName, 'S'))}</div>
         <div class="seller-info">
           <h4>${escapeHtml(item.sellerName)}</h4>
+          <div class="seller-meta"></div>
           ${phone && user ? `<div class="seller-phone">${escapeHtml(phone)}</div>` : ''}
         </div>
       </div>
@@ -147,6 +224,48 @@ function detailMarkup(item) {
       ${isOwner ? ownerPanel(item, isSold) : buyerPanel(item, { user, isSold, phone, whatsapp, instagram, waMessage })}
     </div>
   `;
+}
+
+/* ============================================================== gallery === */
+
+/**
+ * Dots follow the scroll rather than driving it. The track is a plain
+ * scroll-snap strip, so swiping works with no JavaScript at all and this only
+ * has to keep the indicator honest - which means a dropped listener degrades
+ * to a gallery that still swipes.
+ */
+function wireGallery() {
+  const track = document.getElementById('detailGalleryTrack');
+  const dots = document.getElementById('detailGalleryDots');
+  if (!track) return;
+
+  const update = () => {
+    const index = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    dots?.querySelectorAll('.gallery-dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === index);
+      dot.setAttribute('aria-selected', String(i === index));
+    });
+  };
+
+  track.addEventListener('scroll', () => {
+    clearTimeout(track._dotTimer);
+    track._dotTimer = setTimeout(update, 60);
+  }, { passive: true });
+
+  dots?.addEventListener('click', event => {
+    const dot = event.target.closest('[data-goto]');
+    if (!dot) return;
+    track.scrollTo({ left: track.clientWidth * Number(dot.dataset.goto), behavior: 'smooth' });
+  });
+}
+
+/** Whichever photo is on screen right now, for the fullscreen viewer. */
+function visiblePhotoUrl() {
+  const track = document.getElementById('detailGalleryTrack');
+  if (!track) return (currentItem && currentItem.imageUrl) || PLACEHOLDER_IMAGE;
+  const index = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+  const slide = track.querySelector(`[data-slide="${index}"]`);
+  return slide?.getAttribute('src') || (currentItem && currentItem.imageUrl) || PLACEHOLDER_IMAGE;
 }
 
 function ownerPanel(item, isSold) {
@@ -182,9 +301,13 @@ function ownerPanel(item, isSold) {
 }
 
 function buyerPanel(item, { user, isSold, phone, whatsapp, instagram, waMessage }) {
-  // Offered only when the seller published a UPI ID. Nothing is charged here -
-  // it opens the buyer's own UPI app.
-  const canPay = Boolean(item.sellerUpiVpa);
+  const type = item.listingType || 'sell';
+
+  // Offered only when the seller published a UPI ID and there is actually a
+  // sum to send. A giveaway has nothing to pay, and a swap only does when the
+  // seller named a cash difference.
+  const canPay = Boolean(item.sellerUpiVpa) && item.price > 0 && type !== 'free';
+
   if (isSold) {
     return `
       <div class="sold-disabled-notice">
@@ -217,9 +340,19 @@ function buyerPanel(item, { user, isSold, phone, whatsapp, instagram, waMessage 
         <div class="chat-loading">Loading messages…</div>
       </div>
 
+      <div class="quick-replies" id="quickReplies">
+        ${quickReplyOptions(type, item).map(
+          text => `<button type="button" class="quick-reply-chip" data-quick="${escapeHtml(text)}">${escapeHtml(text)}</button>`
+        ).join('')}
+      </div>
+
       <form class="chat-input-bar" id="chatInputForm">
         <input type="text" id="chatMessageInput" maxlength="2000"
-               placeholder="Ask about price, condition or meetup…" autocomplete="off" required>
+               placeholder="${type === 'barter'
+                 ? 'Offer something in exchange…'
+                 : type === 'free'
+                   ? 'Ask if it is still going…'
+                   : 'Ask about price, condition or meetup…'}" autocomplete="off" required>
         <button type="submit" class="btn-send-chat">
           <span>Send</span>
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -258,6 +391,24 @@ function buyerPanel(item, { user, isSold, phone, whatsapp, instagram, waMessage 
       </button>
     </div>
   `;
+}
+
+/**
+ * Openers, by mode. Kept to three: a longer list becomes a menu to read
+ * rather than a shortcut to tap.
+ */
+function quickReplyOptions(type, item) {
+  if (type === 'free') {
+    return ['Is this still available?', 'Can I collect it today?', 'Where should I meet you?'];
+  }
+  if (type === 'barter') {
+    return [
+      'Is this still available?',
+      item.barterWant ? `I have ${item.barterWant} \u2014 interested?` : 'What would you swap it for?',
+      'Can we meet to compare?'
+    ];
+  }
+  return ['Is this still available?', 'Would you take a little less?', 'Can we meet today?'];
 }
 
 /* ================================================================= chat === */
@@ -341,6 +492,18 @@ async function onContentSubmit(event) {
 /* ============================================================== actions === */
 
 async function onContentClick(event) {
+  // A tapped opener fills the box rather than sending it. Nobody should fire
+  // off a message they have not read, least of all one about money.
+  const quick = event.target.closest('[data-quick]');
+  if (quick) {
+    const input = document.getElementById('chatMessageInput');
+    if (input) {
+      input.value = quick.dataset.quick;
+      input.focus();
+    }
+    return;
+  }
+
   const trigger = event.target.closest('[data-action]');
   if (!trigger || !currentItem) return;
 
@@ -359,7 +522,7 @@ async function onContentClick(event) {
   }
 
   if (action === 'zoom') {
-    hooks.openZoom?.(currentItem.imageUrl || PLACEHOLDER_IMAGE);
+    hooks.openZoom?.(visiblePhotoUrl());
     return;
   }
 

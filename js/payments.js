@@ -1,5 +1,5 @@
 /**
- * PR MARKETPLACE - PAYING A SELLER
+ * CAMPUS CART - PAYING A SELLER
  *
  * The buyer's half of the flow: show the seller's UPI QR and deep link with
  * the amount filled in, then take the reference number they got back.
@@ -77,7 +77,7 @@ export async function openPaySheet(item) {
       vpa: item.sellerUpiVpa,
       payeeName: item.sellerName,
       amount: item.price,
-      note: `PR Marketplace ${String(item.title).slice(0, 28)}`
+      note: `Campus Cart ${String(item.title).slice(0, 28)}`
     });
   } catch (err) {
     showToast(describeError(err));
