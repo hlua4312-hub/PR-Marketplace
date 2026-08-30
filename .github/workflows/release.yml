@@ -1,14 +1,21 @@
 name: Release
 
 # Publishing is driven by a tag, so the version that ships is the version
-# recorded in git rather than whatever happened to be on someone's laptop.
+# recorded in git rather than whatever happened to be on someone's laptop:
 #
 #   npm version patch && git push --follow-tags
 #
-# The APK is signed with the upload key held in repository secrets. Without
-# those secrets the build still runs and still produces an APK, but an
-# unsigned one, and unsigned APKs cannot be installed - so this fails loudly
-# instead of publishing something nobody can use.
+# This ships a DEBUG-signed APK. That is a deliberate choice for a student
+# project - it needs no keystore and no secrets - and it comes with real
+# limits: the APK is debuggable, so anything with adb access can read its
+# data, and the debug key identifies nobody. It cannot go on Play, and it is
+# not what you would hand to strangers.
+#
+# To move to a real key later: generate a keystore, add KEYSTORE_BASE64,
+# KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD as repository secrets, write
+# them to android_app/keystore.properties here, and swap assembleDebug for
+# assembleRelease. Everyone on the debug build has to uninstall once, because
+# the application id and the signature both change.
 
 on:
   push:
@@ -45,46 +52,34 @@ jobs:
           fi
           echo "Releasing $PKG"
 
-      - name: Restore the signing key
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::KEYSTORE_BASE64 is not set. An unsigned APK cannot be installed."
-            exit 1
-          fi
-          echo "$KEYSTORE_BASE64" | base64 -d > android_app/upload-keystore.jks
-          cat > android_app/keystore.properties <<PROPS
-          storeFile=../upload-keystore.jks
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          PROPS
-
       - name: Build
         run: |
           chmod +x android_app/gradlew
-          cd android_app && ./gradlew assembleRelease --no-daemon
+          cd android_app && ./gradlew assembleDebug --no-daemon
 
-      - name: Refuse to publish an unsigned APK
+      - name: Check the APK is signed with the committed debug key
         run: |
-          APK=$(find android_app/app/build/outputs/apk/release -name '*.apk' | head -1)
-          echo "Built $APK"
-          if [ -z "$APK" ] || [ "${APK##*/}" = "app-release-unsigned.apk" ]; then
-            echo "::error::The build produced an unsigned APK."
-            exit 1
-          fi
+          APK=android_app/app/build/outputs/apk/debug/app-debug.apk
           BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           "$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
-          # A fixed asset name keeps the /releases/latest/download/ URL stable,
-          # which is what the in-app updater points at.
+          # The updater installs over whatever is already on the phone, and
+          # Android rejects an update whose signature moved. Pin the expected
+          # fingerprint so a build that would not install fails here instead.
+          EXPECTED=db6b23bbc8da76eb98fedf3b2cdf975b1be750e909e9c0a2c59896655cd1aae7
+          ACTUAL=$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" \
+            | grep -i 'SHA-256 digest' | head -1 | awk '{print $NF}')
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Signing key changed ($ACTUAL). This APK cannot update an installed build."
+            exit 1
+          fi
+          # A fixed asset name keeps /releases/latest/download/ stable, which
+          # is the URL the in-app updater points at.
           cp "$APK" PR-Marketplace.apk
-
-      - name: Remove the signing key from the runner
-        if: always()
-        run: rm -f android_app/upload-keystore.jks android_app/keystore.properties
 
       - uses: softprops/action-gh-release@v2
         with:
           files: PR-Marketplace.apk
           generate_release_notes: true
+          body: |
+            Debug-signed build for testing. On first install Android will ask
+            you to allow installs from your browser.

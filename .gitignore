@@ -3,6 +3,12 @@ android_app/local.properties
 android_app/keystore.properties
 android_app/**/*.jks
 android_app/**/*.keystore
+# ...except the Android debug key. It is the same well-known key every SDK
+# install generates, with the password "android", so it is not a secret and
+# grants no authenticity. It is committed because CI would otherwise mint a
+# fresh one per run: a new signature every release, and a phone refusing to
+# install the update over the build it already has.
+!android_app/debug.keystore
 android_app/.gradle/
 android_app/.idea/
 android_app/build/
