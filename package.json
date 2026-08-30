@@ -14,7 +14,7 @@
     "android:release": "cd android_app && gradlew.bat assembleRelease"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=21"
   },
   "keywords": [
     "marketplace",

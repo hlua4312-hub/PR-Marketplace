@@ -23,6 +23,7 @@ import {
 } from './auth.js';
 import { initAccount, openAccount, closeAccount, isAccountOpen } from './account.js';
 import { cancelCropper } from './cropper.js';
+import { initWebUpdates } from './updates.js';
 
 /* ================================================================= start === */
 
@@ -78,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   wireBottomNav();
   wireBackButton();
+  initWebUpdates();
   wireGps();
   wireZoomViewer();
   wireModalBackdrops();

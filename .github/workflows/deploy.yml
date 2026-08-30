@@ -1,0 +1,82 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A queued deploy replaces a running one rather than racing it.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: test          # a failing test never reaches the live site
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Copy only what the browser needs. Publishing the repository root
+      # would also serve android_app/ - including local.properties, and any
+      # keystore sitting untracked in a working copy.
+      - name: Assemble the site
+        run: |
+          mkdir -p site
+          cp index.html styles.css sw.js manifest.json site/
+          cp -r js icons site/
+          echo "Published files:"
+          find site -type f | sort
+
+      - name: Write version.json
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          cat > site/version.json <<JSON
+          {
+            "version": "$VERSION",
+            "commit": "${GITHUB_SHA::7}",
+            "released": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "apkUrl": "https://github.com/${GITHUB_REPOSITORY}/releases/latest",
+            "notes": "See the release notes for what changed."
+          }
+          JSON
+          cat site/version.json
+
+      - name: Fail if anything private slipped in
+        run: |
+          if find site -name 'local.properties' -o -name 'keystore*' -o -name '*.jks' -o -name '*.apk' | grep -q .; then
+            echo "::error::A private or build file reached the publish directory."
+            exit 1
+          fi
+          echo "Publish directory is clean."
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

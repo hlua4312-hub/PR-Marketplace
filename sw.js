@@ -6,7 +6,7 @@
  * anything going to Supabase always goes to the network.
  */
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL_CACHE = `pr-shell-${VERSION}`;
 const IMAGE_CACHE = `pr-images-${VERSION}`;
 const MAX_CACHED_IMAGES = 60;
@@ -16,7 +16,7 @@ const SHELL_ASSETS = [
   './index.html',
   './styles.css',
   './manifest.json',
-  './pr_app_icon.jpg',
+  './icons/logo-256.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-192.png',
@@ -34,7 +34,8 @@ const SHELL_ASSETS = [
   './js/messaging.js',
   './js/auth.js',
   './js/account.js',
-  './js/app.js'
+  './js/app.js',
+  './js/updates.js'
 ];
 
 self.addEventListener('install', event => {
@@ -47,8 +48,18 @@ self.addEventListener('install', event => {
           cache.add(url).catch(err => console.warn('Shell asset skipped:', url, err))
         )
       ))
-      .then(() => self.skipWaiting())
+      // Deliberately NOT skipWaiting here. Taking over instantly would swap
+      // the assets under a tab that is already running the previous version,
+      // leaving old modules talking to a new shell. The page asks the user
+      // first, then sends SKIP_WAITING when they accept.
   );
+});
+
+// The page sends this once the user has agreed to update.
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', event => {

@@ -47,7 +47,7 @@
   <!-- 1. 2-SECOND STARTUP LOADING SPLASH SCREEN -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
-      <img src="pr_app_icon.jpg" alt="PR Logo" class="splash-logo">
+      <img src="icons/logo-256.png" alt="PR Logo" class="splash-logo">
       <span class="splash-subtitle">Direct Community Marketplace</span>
       <div class="splash-loader-bar">
         <div class="splash-loader-progress"></div>
@@ -61,7 +61,7 @@
       <button type="button" class="auth-dismiss-btn" id="btnDismissAuth" aria-label="Close and keep browsing">&times;</button>
 
       <div class="auth-brand-header">
-        <img src="pr_app_icon.jpg" alt="PR Logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="PR Logo" class="auth-brand-logo">
         <h2>Welcome to PR Marketplace</h2>
         <p>Buy and sell with people nearby</p>
       </div>
@@ -190,7 +190,7 @@
       <button type="button" class="auth-dismiss-btn" id="btnDismissRecovery" aria-label="Cancel recovery">&times;</button>
 
       <div class="auth-brand-header">
-        <img src="pr_app_icon.jpg" alt="PR Logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="PR Logo" class="auth-brand-logo">
         <h2>Enter Your Recovery Code</h2>
         <p style="font-size:0.82rem; color:var(--text-muted);">We emailed a 6-digit code. It expires in an hour.</p>
       </div>
@@ -229,7 +229,7 @@
   <div id="newPasswordOverlay" class="auth-overlay hidden">
     <div class="auth-card">
       <div class="auth-brand-header">
-        <img src="pr_app_icon.jpg" alt="PR Logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="PR Logo" class="auth-brand-logo">
         <h2>Choose a New Password</h2>
         <p>Pick something with both letters and numbers.</p>
       </div>
@@ -265,7 +265,7 @@
   <div id="confirmEmailOverlay" class="auth-overlay hidden">
     <div class="auth-card" style="text-align:center;">
       <div class="auth-brand-header">
-        <img src="pr_app_icon.jpg" alt="PR Logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="PR Logo" class="auth-brand-logo">
         <h2>Confirm Your Email</h2>
         <p style="font-size:0.82rem; color:var(--text-muted);">We sent a confirmation link to your inbox. Open it to activate your account.</p>
       </div>
@@ -296,7 +296,7 @@
     <header class="app-header">
       <div class="header-top">
         <div class="brand">
-          <img src="pr_app_icon.jpg" alt="PR Logo" class="header-logo">
+          <img src="icons/logo-256.png" alt="PR Logo" class="header-logo">
         </div>
 
         <div class="header-actions">
@@ -893,6 +893,16 @@
                 <span class="theme-switch" id="themeSwitch" role="switch" aria-checked="false" aria-labelledby="themeHintText"></span>
               </button>
 
+              <!-- Revealed only when the published version is ahead of this build -->
+              <button type="button" class="account-channel-btn hidden" id="updateAvailableRow">
+                <div class="channel-icon-box">⬆️</div>
+                <div class="channel-text">
+                  <strong>Update available</strong>
+                  <span id="updateAvailableText">A newer version has been released</span>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+
               <button type="button" class="account-channel-btn" id="btnInstallApp">
                 <div class="channel-icon-box">📲</div>
                 <div class="channel-text">
@@ -1156,6 +1166,19 @@
           <button type="button" class="btn btn-danger" id="confirmOkBtn">Confirm</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- A new version has downloaded and is waiting. Offered, not forced:
+       taking over mid-message would lose whatever was being typed. -->
+  <div class="update-banner hidden" id="updateBanner" role="status">
+    <div class="update-banner-text">
+      <strong>Update ready</strong>
+      <span>A newer version of PR Marketplace has downloaded.</span>
+    </div>
+    <div class="update-banner-actions">
+      <button type="button" class="update-dismiss" id="btnDismissUpdate">Later</button>
+      <button type="button" class="update-apply" id="btnApplyUpdate">Reload</button>
     </div>
   </div>
 

@@ -9,6 +9,7 @@ import {
   escapeHtml, formatPrice, timeAgo, showToast, openModal, closeModal,
   confirmAction, describeError, initials, PLACEHOLDER_IMAGE
 } from './ui.js';
+import { checkAndroidUpdate } from './updates.js';
 
 let els = {};
 let hooks = {};
@@ -32,6 +33,38 @@ export function initAccount(injected) {
   wireSecurity();
   wireListings();
   wireTheme();
+  showBuildVersion();
+  lookForNewerBuild();
+}
+
+/** Keep the About panel honest about which build is running. */
+function showBuildVersion() {
+  const label = document.getElementById('appVersionLabel');
+  if (label) label.textContent = window.PRConfig.APP_VERSION;
+}
+
+/**
+ * Tell the user when a newer build is published. Silent otherwise, including
+ * when offline - a failed check is not worth a message.
+ */
+async function lookForNewerBuild() {
+  const update = await checkAndroidUpdate({
+    currentVersion: window.PRConfig.APP_VERSION,
+    manifestUrl: window.PRConfig.UPDATE_MANIFEST_URL
+  });
+  if (!update) return;
+
+  const row = document.getElementById('updateAvailableRow');
+  const text = document.getElementById('updateAvailableText');
+  if (!row) return;
+
+  if (text) {
+    text.textContent = `Version ${update.version} is available` + (update.notes ? ` — ${update.notes}` : '');
+  }
+  row.classList.remove('hidden');
+  row.addEventListener('click', () => {
+    if (update.url) window.open(update.url, '_blank', 'noopener');
+  }, { once: true });
 }
 
 export function isAccountOpen() {

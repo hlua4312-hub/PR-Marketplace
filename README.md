@@ -172,6 +172,27 @@ Both `keystore.properties` and `*.jks` are gitignored. Without them the release 
 
 ---
 
+## Going live
+
+Push to `main` and [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) publishes the web app to GitHub Pages. Tests run first, and a failing test never reaches the live site.
+
+The workflow copies **only** the files a browser needs into a `site/` directory rather than publishing the repository root. That is deliberate: the root also contains `android_app/`, and a working copy there holds `local.properties` and possibly a signing keystore. A final step fails the build if anything matching those ever reaches the publish directory.
+
+Two settings to change once you know your URL:
+
+1. **Supabase → Authentication → URL Configuration → Redirect URLs** — add your live address, or the confirmation and password-reset links will not come back to the app.
+2. **`UPDATE_MANIFEST_URL` in [`js/config.js`](js/config.js)** — set it to `https://YOUR-SITE/version.json` to turn on the Android update check. Leave it empty and the check stays off.
+
+### Updates
+
+**The web app updates itself.** The service worker downloads a new release in the background and then waits. When one is ready the app offers a **Reload**, rather than taking it — swapping the assets under someone mid-message would lose what they were typing. Accepting activates the new version, reloads once, and clears the old cache. It checks on launch, when the tab regains focus, and every 30 minutes.
+
+**The Android app cannot update itself, and does not pretend to.** A sideloaded APK has no way to silently replace itself: Android requires the user to confirm every install, and only the Play Store or a package-installer permission avoids that. Instead the app reads `version.json` from the deployed site and, when your installed build is behind, shows **Update available** under Account → App & Security with a link to the release. Publish the APK as a GitHub release and the link resolves to it.
+
+Bump the version in three places together — `package.json`, `APP_VERSION` in `js/config.js`, and `versionName`/`versionCode` in `android_app/app/build.gradle`.
+
+---
+
 ## Tests
 
 ```bash

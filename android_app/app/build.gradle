@@ -87,7 +87,8 @@ tasks.register('syncWebAssets', Copy) {
         include 'styles.css'
         include 'manifest.json'
         include 'sw.js'
-        include 'pr_app_icon.jpg'
+        // pr_app_icon.jpg is the 1024px source the icons are generated from.
+        // Nothing references it at runtime any more, so it is not shipped.
         include 'js/**'
         include 'icons/**'
     }

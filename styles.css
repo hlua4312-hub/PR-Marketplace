@@ -4199,6 +4199,77 @@ input[type="range"] {
 .boot-error-hint { font-size: 0.85rem; }
 .boot-error strong { color: var(--text-main); }
 
+/* ------------------------------------------------------------ update ---- */
+
+/* Sits above the bottom nav rather than over it, so it never covers a
+   control the user might be reaching for. */
+.update-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--nav-height) + 12px + env(safe-area-inset-bottom, 0px));
+  z-index: 3500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-card);
+  box-shadow: var(--shadow-lg);
+  animation: update-rise 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes update-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.update-banner-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.update-banner-text strong { font-size: 0.86rem; color: var(--text-main); }
+.update-banner-text span { font-size: 0.77rem; color: var(--text-muted); }
+
+.update-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.update-apply,
+.update-dismiss {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.update-apply {
+  border: none;
+  background-color: var(--primary);
+  color: #ffffff;
+}
+.update-apply:disabled { opacity: 0.6; cursor: default; }
+
+.update-dismiss {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+@media (max-width: 420px) {
+  .update-banner { flex-direction: column; align-items: stretch; }
+  .update-banner-actions { justify-content: flex-end; }
+}
+
 /* ==========================================================================
    DARK THEME - opt in only
    Deliberately NOT wired to prefers-color-scheme. Shoppers expect a white

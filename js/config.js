@@ -32,6 +32,17 @@ window.PRConfig = {
   /** Listings fetched per page in the feed. */
   PAGE_SIZE: 24,
 
+  /** This build. Kept in step with package.json and app/build.gradle. */
+  APP_VERSION: '3.0.0',
+
+  /**
+   * Where the deployed site publishes its version. The Android build checks
+   * this to tell the user their APK is behind; leave it empty to switch the
+   * check off. A sideloaded APK cannot install itself silently, so this
+   * points people at a download rather than pretending to auto-update.
+   */
+  UPDATE_MANIFEST_URL: '',
+
   isConfigured() {
     return Boolean(
       this.URL &&
