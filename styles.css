@@ -4668,18 +4668,20 @@ html, body {
 
 .segment {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 9px 6px;
+  gap: 4px;
+  padding: 9px 4px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
   transition: var(--transition-fast);
 }
@@ -5019,6 +5021,19 @@ html, body {
 .verified-badge {
   background: var(--success-soft);
   color: var(--success);
+}
+
+/* .badge-status only ever had a margin. It says whether you can post now, so
+   it needs to look like a badge rather than a stray line of text. */
+.badge-status {
+  display: inline-block;
+  margin-bottom: 0;
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .unverified-badge,
