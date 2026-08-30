@@ -47,6 +47,11 @@ jobs:
         run: |
           mkdir -p site
           cp index.html styles.css sw.js manifest.json robots.txt sitemap.xml site/
+          # Search Console proves ownership by fetching this exact filename.
+          # Copied by glob so adding another verification file later needs
+          # no edit here - forgetting it is a silent failure, the file simply
+          # 404s and verification is refused with no clue why.
+          cp google*.html site/ 2>/dev/null || true
           cp -r js icons site/
           echo "Published files:"
           find site -type f | sort
