@@ -42,7 +42,11 @@ class MarketplaceAPI {
       'pr_marketplace_chats_v1',
       'pr_user_permanent_posts',
       'pr_community_all_chat_v1',
-      'pr_notifications'
+      'pr_notifications',
+      // Written by the Database Connection card, which no longer exists. Left
+      // in place it would silently override js/config.js forever.
+      'pr_supabase_url',
+      'pr_supabase_key'
     ];
     try {
       dead.forEach(key => localStorage.removeItem(key));
@@ -84,11 +88,6 @@ class MarketplaceAPI {
     return window.supabaseAPI.isReady();
   }
 
-  reconnect() {
-    const ok = window.supabaseAPI.reconnect();
-    this._profile = null;
-    return ok;
-  }
 
   /* ======================================================================
      SESSION

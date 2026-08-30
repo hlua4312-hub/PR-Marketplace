@@ -13,7 +13,7 @@
  */
 
 const CONNECTION_ERROR =
-  'Could not reach the database. Check your connection, or set your Supabase project under Account > Database Connection.';
+  'Could not reach the marketplace. Check your connection and try again.';
 
 class SupabaseMarketplaceClient {
   constructor() {
@@ -29,7 +29,7 @@ class SupabaseMarketplaceClient {
       return;
     }
     try {
-      this.client = window.supabase.createClient(cfg.url, cfg.anonToken, {
+      this.client = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
@@ -43,12 +43,6 @@ class SupabaseMarketplaceClient {
     }
   }
 
-  /** Re-create the client after the user points the app at a different project. */
-  reconnect() {
-    this.client = null;
-    this.initClient();
-    return this.isReady();
-  }
 
   isReady() {
     return Boolean(this.client);

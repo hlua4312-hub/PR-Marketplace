@@ -3484,29 +3484,6 @@ select.filter-select {
 
 /* -------------------------------------------------------- database status -- */
 
-.db-status-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  margin-bottom: 12px;
-  border-radius: var(--radius-sm);
-  background-color: var(--bg-surface);
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-body);
-}
-
-.db-status-dot {
-  width: 9px;
-  height: 9px;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-  background-color: var(--text-light);
-}
-.db-status-dot.ok { background-color: var(--success); }
-.db-status-dot.down { background-color: var(--danger); }
-
 .account-section-body code {
   padding: 1px 5px;
   border-radius: 4px;

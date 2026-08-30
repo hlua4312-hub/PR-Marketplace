@@ -116,11 +116,12 @@ async function start() {
 
 async function boot(splash) {
   if (!window.api.isReady()) {
-    // Show the shell rather than a sign-in wall: the thing that fixes this
-    // lives in Account, and the user has to be able to reach it.
+    // Misconfigured at build time rather than broken at runtime, so this is
+    // aimed at whoever is deploying it.
     hideSplash(splash);
     showApp();
-    showToast('No database connection. Open Account → Database Connection to set one.', 6000);
+    showToast('This build has no database configured. Set URL and ANON_KEY in js/config.js.', 8000);
+    console.error('PR Marketplace: js/config.js is missing a valid Supabase URL or anon key.');
     return;
   }
 

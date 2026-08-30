@@ -74,9 +74,11 @@ It is safe to run more than once. It creates the tables, the row-level security 
 
 ### 2. Point the app at your project
 
-Either edit `DEFAULT_URL` and `DEFAULT_ANON_KEY` in [`js/config.js`](js/config.js), or leave them and set your project from inside the app under **Account → Database Connection**.
+Edit `URL` and `ANON_KEY` in [`js/config.js`](js/config.js). Both come from your Supabase dashboard under **Project Settings → API**.
 
-Both values come from your Supabase dashboard under **Project Settings → API**. The anon key is designed to be public — it ships in every browser that loads the app. What protects your data is the row-level security policies, not the key.
+That file is the only place the backend is configured. There is deliberately no in-app setting for it: which database the app talks to is a deployment decision, not a user preference, and putting it in the Account panel let anyone break the app for themselves with no way back — the screen that fixes it being the same screen they had just broken.
+
+The anon key is designed to be public. It ships in every browser that loads the app and identifies the project rather than the user. What protects your data is the row-level security policies, not the key.
 
 ### 3. Configure email
 

@@ -23,16 +23,11 @@ export function initAccount(injected) {
     name: document.getElementById('accountUserName'),
     email: document.getElementById('accountUserEmail'),
     listings: document.getElementById('myListingsList'),
-    dbDot: document.getElementById('dbStatusDot'),
-    dbText: document.getElementById('dbStatusText'),
-    urlInput: document.getElementById('supabaseUrlInput'),
-    keyInput: document.getElementById('supabaseKeyInput'),
     installHint: document.getElementById('installHintText')
   };
 
   wireSections();
   wireOpenClose();
-  wireDatabaseCard();
   wireInstall();
   wireSecurity();
   wireListings();
@@ -47,7 +42,6 @@ export function isAccountOpen() {
 
 export async function openAccount() {
   renderProfile();
-  renderConnectionStatus();
   openModal(els.modal);
   document.getElementById('btnAccount')?.classList.add('active');
 
@@ -202,72 +196,8 @@ function listingRow(item) {
 
 /* ============================================================== database === */
 
-function wireDatabaseCard() {
-  document.getElementById('btnConnectSupabase')?.addEventListener('click', () => {
-    const url = els.urlInput?.value || '';
-    const key = els.keyInput?.value || '';
 
-    try {
-      window.PRConfig.setCredentials(url, key);
-    } catch (err) {
-      showToast(err.message);
-      return;
-    }
 
-    const connected = window.api.reconnect();
-    renderConnectionStatus();
-
-    if (connected) {
-      showToast('Connected. Log in again to use this project.');
-      hooks.onSignedOut?.();
-    } else {
-      showToast('Saved, but the client could not start. Check the URL and key.');
-    }
-  });
-
-  document.getElementById('btnUseDefaultDb')?.addEventListener('click', async () => {
-    const ok = await confirmAction({
-      title: 'Switch back to the default project?',
-      message: 'This device will use the shared PR Marketplace database again, and you will be signed out.',
-      confirmLabel: 'Switch back',
-      danger: false
-    });
-    if (!ok) return;
-
-    window.PRConfig.clearCredentials();
-    if (els.urlInput) els.urlInput.value = '';
-    if (els.keyInput) els.keyInput.value = '';
-
-    window.api.reconnect();
-    renderConnectionStatus();
-    showToast('Using the default project.');
-    hooks.onSignedOut?.();
-  });
-}
-
-function renderConnectionStatus() {
-  if (!els.dbDot || !els.dbText) return;
-
-  const ready = window.api.isReady();
-  const custom = window.PRConfig.isOverridden;
-
-  els.dbDot.className = `db-status-dot ${ready ? 'ok' : 'down'}`;
-  els.dbText.textContent = ready
-    ? (custom ? `Connected to ${shortHost(window.PRConfig.url)}` : 'Connected to the default project')
-    : 'Not connected — check the URL and key below';
-
-  if (custom && els.urlInput && !els.urlInput.value) {
-    els.urlInput.value = window.PRConfig.url;
-  }
-}
-
-function shortHost(url) {
-  try {
-    return new URL(url).hostname.replace('.supabase.co', '');
-  } catch (e) {
-    return url;
-  }
-}
 
 /* =============================================================== install === */
 
@@ -390,7 +320,6 @@ function wireSections() {
     ['btnToggleContactSection', 'contactSectionBody'],
     ['btnToggleAboutSection', 'aboutSectionBody'],
     ['btnToggleListingsSection', 'listingsSectionBody'],
-    ['btnToggleDbSection', 'dbSectionBody'],
     ['btnToggleAppSection', 'appSectionBody']
   ];
 
