@@ -1620,15 +1620,28 @@ mark.search-highlight {
   background-color: var(--primary-light);
 }
 
-.file-input-hidden {
+/* Genuinely hidden, not a transparent sheet laid over the form.
+   This used to be position:absolute with width and height 100%, from a
+   pattern where the input itself was the tap target. Nothing between it and
+   .modal-card is positioned, so it sized against the whole sell sheet: an
+   invisible, full-height file picker sitting above every field at z-index 5.
+   Scrolling the form dragged it under the finger and opened the photo picker.
+   Both inputs are opened from a button with .click(), so the input needs no
+   hit area at all - only to stay in the document and remain focusable. */
+/* input.file-input-hidden, not .file-input-hidden: the sell input sits inside
+   a .form-group, and ".form-group input" sets width:100% at equal specificity.
+   Matching it here and relying on source order keeps this free of !important. */
+input.file-input-hidden {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 5;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .upload-placeholder {

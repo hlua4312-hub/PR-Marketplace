@@ -1,6 +1,6 @@
 {
   "name": "campus-cart",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "description": "Mobile-first student marketplace for one campus - buy, sell, give away and swap - with a Supabase backend and an Android WebView shell.",
   "private": true,
   "license": "MIT",
