@@ -362,7 +362,7 @@ Bump the version in three places together — `package.json`, `APP_VERSION` in `
 npm test
 ```
 
-56 tests over the parts that hold real logic: escaping and search highlighting, the price-ceiling rules, the offline cache, storage migration, and ownership checks. They run on Node's built-in test runner, so there is nothing to install.
+92 tests over the parts that hold real logic: escaping and search highlighting, the price-ceiling rules, the offline cache, storage migration, ownership checks, the UPI link and reference formats, and the modal stack that decides whether the page can scroll. They run on Node's built-in test runner, so there is nothing to install.
 
 CI runs the same tests and an Android debug build on every push — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
@@ -421,8 +421,8 @@ Sold listings are deleted by `purge_expired_sold_items()`, a `SECURITY DEFINER` 
 
 ## Known limits
 
-- **Payments are out of scope.** The app displays a seller's QR code and nothing more — no gateway, no escrow, no record of whether anyone paid. Meeting and paying is arranged between the two people directly.
-- **Reports have no admin screen yet.** They land in the `reports` table; someone has to look at it in the Supabase dashboard.
+- **A payment is a claim, not a confirmation.** Paying goes straight from the buyer's UPI app to the seller's bank over a `upi://` link and a QR built from the seller's VPA — no gateway, no escrow, no fee, and no money passing through this app. What gets recorded is the buyer's own UTR reference for the seller to check against their bank, which the seller then marks received or not. Nothing here can prove a transfer happened; that needs a payment gateway.
+- **Reports have no admin screen yet.** They land in the `reports` table; someone has to look at it in the Supabase dashboard. Seller ratings do exist — one review per person per person, and only for someone you have actually messaged — but moderation is still a dashboard job.
 - **Community chat is unmoderated.** Anyone signed in can post to the room.
 - **Phone numbers are not verified.** Only email is, via the confirmation link.
 - **Verification proves an address, not a person.** Anyone who can receive mail
