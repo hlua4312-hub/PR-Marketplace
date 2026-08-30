@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - SHARED UI HELPERS
+ * PR MARKETPLACE - SHARED UI HELPERS
  * Escaping, toasts, modals, dialogs, dates and image preparation.
  */
 

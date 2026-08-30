@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - LISTING DETAIL
+ * PR MARKETPLACE - LISTING DETAIL
  *
  * Seller contact, the live chat thread for this listing, and the owner
  * controls (edit, mark sold, relist, delete).
@@ -258,7 +258,7 @@ function detailMarkup(item) {
     formatPrice(item.price);
 
   const waMessage = encodeURIComponent(
-    `Hi ${item.sellerName}, I saw your listing "${item.title}" (${askingFor}) on Campus Cart. Is it still available?`
+    `Hi ${item.sellerName}, I saw your listing "${item.title}" (${askingFor}) on PR Marketplace. Is it still available?`
   );
 
   const priceLine =

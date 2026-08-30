@@ -1,16 +1,17 @@
-# Campus Cart
+# PR Marketplace
 
-A student marketplace for one campus. Buy, sell, **give away** and **swap**
-secondhand things — textbooks, notes, calculators, cycles, room furniture —
-with other students at your own college. Buyers and sellers deal with each
-other directly; the app takes no cut and handles no money.
+A peer-to-peer marketplace. Buy, sell, **give away** and **swap** secondhand
+things — textbooks, notes, calculators, cycles, furniture — directly with
+people near you. Buyers and sellers deal with each other; the app takes no cut
+and handles no money.
 
 Runs as an installable web app (PWA) and as an Android app that wraps the same
 code in a WebView.
 
-> Built on the PR Marketplace codebase. If you are upgrading from that, read
-> **[Upgrading from PR Marketplace](#upgrading-from-pr-marketplace)** before
-> running the schema.
+> The app was briefly branded PR Marketplace. The name is back to PR Marketplace,
+> which is also what the repository, the site URL and the Android package have
+> always been called. If you are coming from an older schema, read
+> **[Upgrading an older schema](#upgrading-an-older-schema)** before running it.
 
 ---
 
@@ -256,10 +257,10 @@ That works, but after editing a file you may need Ctrl+F5 to see the change.
 
 ---
 
-## Upgrading from PR Marketplace
+## Upgrading an older schema
 
 Running [`supabase_schema.sql`](supabase_schema.sql) again is enough. It is
-additive: it adds the columns Campus Cart needs (`profiles.avatar_url`,
+additive: it adds the columns the current app needs (`profiles.avatar_url`,
 `department`, `year_of_study`, `bio`, `is_verified`; `items.listing_type`,
 `barter_want`, `pickup_spot`, `image_urls`, `is_urgent`), creates the
 `campus_settings` table, backfills every existing listing's gallery from its

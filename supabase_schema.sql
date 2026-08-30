@@ -142,7 +142,7 @@ $$;
 -- --------------------------------------------------------------------------
 create table if not exists public.campus_settings (
     id            boolean primary key default true check (id),
-    campus_name   text   not null default 'Campus Cart',
+    campus_name   text   not null default 'PR Marketplace',
     email_domains text[] not null default '{}',
     updated_at    timestamptz not null default now()
 );
@@ -197,7 +197,7 @@ create table if not exists public.profiles (
     created_at  timestamptz not null default now()
 );
 
--- Campus Cart additions. Separate statements so an existing project picks
+-- PR Marketplace additions. Separate statements so an existing project picks
 -- them up without losing its rows.
 alter table public.profiles add column if not exists avatar_url     text;
 alter table public.profiles add column if not exists department     text;
@@ -393,7 +393,7 @@ create table if not exists public.items (
 -- Added after the table existed for some projects, so do it separately too.
 alter table public.items add column if not exists seller_upi_vpa text;
 
--- Campus Cart additions.
+-- PR Marketplace additions.
 --   listing_type   what the seller wants out of it. 'free' is its own mode
 --                  rather than a price of zero, because a giveaway and a
 --                  ₹0 sale read differently and get filtered differently.

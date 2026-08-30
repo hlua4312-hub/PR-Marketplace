@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - LISTING FEED
+ * PR MARKETPLACE - LISTING FEED
  * Cards, filters, search, sorting and pagination.
  */
 

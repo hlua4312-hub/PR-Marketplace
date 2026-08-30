@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <!-- Pinch zoom stays enabled: blocking it locks out anyone who needs to magnify text. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Campus Cart - The Student Marketplace</title>
+  <title>PR Marketplace - Buy, Sell and Swap Directly</title>
 
   <!-- Search engine metadata. The canonical URL matters more than usual here:
        GitHub Pages also answers on the repository's other hostnames, and
        without this every one of them looks like a separate copy of the site. -->
   <link rel="canonical" href="https://hlua4312-hub.github.io/PR-Marketplace/">
-  <meta name="description" content="Buy, sell, and swap college campus essentials, books, electronics, and stationery with verified students.">
-  <meta name="keywords" content="Campus Cart, student marketplace, buy sell swap, college marketplace, PR Marketplace">
+  <meta name="description" content="Buy and sell directly with people near you - textbooks, notes, clothing, furniture and more. No middleman, no fees.">
+  <meta name="keywords" content="PR Marketplace, P2P marketplace, buy sell swap, direct marketplace, secondhand, classifieds">
   <meta name="robots" content="index, follow">
 
   <!-- Open Graph, for the card that appears when someone shares the link.
@@ -19,18 +19,18 @@
        its own server has no base to resolve "./icons/..." against, so a
        relative og:image silently produces a card with no picture. -->
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Campus Cart">
-  <meta property="og:title" content="Campus Cart - The Student Marketplace">
-  <meta property="og:description" content="Buy, sell, and swap college campus essentials, books, electronics, and stationery with verified students.">
+  <meta property="og:site_name" content="PR Marketplace">
+  <meta property="og:title" content="PR Marketplace - Buy, Sell and Swap Directly">
+  <meta property="og:description" content="Buy and sell directly with people near you - textbooks, notes, clothing, furniture and more. No middleman, no fees.">
   <meta property="og:url" content="https://hlua4312-hub.github.io/PR-Marketplace/">
   <meta property="og:image" content="https://hlua4312-hub.github.io/PR-Marketplace/icons/icon-512.png">
-  <meta property="og:image:alt" content="The Campus Cart logo">
+  <meta property="og:image:alt" content="The PR Marketplace logo">
 
   <!-- summary, not summary_large_image: the icon is square, and asking for the
        wide card with a square image gets it cropped to a letterbox strip. -->
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Campus Cart - The Student Marketplace">
-  <meta name="twitter:description" content="Buy, sell, and swap college campus essentials, books, electronics, and stationery with verified students.">
+  <meta name="twitter:title" content="PR Marketplace - Buy, Sell and Swap Directly">
+  <meta name="twitter:description" content="Buy and sell directly with people near you - textbooks, notes, clothing, furniture and more. No middleman, no fees.">
   <meta name="twitter:image" content="https://hlua4312-hub.github.io/PR-Marketplace/icons/icon-512.png">
 
   <!-- Mobile PWA Application Meta Tags -->
@@ -40,7 +40,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Campus Cart">
+  <meta name="apple-mobile-web-app-title" content="PR Marketplace">
   <meta name="theme-color" content="#ffffff" id="themeColorMeta">
 
   <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
@@ -65,7 +65,7 @@
   <!-- 1. 2-SECOND STARTUP LOADING SPLASH SCREEN -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
-      <img src="icons/logo-256.png" alt="Campus Cart logo" class="splash-logo">
+      <img src="icons/logo-256.png" alt="PR Marketplace logo" class="splash-logo">
       <span class="splash-subtitle">The student marketplace</span>
       <div class="splash-loader-bar">
         <div class="splash-loader-progress"></div>
@@ -79,8 +79,8 @@
       <button type="button" class="auth-dismiss-btn" id="btnDismissAuth" aria-label="Close and keep browsing">&times;</button>
 
       <div class="auth-brand-header">
-        <img src="icons/logo-256.png" alt="Campus Cart logo" class="auth-brand-logo">
-        <h2>Welcome to Campus Cart</h2>
+        <img src="icons/logo-256.png" alt="PR Marketplace logo" class="auth-brand-logo">
+        <h2>Welcome to PR Marketplace</h2>
         <p>Buy, sell and swap with students on <span data-campus-name>your campus</span></p>
       </div>
 
@@ -210,7 +210,7 @@
       <button type="button" class="auth-dismiss-btn" id="btnDismissRecovery" aria-label="Cancel recovery">&times;</button>
 
       <div class="auth-brand-header">
-        <img src="icons/logo-256.png" alt="Campus Cart logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="PR Marketplace logo" class="auth-brand-logo">
         <h2>Enter Your Recovery Code</h2>
         <p style="font-size:0.82rem; color:var(--text-muted);">We emailed a 6-digit code. It expires in an hour.</p>
       </div>
@@ -249,7 +249,7 @@
   <div id="newPasswordOverlay" class="auth-overlay hidden">
     <div class="auth-card">
       <div class="auth-brand-header">
-        <img src="icons/logo-256.png" alt="Campus Cart logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="PR Marketplace logo" class="auth-brand-logo">
         <h2>Choose a New Password</h2>
         <p>Pick something with both letters and numbers.</p>
       </div>
@@ -285,7 +285,7 @@
   <div id="confirmEmailOverlay" class="auth-overlay hidden">
     <div class="auth-card" style="text-align:center;">
       <div class="auth-brand-header">
-        <img src="icons/logo-256.png" alt="Campus Cart logo" class="auth-brand-logo">
+        <img src="icons/logo-256.png" alt="PR Marketplace logo" class="auth-brand-logo">
         <h2>Confirm Your Email</h2>
         <p style="font-size:0.82rem; color:var(--text-muted);">We sent a confirmation link to your inbox. Open it to activate your account.</p>
       </div>
@@ -296,7 +296,7 @@
       </div>
 
       <p style="font-size:0.8rem; color:var(--text-muted); margin:0 0 18px; line-height:1.55;">
-        Not there yet? Give it a minute, then check your spam folder. The link opens Campus Cart and signs you straight in.
+        Not there yet? Give it a minute, then check your spam folder. The link opens PR Marketplace and signs you straight in.
       </p>
 
       <button type="button" class="btn btn-secondary auth-submit-btn" id="btnResendConfirmation">
@@ -316,7 +316,7 @@
     <header class="app-header">
       <div class="header-top">
         <div class="brand">
-          <img src="icons/logo-256.png" alt="Campus Cart logo" class="header-logo">
+          <img src="icons/logo-256.png" alt="PR Marketplace logo" class="header-logo">
         </div>
 
         <div class="header-actions">
@@ -639,7 +639,7 @@
             <div class="chat-info-banner-box">
               <div>
                 <strong>In-app chat is always on</strong>
-                <p>Buyers can message you inside Campus Cart. WhatsApp and Instagram are optional extras — fill them in and buyers get one-tap buttons for those too.</p>
+                <p>Buyers can message you inside PR Marketplace. WhatsApp and Instagram are optional extras — fill them in and buyers get one-tap buttons for those too.</p>
               </div>
             </div>
           </div>
@@ -661,7 +661,7 @@
                      autocomplete="off" spellcheck="false" inputmode="email">
               <p class="form-hint">
                 Buyers scan or tap to open GPay, PhonePe or any UPI app. The money goes
-                straight to your bank — Campus Cart never handles it and takes no fee.
+                straight to your bank — PR Marketplace never handles it and takes no fee.
               </p>
             </div>
           </div>
@@ -820,7 +820,7 @@
         <div class="account-profile-card" id="accountProfileCard">
           <div class="profile-avatar" id="accountUserAvatar">CC</div>
           <div class="profile-info">
-            <h3 id="accountUserName">Campus Cart member</h3>
+            <h3 id="accountUserName">PR Marketplace member</h3>
             <span class="profile-email" id="accountUserEmail">you@college.edu.in</span>
             <div class="profile-badges" id="profileBadges">
               <span class="badge-status" id="verificationBadge">Verified student</span>
@@ -934,12 +934,12 @@
           </div>
         </div>
 
-        <!-- Section 2: About Campus Cart Button -->
+        <!-- Section 2: About PR Marketplace Button -->
         <div class="account-section">
           <button class="account-section-btn open" id="btnToggleAboutSection" type="button">
             <div class="section-title-group">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <h3>About Campus Cart</h3>
+              <h3>About PR Marketplace</h3>
             </div>
             <span class="section-toggle-icon">▼</span>
           </button>
@@ -992,7 +992,7 @@
 
           <div class="account-section-body hidden" id="paymentsSectionBody">
             <p class="section-subtitle">
-              UPI transfers you have made or received. Campus Cart does not process
+              UPI transfers you have made or received. PR Marketplace does not process
               these — confirm against your own bank app before marking one received.
             </p>
             <div class="payments-list" id="paymentsList"></div>
@@ -1033,7 +1033,7 @@
               <button type="button" class="account-channel-btn" id="btnInstallApp">
                 <div class="channel-icon-box">📲</div>
                 <div class="channel-text">
-                  <strong>Install Campus Cart</strong>
+                  <strong>Install PR Marketplace</strong>
                   <span id="installHintText">Add the app to your home screen</span>
                 </div>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -1300,7 +1300,7 @@
         </div>
 
         <p class="pay-disclaimer">
-          Campus Cart does not process or hold this payment and cannot verify it.
+          PR Marketplace does not process or hold this payment and cannot verify it.
           The reference you enter is a record for you and the seller, not a receipt.
         </p>
       </div>
@@ -1363,7 +1363,7 @@
   <div class="update-banner hidden" id="updateBanner" role="status">
     <div class="update-banner-text">
       <strong>Update ready</strong>
-      <span>A newer version of Campus Cart has downloaded.</span>
+      <span>A newer version of PR Marketplace has downloaded.</span>
     </div>
     <div class="update-banner-actions">
       <button type="button" class="update-dismiss" id="btnDismissUpdate">Later</button>
@@ -1440,7 +1440,7 @@
       setTimeout(function () {
         if (window.__prBooted) return;
         reveal(
-          'Campus Cart could not start',
+          'PR Marketplace could not start',
           'The app loaded but did not finish starting up. Check the browser console for ' +
           'the underlying error, and confirm the database settings in js/config.js.',
           false

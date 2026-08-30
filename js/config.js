@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - DEPLOYMENT CONFIGURATION
+ * PR MARKETPLACE - DEPLOYMENT CONFIGURATION
  *
  * The two values at the top are the only place the backend is configured.
  * Point them at your own Supabase project and rebuild.
@@ -22,7 +22,7 @@ window.PRConfig = {
 
   STORAGE_BUCKET: 'listing-images',
 
-  APP_NAME: 'Campus Cart',
+  APP_NAME: 'PR Marketplace',
 
   /**
    * WHICH CAMPUS THIS BUILD IS FOR.
@@ -141,7 +141,7 @@ window.PRConfig = {
   PAGE_SIZE: 24,
 
   /** This build. Kept in step with package.json and app/build.gradle. */
-  APP_VERSION: '4.2.0',
+  APP_VERSION: '4.2.1',
 
   /**
    * Where the deployed site publishes its version. The Android build checks

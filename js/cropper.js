@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - IMAGE CROPPER
+ * PR MARKETPLACE - IMAGE CROPPER
  *
  * Canvas cropper for the listing photo and the payment QR. Same interaction
  * as before - drag to move, corner handles to resize, aspect presets, rotate.

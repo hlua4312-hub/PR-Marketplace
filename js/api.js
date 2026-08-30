@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - APPLICATION API
+ * PR MARKETPLACE - APPLICATION API
  *
  * The single surface the UI talks to. It delegates anything that needs a
  * server to js/supabase-client.js and keeps only genuinely device-local

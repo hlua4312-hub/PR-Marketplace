@@ -1,5 +1,5 @@
 -- ==========================================================================
--- CAMPUS CART - RENAME "Electronics" TO "Electronics & Computers"
+-- PR MARKETPLACE - RENAME "Electronics" TO "Electronics & Computers"
 --
 -- The category was widened to cover laptops, processors and PC parts, which
 -- had no obvious home before. Renaming the chip does not rename the data:

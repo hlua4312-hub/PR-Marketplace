@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - SHARED UI STATE
+ * PR MARKETPLACE - SHARED UI STATE
  *
  * A small observable object so modules can react to each other without
  * importing one another in a circle. Filters live here; identity does not -

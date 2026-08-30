@@ -1,5 +1,5 @@
 -- ==========================================================================
--- CAMPUS CART - DEMO LISTINGS
+-- PR MARKETPLACE - DEMO LISTINGS
 --
 -- Ten listings so the feed has enough in it to scroll properly for a demo.
 -- Run in the Supabase SQL editor. Safe to run twice: it removes its own rows

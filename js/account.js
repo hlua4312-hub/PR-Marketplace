@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - ACCOUNT PANEL
+ * PR MARKETPLACE - ACCOUNT PANEL
  *
  * Profile card and editor, My Listings, payments, install prompt and password
  * change.
@@ -133,7 +133,7 @@ function renderProfile() {
   }
 
   paintAvatar(els.avatar, user, 'C');
-  if (els.name) els.name.textContent = user.fullName || 'Campus Cart member';
+  if (els.name) els.name.textContent = user.fullName || 'PR Marketplace member';
   if (els.email) els.email.textContent = user.email || '';
 
   // The badge is the honest answer to "can I post?", so it says which of the
@@ -406,7 +406,7 @@ function wireInstall() {
   window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
     if (els.installHint) els.installHint.textContent = 'Installed';
-    showToast('Campus Cart installed.');
+    showToast('PR Marketplace installed.');
   });
 
   document.getElementById('btnInstallApp')?.addEventListener('click', async () => {
@@ -634,7 +634,7 @@ function openGuide() {
       <li><strong>Sold something?</strong> Mark it sold and it comes off the marketplace ${window.PRConfig.SOLD_ITEM_LIFETIME_HOURS} hours later.</li>
       <li><strong>Something wrong?</strong> Use Report on any listing. Reports are anonymous to the seller.</li>
     </ol>
-    <p class="guide-note">Campus Cart does not handle payments or delivery. You arrange both directly with the other person.</p>
+    <p class="guide-note">PR Marketplace does not handle payments or delivery. You arrange both directly with the other person.</p>
   `;
   openModal(modal);
 }

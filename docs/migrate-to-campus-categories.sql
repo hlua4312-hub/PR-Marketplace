@@ -1,5 +1,5 @@
 -- ==========================================================================
--- CAMPUS CART - MOVE EXISTING LISTINGS ONTO THE CAMPUS CATEGORIES
+-- PR MARKETPLACE - MOVE EXISTING LISTINGS ONTO THE CAMPUS CATEGORIES
 --
 -- Optional, and deliberately not part of supabase_schema.sql.
 --

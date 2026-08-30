@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - SUPABASE DATA LAYER
+ * PR MARKETPLACE - SUPABASE DATA LAYER
  *
  * Everything that talks to the backend lives here: authentication, listings,
  * image uploads, messaging and reports.

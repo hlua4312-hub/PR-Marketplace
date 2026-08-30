@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - THE WANTED BOARD
+ * PR MARKETPLACE - THE WANTED BOARD
  *
  * The mirror of the feed. A listing says "I have this"; a request says "I need
  * this", and anyone holding it can answer.

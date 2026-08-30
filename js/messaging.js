@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - MESSAGING
+ * PR MARKETPLACE - MESSAGING
  *
  * The community room, one-to-one chats, and the inbox that replaced the
  * notifications tab.
@@ -121,7 +121,7 @@ function renderCommunity(messages, user) {
   if (!messages.length) {
     els.communityThread.innerHTML = `
       <div class="chat-empty">
-        Nobody has posted yet. Ask for what you're looking for — everyone on Campus Cart can see this room.
+        Nobody has posted yet. Ask for what you're looking for — everyone on PR Marketplace can see this room.
       </div>`;
     return;
   }

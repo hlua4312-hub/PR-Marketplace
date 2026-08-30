@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - UPI PAYMENT LINKS
+ * PR MARKETPLACE - UPI PAYMENT LINKS
  *
  * Builds the `upi://pay` deep link and the QR that encodes it, from the
  * seller's VPA and the listing price. No gateway, no fee, no money passing

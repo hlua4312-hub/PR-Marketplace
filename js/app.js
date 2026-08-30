@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - APPLICATION BOOTSTRAP
+ * PR MARKETPLACE - APPLICATION BOOTSTRAP
  *
  * Starts the app, wires the modules to each other, and owns the pieces that
  * do not belong to any one feature: the splash screen, bottom navigation,
@@ -146,7 +146,7 @@ async function boot(splash) {
     hideSplash(splash);
     showApp();
     showToast('This build has no database configured. Set URL and ANON_KEY in js/config.js.', 8000);
-    console.error('Campus Cart: js/config.js is missing a valid Supabase URL or anon key.');
+    console.error('PR Marketplace: js/config.js is missing a valid Supabase URL or anon key.');
     return;
   }
 

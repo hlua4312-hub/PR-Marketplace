@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - CAMPUS CONFIGURATION, RENDERED
+ * PR MARKETPLACE - CAMPUS CONFIGURATION, RENDERED
  *
  * Categories, areas, pickup spots, departments and years all used to be typed
  * into index.html - the category list three times over, once for the feed

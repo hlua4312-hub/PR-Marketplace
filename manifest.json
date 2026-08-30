@@ -1,6 +1,6 @@
 {
-  "name": "Campus Cart - Student Marketplace",
-  "short_name": "Campus Cart",
+  "name": "PR Marketplace - Buy, Sell and Swap Directly",
+  "short_name": "PR Marketplace",
   "description": "Buy, sell, give away and swap secondhand things with verified students on your own campus. No fees, no middleman.",
   "id": "/campus-cart/",
   "start_url": "./index.html",

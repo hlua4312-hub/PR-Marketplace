@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - POST & EDIT A LISTING
+ * PR MARKETPLACE - POST & EDIT A LISTING
  *
  * One form serves both jobs. Photos are prepared in the browser and uploaded
  * to Supabase Storage, so what lands in the database is a short URL rather

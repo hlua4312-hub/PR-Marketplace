@@ -1,5 +1,5 @@
 /**
- * CAMPUS CART - AUTHENTICATION SCREENS
+ * PR MARKETPLACE - AUTHENTICATION SCREENS
  *
  * Register, log in, password reset, and the email-confirmation notice.
  * No password is ever stored, compared or cached here - every check happens
@@ -212,7 +212,7 @@ function wireRegister() {
         showConfirmEmail(email);
         showToast('Check your inbox for the confirmation link.', 4500);
       } else {
-        showToast(`Welcome to Campus Cart, ${user.fullName}.`);
+        showToast(`Welcome to PR Marketplace, ${user.fullName}.`);
         hooks.onSignedIn?.(user);
       }
     } catch (err) {
