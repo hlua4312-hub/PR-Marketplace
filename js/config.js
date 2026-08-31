@@ -98,13 +98,31 @@ window.PRConfig = {
       'Admin Block'
     ],
 
-    /** Areas, for the header dropdown. Kept broader than the pickup spots. */
+    /**
+     * Areas, for the header filter and the sell form. One list, so a seller
+     * cannot file a listing under a place the filter has never heard of.
+     *
+     * `lat`/`lon` are optional and exist only for "Use my location", which
+     * snaps to the nearest area that has them. Somewhere without coordinates
+     * is still selectable by hand - it simply never wins the GPS match, and a
+     * neighbouring area does. Inventing coordinates to fill the gaps would
+     * make the snap confidently wrong rather than roughly right.
+     */
     areas: [
-      'Campus',
-      'Boys Hostel',
-      'Girls Hostel',
-      'Staff Quarters',
-      'Off campus'
+      { name: 'Aizawl City',  label: 'Aizawl City Centre',      lat: 23.7271, lon: 92.7176 },
+      { name: 'MZU Campus',   label: 'MZU Campus & Tanhril',    lat: 23.7420, lon: 92.6620 },
+      { name: 'Zarkawt',      label: 'Zarkawt & Dawrpui',       lat: 23.7305, lon: 92.7210 },
+      { name: 'Chanmari',     label: 'Chanmari & Ramhlun',      lat: 23.7420, lon: 92.7180 },
+      { name: 'Khatla',       label: 'Khatla & Treasury Square', lat: 23.7180, lon: 92.7160 },
+      { name: 'Bawngkawn',    label: 'Bawngkawn',               lat: 23.7620, lon: 92.7220 },
+      { name: 'Vaivakawn',    label: 'Vaivakawn & Edenthar',    lat: 23.7350, lon: 92.6980 },
+      { name: 'Luangmual',    label: 'Luangmual',               lat: 23.7450, lon: 92.6850 },
+      { name: 'Durtlang',     label: 'Durtlang' },
+      { name: 'Dinthar',      label: 'Dinthar' },
+      { name: 'Chite',        label: 'Chite' },
+      { name: 'Temple Veng',  label: 'Temple Veng & College Veng' },
+      { name: 'Kulikawn',     label: 'Kulikawn & Tuikual' },
+      { name: 'Lunglei',      label: 'Lunglei' }
     ],
 
     departments: [
@@ -141,7 +159,7 @@ window.PRConfig = {
   PAGE_SIZE: 24,
 
   /** This build. Kept in step with package.json and app/build.gradle. */
-  APP_VERSION: '4.2.1',
+  APP_VERSION: '4.3.0',
 
   /**
    * Where the deployed site publishes its version. The Android build checks

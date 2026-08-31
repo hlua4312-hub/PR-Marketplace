@@ -45,11 +45,13 @@ export function renderCategoryChips(container) {
 export function renderAreaOptions(select) {
   if (!select) return;
   const options = [
-    '<option value="all">Everywhere on campus</option>',
+    '<option value="all">Everywhere nearby</option>',
     '<option value="detect_gps">Use my location</option>'
   ];
   (campus().areas || []).forEach(area => {
-    options.push(`<option value="${escapeHtml(area)}">${escapeHtml(area)}</option>`);
+    // The stored value is the plain name; the label may pair it with the
+    // neighbourhood people actually say. Filtering matches on the name.
+    options.push(`<option value="${escapeHtml(area.name)}">${escapeHtml(area.label || area.name)}</option>`);
   });
   select.innerHTML = options.join('');
 }
@@ -88,7 +90,8 @@ export function renderSellAreaOptions(select) {
   if (!select) return;
   select.innerHTML = [
     '<option value="" disabled selected>Choose an area</option>',
-    ...(campus().areas || []).map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`)
+    ...(campus().areas || []).map(
+      a => `<option value="${escapeHtml(a.name)}">${escapeHtml(a.label || a.name)}</option>`)
   ].join('');
 }
 

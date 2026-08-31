@@ -439,16 +439,14 @@ function wireModalBackdrops() {
 
 /* ================================================================== GPS === */
 
-const AIZAWL_AREAS = [
-  { name: 'Aizawl City', lat: 23.7271, lon: 92.7176 },
-  { name: 'MZU Campus', lat: 23.7420, lon: 92.6620 },
-  { name: 'Zarkawt', lat: 23.7305, lon: 92.7210 },
-  { name: 'Chanmari', lat: 23.7420, lon: 92.7180 },
-  { name: 'Khatla', lat: 23.7180, lon: 92.7160 },
-  { name: 'Bawngkawn', lat: 23.7620, lon: 92.7220 },
-  { name: 'Vaivakawn', lat: 23.7350, lon: 92.6980 },
-  { name: 'Luangmual', lat: 23.7450, lon: 92.6850 }
-];
+/**
+ * Areas that can win a GPS match: the ones in the shared list that carry
+ * coordinates. Reading from the same list the dropdown is built from is the
+ * point - a private copy here is how "Use my location" ended up selecting a
+ * place the dropdown had no option for, silently blanking it.
+ */
+const locatableAreas = () =>
+  (window.PRConfig?.CAMPUS?.areas || []).filter(a => typeof a.lat === 'number' && typeof a.lon === 'number');
 
 /**
  * Location detection is driven entirely by the "Use my location" option in
@@ -470,7 +468,7 @@ function wireGps() {
         const { latitude, longitude } = position.coords;
         view.gpsCoords = { latitude, longitude };
 
-        const nearest = AIZAWL_AREAS
+        const nearest = locatableAreas()
           .map(area => ({ ...area, distance: haversine(latitude, longitude, area.lat, area.lon) }))
           .sort((a, b) => a.distance - b.distance)[0];
 
