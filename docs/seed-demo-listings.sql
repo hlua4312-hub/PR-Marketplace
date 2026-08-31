@@ -59,7 +59,7 @@ begin
     -- 2. THE LISTINGS
     --
     --    Spread deliberately: all ten categories, all three listing types,
-    --    all four conditions, two marked urgent, and prices from nothing to
+    --    all four conditions, and prices from nothing to
     --    4,500 - so the category chips, the For sale / Free / Swap tabs, the
     --    condition badges and the price slider all have something to show.
     -- ----------------------------------------------------------------------
@@ -80,57 +80,57 @@ begin
 
     insert into public.items
         (user_id, title, category, price, condition, location, description,
-         seller_name, listing_type, barter_want, pickup_spot, is_urgent, created_at)
+         seller_name, listing_type, barter_want, created_at)
     values
         (v_owner, 'Higher Engineering Mathematics by Kreyszig', 'Books & Notes',
          450, 'Good', 'MZU Campus',
          'Tenth edition. The cover is worn and a few pages had pencil notes, all rubbed out. Nothing missing.',
-         v_name, 'sell', null, 'Library entrance', false, now() - interval '2 hours'),
+         v_name, 'sell', null, now() - interval '2 hours'),
 
         (v_owner, 'Casio fx-991EX scientific calculator', 'Electronics & Computers',
          900, 'Like New', 'Chanmari',
          'Bought for a semester of numerical methods and barely used since. Slip cover included.',
-         v_name, 'sell', null, 'Academic Block', false, now() - interval '5 hours'),
+         v_name, 'sell', null, now() - interval '5 hours'),
 
         (v_owner, 'Drafting set, never used', 'Stationery',
          250, 'Brand New', 'MZU Campus',
          'Compass, dividers, set squares, the lot. Bought for a drawing paper that got dropped from the syllabus.',
-         v_name, 'sell', null, 'Main Gate', false, now() - interval '9 hours'),
+         v_name, 'sell', null, now() - interval '9 hours'),
 
         (v_owner, 'Study table with drawer', 'Room & Furniture',
          1800, 'Good', 'Bawngkawn',
          'Solid wood, one drawer, fits a laptop and a stack of books. You will need a friend and an auto to move it.',
-         v_name, 'sell', null, 'Boys Hostel gate', false, now() - interval '1 day'),
+         v_name, 'sell', null, now() - interval '1 day'),
 
         (v_owner, 'Lab coat, size M', 'Clothing & Uniforms',
          300, 'Like New', 'MZU Campus',
          'Worn for one semester of practicals. Washed, no stains and no burns.',
-         v_name, 'sell', null, 'Academic Block', false, now() - interval '1 day 4 hours'),
+         v_name, 'sell', null, now() - interval '1 day 4 hours'),
 
         (v_owner, 'Hero Sprint cycle, 21 speed', 'Cycles & Transport',
          4500, 'Fair', 'Zarkawt',
          'Gets me to class and back. The gears need indexing and the rear tyre is due for replacement, so it is priced for that.',
-         v_name, 'sell', null, 'Sports ground', true, now() - interval '1 day 8 hours'),
+         v_name, 'sell', null, now() - interval '1 day 8 hours'),
 
         (v_owner, 'Badminton racket and three shuttles', 'Sports & Fitness',
          600, 'Good', 'Chanmari',
          'Yonex, restrung last month. Two feather shuttles and one nylon.',
-         v_name, 'sell', null, 'Sports ground', false, now() - interval '2 days'),
+         v_name, 'sell', null, now() - interval '2 days'),
 
         (v_owner, 'Arduino Uno starter kit', 'Lab & Project Kit',
          1200, 'Like New', 'MZU Campus',
          'Board, breadboard, jumper wires, LEDs, a servo and the little ultrasonic sensor. Enough for a first project.',
-         v_name, 'sell', null, 'Academic Block', false, now() - interval '2 days 6 hours'),
+         v_name, 'sell', null, now() - interval '2 days 6 hours'),
 
         (v_owner, 'Acoustic guitar, nylon string', 'Musical Instruments',
          3200, 'Fair', 'Khatla',
          'A beginner guitar with an honest amount of wear. The tuning pegs hold fine. Happy to swap instead.',
-         v_name, 'barter', 'A keyboard, or a decent pair of headphones', 'Canteen', false, now() - interval '3 days'),
+         v_name, 'barter', 'A keyboard, or a decent pair of headphones', now() - interval '3 days'),
 
         (v_owner, 'Desk lamp, works fine', 'Other',
          0, 'Good', 'MZU Campus',
-         'Leaving campus and it will not fit in the bag. Free to whoever comes and gets it.',
-         v_name, 'free', null, 'Girls Hostel gate', true, now() - interval '3 days 5 hours');
+         'Moving out and it will not fit in the bag. Free to whoever comes and gets it.',
+         v_name, 'free', null, now() - interval '3 days 5 hours');
 
     raise notice 'Seeded 10 listings for % (%)', v_name, v_owner;
 end;

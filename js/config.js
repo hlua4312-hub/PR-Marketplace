@@ -82,21 +82,6 @@ window.PRConfig = {
         examples: 'Anything that does not fit the list above' }
     ],
 
-    /**
-     * Where things change hands. Deliberately a short list of places both
-     * people can already picture, rather than a map pin or a hostel room
-     * number: the point is a spot that is public, lit and easy to describe.
-     */
-    pickupSpots: [
-      'Main Gate',
-      'Library entrance',
-      'Canteen',
-      'Academic Block',
-      'Boys Hostel gate',
-      'Girls Hostel gate',
-      'Sports ground',
-      'Admin Block'
-    ],
 
     /**
      * Areas, for the header filter and the sell form. One list, so a seller
@@ -159,7 +144,7 @@ window.PRConfig = {
   PAGE_SIZE: 24,
 
   /** This build. Kept in step with package.json and app/build.gradle. */
-  APP_VERSION: '4.3.0',
+  APP_VERSION: '4.4.0',
 
   /**
    * Where the deployed site publishes its version. The Android build checks

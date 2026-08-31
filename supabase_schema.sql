@@ -398,15 +398,11 @@ alter table public.items add column if not exists seller_upi_vpa text;
 --                  rather than a price of zero, because a giveaway and a
 --                  ₹0 sale read differently and get filtered differently.
 --   barter_want    only meaningful when listing_type = 'barter'.
---   pickup_spot    a campus landmark, chosen from a list, not a street address.
 --   image_urls     the whole gallery. image_url is kept as the first of these
 --                  so anything reading the old column still works.
---   is_urgent      "leaving campus" - the end-of-semester clear-out.
 alter table public.items add column if not exists listing_type text not null default 'sell';
 alter table public.items add column if not exists barter_want  text;
-alter table public.items add column if not exists pickup_spot  text;
 alter table public.items add column if not exists image_urls   text[] not null default '{}';
-alter table public.items add column if not exists is_urgent    boolean not null default false;
 
 alter table public.items drop constraint if exists items_listing_type_valid;
 alter table public.items add  constraint items_listing_type_valid

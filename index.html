@@ -574,23 +574,6 @@
               </div>
             </div>
 
-            <!-- Pickup spot -->
-            <div class="form-group">
-              <label for="itemPickupSpot" class="form-label">Usual pickup spot</label>
-              <!-- Options come from PRConfig.CAMPUS.pickupSpots via js/campus.js -->
-              <select id="itemPickupSpot"></select>
-              <span class="upload-hint">Somewhere public and busy. Buyers see this before they message you.</span>
-            </div>
-
-            <!-- Leaving campus -->
-            <label class="urgent-row">
-              <input type="checkbox" id="itemUrgent">
-              <span>
-                <strong>I'm leaving campus soon</strong>
-                <em>Marks it urgent and pushes it up the feed</em>
-              </span>
-            </label>
-
             <!-- Description -->
             <div class="form-group">
               <label for="itemDescription" class="form-label">Description</label>
@@ -769,21 +752,12 @@
         </div>
 
         <div class="filter-group">
-          <label class="filter-title">End of semester</label>
-          <label class="checkbox-chip wide">
-            <input type="checkbox" id="filterUrgentOnly">
-            Only people leaving campus
-          </label>
-        </div>
-
-        <div class="filter-group">
           <label class="filter-title" for="sortSelect">Sort by</label>
           <select id="sortSelect" class="filter-select">
             <option value="newest" selected>Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="price_asc">Price: low to high</option>
             <option value="price_desc">Price: high to low</option>
-            <option value="urgent">Leaving campus first</option>
           </select>
         </div>
 

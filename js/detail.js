@@ -302,7 +302,6 @@ function detailMarkup(item) {
           <span class="tag tag-condition">${escapeHtml(item.condition)}</span>
           ${type === 'free' ? '<span class="tag tag-free">Free</span>' : ''}
           ${type === 'barter' ? '<span class="tag tag-swap">Swap</span>' : ''}
-          ${item.isUrgent && !isSold ? '<span class="tag tag-urgent">Leaving campus</span>' : ''}
           ${isSold ? '<span class="tag tag-sold">Sold</span>' : ''}
         </div>
         <button type="button" class="fav-toggle-btn ${isFav ? 'is-fav' : ''}" data-action="fav" aria-pressed="${isFav}">
@@ -323,9 +322,6 @@ function detailMarkup(item) {
       <strong>Description</strong>
       <p>${escapeHtml(item.description || 'The seller did not add a description.')}</p>
       <p class="detail-meta">Area: ${escapeHtml(item.location)}</p>
-      ${item.pickupSpot
-        ? `<p class="detail-meta detail-pickup">Usual pickup: <strong>${escapeHtml(item.pickupSpot)}</strong></p>`
-        : ''}
     </div>
 
     <div class="seller-contact-card" id="sellerCardSlot">

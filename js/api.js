@@ -340,9 +340,6 @@ class MarketplaceAPI {
     if (filters.listingType && filters.listingType !== 'all') {
       items = items.filter(i => (i.listingType || 'sell') === filters.listingType);
     }
-    if (filters.urgentOnly) {
-      items = items.filter(i => i.isUrgent);
-    }
     if (filters.conditions && filters.conditions.length) {
       items = items.filter(i => filters.conditions.includes(i.condition));
     }
@@ -369,11 +366,6 @@ class MarketplaceAPI {
       case 'price_asc':  items.sort((a, b) => a.price - b.price); break;
       case 'price_desc': items.sort((a, b) => b.price - a.price); break;
       case 'oldest':     items.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); break;
-      case 'urgent':
-        items.sort((a, b) =>
-          (b.isUrgent === true) - (a.isUrgent === true) ||
-          new Date(b.createdAt) - new Date(a.createdAt));
-        break;
       default:           items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
     return items;

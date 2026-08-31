@@ -15,7 +15,6 @@ export const filters = {
   location: 'all',
   search: '',
   conditions: [],
-  urgentOnly: false,
   /** null means no maximum, which is what the top of the slider maps to. */
   maxPrice: null,
   sort: 'newest',
@@ -44,7 +43,6 @@ export function resetFilters() {
   filters.location = 'all';
   filters.search = '';
   filters.conditions = [];
-  filters.urgentOnly = false;
   filters.maxPrice = null;
   filters.sort = 'newest';
   filters.page = 0;
@@ -63,7 +61,6 @@ export function activeFilterCount() {
   if (filters.maxPrice !== null) n += 1;
   if (filters.sort !== 'newest') n += 1;
   if (filters.location !== 'all') n += 1;
-  if (filters.urgentOnly) n += 1;
   return n;
 }
 
@@ -75,7 +72,6 @@ export function queryFilters() {
     location: filters.location,
     search: filters.search,
     conditions: filters.conditions,
-    urgentOnly: filters.urgentOnly,
     sort: filters.sort,
     page: filters.page
   };

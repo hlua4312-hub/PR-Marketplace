@@ -640,9 +640,6 @@ class SupabaseMarketplaceClient {
     if (filters.listingType && filters.listingType !== 'all') {
       query = query.eq('listing_type', filters.listingType);
     }
-    if (filters.urgentOnly) {
-      query = query.eq('is_urgent', true);
-    }
     if (filters.conditions && filters.conditions.length) {
       query = query.in('condition', filters.conditions);
     }
@@ -673,10 +670,6 @@ class SupabaseMarketplaceClient {
       case 'price_asc':  query = query.order('price', { ascending: true }); break;
       case 'price_desc': query = query.order('price', { ascending: false }); break;
       case 'oldest':     query = query.order('created_at', { ascending: true }); break;
-      case 'urgent':
-        query = query.order('is_urgent', { ascending: false })
-                     .order('created_at', { ascending: false });
-        break;
       default:           query = query.order('created_at', { ascending: false });
     }
 
@@ -717,9 +710,7 @@ class SupabaseMarketplaceClient {
       price: listingType === 'free' ? 0 : (Number.parseFloat(itemData.price) || 0),
       condition: itemData.condition,
       location: itemData.location,
-      pickup_spot: itemData.pickupSpot || null,
       barter_want: listingType === 'barter' ? (itemData.barterWant || null) : null,
-      is_urgent: Boolean(itemData.isUrgent),
       description: itemData.description || null,
       image_url: itemData.imageUrl || null,
       image_urls: itemData.imageUrls || (itemData.imageUrl ? [itemData.imageUrl] : []),
@@ -745,8 +736,6 @@ class SupabaseMarketplaceClient {
     if (patch.category !== undefined)       row.category = patch.category;
     if (patch.condition !== undefined)      row.condition = patch.condition;
     if (patch.location !== undefined)       row.location = patch.location;
-    if (patch.pickupSpot !== undefined)     row.pickup_spot = patch.pickupSpot || null;
-    if (patch.isUrgent !== undefined)       row.is_urgent = Boolean(patch.isUrgent);
     if (patch.description !== undefined)    row.description = patch.description || null;
     if (patch.imageUrl !== undefined)       row.image_url = patch.imageUrl;
     if (patch.imageUrls !== undefined)      row.image_urls = patch.imageUrls || [];
@@ -865,9 +854,7 @@ class SupabaseMarketplaceClient {
       price: Number(row.price),
       condition: row.condition,
       location: row.location,
-      pickupSpot: row.pickup_spot || '',
       barterWant: row.barter_want || '',
-      isUrgent: Boolean(row.is_urgent),
       description: row.description,
       imageUrl: row.image_url || gallery[0] || null,
       imageUrls: gallery,

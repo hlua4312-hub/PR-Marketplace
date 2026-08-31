@@ -63,9 +63,7 @@ export function initSell(injected) {
       condition: document.getElementById('itemCondition'),
       price: document.getElementById('itemPrice'),
       location: document.getElementById('itemLocation'),
-      pickupSpot: document.getElementById('itemPickupSpot'),
       barterWant: document.getElementById('itemBarterWant'),
-      urgent: document.getElementById('itemUrgent'),
       description: document.getElementById('itemDescription'),
       sellerName: document.getElementById('sellerName'),
       sellerPhone: document.getElementById('sellerPhone'),
@@ -123,9 +121,7 @@ export function openEditModal(item) {
   els.fields.condition.value = item.condition || 'Good';
   els.fields.price.value = item.price ?? '';
   els.fields.location.value = item.location || '';
-  els.fields.pickupSpot.value = item.pickupSpot || '';
   els.fields.barterWant.value = item.barterWant || '';
-  els.fields.urgent.checked = Boolean(item.isUrgent);
   els.fields.description.value = item.description || '';
   els.fields.sellerName.value = item.sellerName || '';
   els.fields.sellerPhone.value = item.sellerPhone || '';
@@ -439,9 +435,7 @@ function readForm() {
     condition: f.condition.value,
     price: free ? 0 : f.price.value,
     location: f.location.value.trim(),
-    pickupSpot: f.pickupSpot.value.trim(),
     barterWant: draft.listingType === 'barter' ? f.barterWant.value.trim() : '',
-    isUrgent: Boolean(f.urgent.checked),
     description: f.description.value.trim(),
     sellerName: f.sellerName.value.trim(),
     sellerPhone: f.sellerPhone.value.trim(),

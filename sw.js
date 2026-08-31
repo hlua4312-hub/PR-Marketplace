@@ -6,7 +6,7 @@
  * anything going to Supabase always goes to the network.
  */
 
-const VERSION = 'v13';
+const VERSION = 'v14';
 const SHELL_CACHE = `campuscart-shell-${VERSION}`;
 const IMAGE_CACHE = `campuscart-images-${VERSION}`;
 const MAX_CACHED_IMAGES = 60;

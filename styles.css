@@ -4843,46 +4843,6 @@ html {
 
 /* ------------------------------------------------------ leaving campus --- */
 
-.urgent-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 11px 13px;
-  margin-bottom: 14px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-card);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.urgent-row:has(input:checked) {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-.urgent-row input[type="checkbox"] {
-  width: 17px;
-  height: 17px;
-  margin-top: 2px;
-  flex-shrink: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.urgent-row strong {
-  display: block;
-  font-size: 0.84rem;
-  color: var(--text-main);
-}
-
-.urgent-row em {
-  display: block;
-  font-style: normal;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
 .checkbox-chip.wide { grid-column: 1 / -1; }
 
 /* ---------------------------------------------------------- feed cards --- */
@@ -4901,20 +4861,6 @@ html {
   font-size: 0.7rem;
   color: var(--text-muted);
   margin-top: 2px;
-}
-
-.urgent-badge {
-  position: absolute;
-  top: 8px;
-  right: 40px;
-  z-index: 2;
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  padding: 3px 7px;
-  border-radius: var(--radius-full);
 }
 
 .photo-count-badge {
@@ -5010,13 +4956,6 @@ html {
   background: color-mix(in srgb, var(--secondary) 14%, transparent);
   color: var(--secondary);
 }
-
-.tag-urgent {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--warning);
-}
-
-.detail-pickup strong { color: var(--text-main); }
 
 /* -------------------------------------------------------- seller card --- */
 

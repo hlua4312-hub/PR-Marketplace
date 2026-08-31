@@ -95,21 +95,6 @@ export function renderSellAreaOptions(select) {
   ].join('');
 }
 
-/**
- * Where the handover happens. "Somewhere else" stays on the list because a
- * picker with no way out gets answered with whichever option is nearest the
- * truth, and a wrong meeting point is worse than a blank one.
- */
-export function renderPickupOptions(select) {
-  if (!select) return;
-  select.innerHTML = [
-    '<option value="">No preference — we\'ll agree in chat</option>',
-    ...(campus().pickupSpots || []).map(
-      spot => `<option value="${escapeHtml(spot)}">${escapeHtml(spot)}</option>`
-    ),
-    '<option value="Somewhere else">Somewhere else</option>'
-  ].join('');
-}
 
 /* ============================================================= the profile === */
 
@@ -169,7 +154,6 @@ export function initCampus() {
   renderCategoryOptions(document.getElementById('itemCategory'),
                         document.getElementById('itemCategoryHint'));
   renderSellAreaOptions(document.getElementById('itemLocation'));
-  renderPickupOptions(document.getElementById('itemPickupSpot'));
   renderDepartmentOptions(document.getElementById('profileDepartment'));
   renderYearOptions(document.getElementById('profileYear'));
   applyCampusLabels();

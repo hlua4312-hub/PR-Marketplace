@@ -29,7 +29,6 @@ export function initFeed({ onOpenItem, onLeaveBoard }) {
     clearSearch: document.getElementById('clearSearchBtn'),
     categories: document.getElementById('categoriesNav'),
     modeTabs: document.getElementById('listingTypeTabs'),
-    urgentOnly: document.getElementById('filterUrgentOnly'),
     location: document.getElementById('locationSelect'),
     sort: document.getElementById('sortSelect'),
     priceRange: document.getElementById('priceRange'),
@@ -217,7 +216,6 @@ function cardMarkup(item, favIds, currentUser) {
           ? '<span class="condition-badge sold-badge">SOLD</span>'
           : `<span class="condition-badge">${escapeHtml(item.condition)}</span>`}
         ${isMine ? '<span class="owner-badge">Your listing</span>' : ''}
-        ${!isSold && item.isUrgent ? '<span class="urgent-badge">Leaving campus</span>' : ''}
         ${extraPhotos > 0 ? `<span class="photo-count-badge">+${extraPhotos}</span>` : ''}
 
         <button class="fav-btn ${isFav ? 'active' : ''}" data-fav="${escapeHtml(item.id)}"
@@ -241,7 +239,7 @@ function cardMarkup(item, favIds, currentUser) {
           ${priceLine}
           <span class="card-location">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
-            ${escapeHtml(item.pickupSpot || item.location || '')}
+            ${escapeHtml(item.location || '')}
           </span>
         </div>
 
@@ -465,7 +463,6 @@ function wireFilters() {
     setFilter({
       conditions,
       maxPrice: raw >= PRICE_SLIDER_MAX ? null : raw,
-      urgentOnly: Boolean(els.urgentOnly?.checked),
       sort: els.sort?.value || 'newest'
     });
 
@@ -510,7 +507,6 @@ export function syncFilterControls() {
   }
   if (els.sort) els.sort.value = filters.sort;
   if (els.location) els.location.value = filters.location;
-  if (els.urgentOnly) els.urgentOnly.checked = filters.urgentOnly;
   syncModeTabs();
 
   document.querySelectorAll('input[name="condition"]').forEach(input => {
@@ -529,11 +525,10 @@ function renderActiveFilters() {
   filters.conditions.forEach(c => tags.push(c));
   if (filters.maxPrice !== null) tags.push(`Under ${formatPrice(filters.maxPrice)}`);
   if (filters.location !== 'all') tags.push(filters.location);
-  if (filters.urgentOnly) tags.push('Leaving campus');
   if (filters.sort !== 'newest') {
     const labels = {
       price_asc: 'Cheapest first', price_desc: 'Priciest first',
-      oldest: 'Oldest first', urgent: 'Urgent first'
+      oldest: 'Oldest first'
     };
     tags.push(labels[filters.sort] || filters.sort);
   }
